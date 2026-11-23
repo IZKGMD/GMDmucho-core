@@ -6,9 +6,7 @@ declare(strict_types=1);
 ob_start();
 function mucho7_admin_clean_response()
 {
-    while (ob_get_level()>0) {
-        if (!ob_end_clean()) { throw new RuntimeException('Unable to prepare a clean response.'); }
-    }
+    mucho7_clear_output_buffers();
 }
 header('Content-Type: text/html; charset=utf-8');
 header('Cache-Control: no-store, private');

@@ -346,6 +346,19 @@ class ApacheTests(unittest.TestCase):
         self.assertIn(b"# BEGIN MUCHOCORE 5V.PL ROUTES", result)
         with self.assertRaises(InstallError):
             merge_rules(result, self.rules)
+        self.assertEqual(merge_rules(result, self.rules, resume=True), result)
+    def test_routes_cover_the_native_client_root_fallbacks(self):
+        inventory = (ROOT / "tests/compat/php7-gd2209-client-route-inventory.php").read_text()
+        names = re.findall(r"'([A-Za-z0-9]+\.php)',", inventory.split("$names = array(", 1)[1].split(");", 1)[0])
+        self.assertEqual(len(names), 114)
+        rules = merge_rules(b"", self.rules).decode().splitlines()
+        patterns = [re.compile(line.split()[1], re.I) for line in rules if line.startswith("RewriteRule ")]
+        for name in names:
+            with self.subTest(name=name):
+                self.assertTrue(any(pattern.fullmatch(name) for pattern in patterns))
+        self.assertFalse(any(pattern.fullmatch("index.php") for pattern in patterns))
+        fallback = next(index for index, line in enumerate(rules) if "accountManagement" in line)
+        self.assertEqual(rules[fallback - 1], "RewriteCond %{REQUEST_FILENAME} !-f")
     def test_reject_malformed_package_rules(self):
         with self.assertRaises(InstallError):
             merge_rules(b"", b"RewriteRule ^wrong$ bad.php [L]")

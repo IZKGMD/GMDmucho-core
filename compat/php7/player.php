@@ -76,7 +76,7 @@ function mucho7_music_send($file,$method,$server)
         }
         if($first>0 && fseek($stream,$first)!==0){http_response_code(500);return;}
         @ini_set('zlib.output_compression','0');
-        while(ob_get_level()>0)ob_end_clean();
+        mucho7_clear_output_buffers();
         header('Content-Type: audio/mpeg');
         header('Cache-Control: no-store, private, no-transform');
         header('Accept-Ranges: bytes');

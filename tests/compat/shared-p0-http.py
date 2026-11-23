@@ -67,6 +67,8 @@ def run(php, report):
         # No request header can choose this behavior in the deployed runtime.
         router.write_text("<?php require __DIR__.'/mail-sink.php'; $_SERVER['HTTPS']='on';"
                           "$_SERVER['SCRIPT_NAME']='/mc/public/php7.php';"
+                          "ob_start(null,0,PHP_OUTPUT_HANDLER_CLEANABLE|PHP_OUTPUT_HANDLER_FLUSHABLE);"
+                          "if(strpos($_SERVER['REQUEST_URI'],'/lost')!==false)date_default_timezone_set('Pacific/Honolulu');"
                           "header('X-P0-OPcache: '.(function_exists('opcache_get_status')&&opcache_get_status(false)!==false?'enabled':'missing'));"
                           "require __DIR__.'/public/php7.php';")
         servers, logs, ports = [], [], []
@@ -646,6 +648,8 @@ def run(php, report):
                     "Account rate limit failed closed")
             checks.append("native-account-management/mount/cookie/csrf/current-password/no-gjp2/banned/read-only/revocation/audit/rollback/rate-limit")
             checks.append(check_email_recovery(post, fixture, root, ports[0], require))
+            fixture("email-recovery-atomic")
+            checks.append("recovery-token-replacement-rollback")
             fixture("creator-install")
             creator_url = "http://127.0.0.1:%d/mc/extensions/creator-events" % ports[0]
             for readonly in (False, True):
