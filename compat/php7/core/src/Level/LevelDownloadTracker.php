@@ -5,6 +5,7 @@ namespace MuchoCore\Level;
 
 use MuchoCore\Core\Environment;
 use PDO;
+use PDOException;
 use RuntimeException;
 use Throwable;
 final class LevelDownloadTracker
@@ -25,64 +26,75 @@ final class LevelDownloadTracker
         $clientHash = hash_hmac('sha256', $clientIp, $this->hashKey());
         $window = (int) (Environment::get('MUCHO_DOWNLOAD_DEDUP_SECONDS', '300') ?? '300');
         $window = max(30, min(604800, $window));
-        // PHP7 shared workers can race on an empty (level_id,client_hash)
-        // range when DELETE runs before INSERT IGNORE. Test for actual
-        // expired rows first; absent rows need no gap-locking DELETE.
-        // Retry only MariaDB deadlock/lock-timeout failures, never auth,
-        // permission, SQL syntax or other unexpected errors.
-        for ($attempt = 0; $attempt < 5; $attempt++) {
-          try {
+        // A saturated window cannot add a download. Check its two indexed
+        // slots without opening a write transaction or locking a popular level.
+        $slots = $this->pdo->prepare('SELECT COUNT(*) FROM mucho_level_downloads
+             WHERE level_id=:level_id
+               AND client_hash=:client_hash
+               AND created_at >= (CURRENT_TIMESTAMP - INTERVAL ' . $window . ' SECOND)');
+        $slots->execute(['level_id' => $levelId, 'client_hash' => $clientHash]);
+        if ((int) $slots->fetchColumn() >= 2) {
+            return false;
+        }
+        for ($attempt = 0;; $attempt++) {
             $this->pdo->beginTransaction();
-            $expired = $this->pdo->prepare('SELECT slot FROM mucho_level_downloads
-                 WHERE level_id=:level_id AND client_hash=:client_hash
-                   AND created_at < (CURRENT_TIMESTAMP - INTERVAL ' . $window . ' SECOND)
-                 LIMIT 1');
-            $expired->execute(['level_id' => $levelId, 'client_hash' => $clientHash]);
-            if ($expired->fetchColumn() !== false) {
-                $delete = $this->pdo->prepare('DELETE FROM mucho_level_downloads
-                     WHERE level_id=:level_id AND client_hash=:client_hash
-                       AND created_at < (CURRENT_TIMESTAMP - INTERVAL ' . $window . ' SECOND)');
-                $delete->execute(['level_id' => $levelId, 'client_hash' => $clientHash]);
-            }
-            /*
-             * Keep two bounded slots for compatibility with clients that may
-             * legitimately issue a paired download request. INSERT IGNORE
-             * makes the first-seen path race-safe across PHP workers.
-             */
-            for ($slot = 1; $slot <= 2; $slot++) {
-                $insert = $this->pdo->prepare('INSERT IGNORE INTO mucho_level_downloads
-                     (level_id,client_hash,slot)
-                     VALUES (:level_id,:client_hash,:slot)');
-                $insert->execute(['level_id' => $levelId, 'client_hash' => $clientHash, 'slot' => $slot]);
-                if ($insert->rowCount() !== 1) {
+            try {
+                $counted = $this->claimDownload($levelId, $clientHash, $window);
+                $this->pdo->commit();
+                return $counted;
+            } catch (Throwable $error) {
+                if ($this->pdo->inTransaction()) {
+                    $this->pdo->rollBack();
+                }
+                $driverCode = $error instanceof PDOException ? (int) ($error->errorInfo[1] ?? 0) : 0;
+                if ($attempt < 3 && ($error->getCode() === '40001' || $driverCode === 1213 || $driverCode === 1205)) {
+                    usleep(2000 * (1 << $attempt) + random_int(0, 3000));
                     continue;
                 }
-                $update = $this->pdo->prepare('UPDATE levels
-                     SET downloads=downloads+1
-                     WHERE level_id=:level_id
-                       AND is_deleted=0');
-                $update->execute(['level_id' => $levelId]);
-                if ($update->rowCount() !== 1) {
-                    throw new RuntimeException('Download target disappeared during counter update.');
-                }
-                $this->pdo->commit();
-                return true;
+                throw new RuntimeException('Download counter transaction failed.', 0, $error);
             }
-            $this->pdo->commit();
+        }
+    }
+    private function claimDownload(int $levelId, string $clientHash, int $window): bool
+    {
+        // Take the same level lock before touching any slots. All counters for
+        // this level update that row anyway. Establish a consistent lock order.
+        $level = $this->pdo->prepare('SELECT level_id FROM levels WHERE level_id=? AND is_deleted=0 FOR UPDATE');
+        $level->execute([$levelId]);
+        if ($level->fetchColumn() === false) {
             return false;
-          } catch (Throwable $e) {
-            if ($this->pdo->inTransaction()) {
-                try { $this->pdo->rollBack(); } catch (Throwable $rollback) { /* already rolled back by MariaDB */ }
-            }
-            $state = $e instanceof \PDOException ? (string) $e->getCode() : '';
-            $code = $e instanceof \PDOException && isset($e->errorInfo[1])
-                ? (int) $e->errorInfo[1] : 0;
-            if ($attempt < 4 && ($state === '40001' || $code === 1213 || $code === 1205)) {
-                usleep(2000 * (1 << $attempt) + random_int(0, 3000));
+        }
+        $params = ['level_id' => $levelId, 'client_hash' => $clientHash];
+        $clientSlots = $this->pdo->prepare('SELECT slot, created_at >= (CURRENT_TIMESTAMP - INTERVAL ' . $window . ' SECOND) AS active
+             FROM mucho_level_downloads WHERE level_id=:level_id AND client_hash=:client_hash');
+        $clientSlots->execute($params);
+        $knownSlots = $clientSlots->fetchAll(PDO::FETCH_KEY_PAIR);
+        $activeSlots = array_filter($knownSlots);
+        if (count($activeSlots) >= 2) {
+            return false;
+        }
+        if (count($activeSlots) !== count($knownSlots)) {
+            $delete = $this->pdo->prepare('DELETE FROM mucho_level_downloads
+                 WHERE level_id=:level_id
+                   AND client_hash=:client_hash
+                   AND created_at < (
+                       CURRENT_TIMESTAMP - INTERVAL ' . $window . ' SECOND
+                   )');
+            $delete->execute($params);
+        }
+        // Keep the unique-key backstop when other runtimes use the same table.
+        $insert = $this->pdo->prepare('INSERT IGNORE INTO mucho_level_downloads
+             (level_id,client_hash,slot) VALUES (:level_id,:client_hash,:slot)');
+        for ($slot = 1; $slot <= 2; $slot++) {
+            if (isset($activeSlots[$slot])) {
                 continue;
             }
-            throw new RuntimeException('Download counter transaction failed.', 0, $e);
-          }
+            $insert->execute($params + ['slot' => $slot]);
+            if ($insert->rowCount() === 1) {
+                $update = $this->pdo->prepare('UPDATE levels SET downloads=downloads+1 WHERE level_id=?');
+                $update->execute([$levelId]);
+                return true;
+            }
         }
         return false;
     }

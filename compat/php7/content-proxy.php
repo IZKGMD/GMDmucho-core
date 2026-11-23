@@ -9,10 +9,10 @@ function mucho7_content_request($uri,$method,$server)
     $path=rawurldecode(substr($path,12));
     if($path===''||$path[0]==='/'||strlen($path)>600||!preg_match('~^[A-Za-z0-9_./ -]+$~D',$path)||preg_match('~(?:^|/)\.{1,2}(?:/|$)~',$path)||strpos($path,'//')!==false)throw new InvalidArgumentException('Invalid asset path.');
     $headers=array('Accept-Encoding: identity','User-Agent: MuchoCore-Shared/1');
-    foreach(array('HTTP_RANGE'=>'Range','HTTP_IF_NONE_MATCH'=>'If-None-Match','HTTP_IF_MODIFIED_SINCE'=>'If-Modified-Since') as $key=>$name){
+    foreach(array('HTTP_RANGE'=>'Range','HTTP_IF_RANGE'=>'If-Range','HTTP_IF_NONE_MATCH'=>'If-None-Match','HTTP_IF_MODIFIED_SINCE'=>'If-Modified-Since') as $key=>$name){
         if(!isset($server[$key]))continue;$value=$server[$key];
         if(!is_string($value)||strlen($value)>180||preg_match('/[\r\n\x00-\x1f]/',$value))throw new InvalidArgumentException('Invalid asset header.');
-        if($key==='HTTP_RANGE'&&!preg_match('/^bytes=\d{1,12}-\d{0,12}$/D',$value))throw new InvalidArgumentException('Unsupported byte range.');
+        if($key==='HTTP_RANGE'&&!preg_match('/^bytes=(?:\d{1,12}-\d{0,12}|-\d{1,12})$/D',$value))throw new InvalidArgumentException('Unsupported byte range.');
         $headers[]=$name.': '.$value;
     }
     return array('url'=>'https://geometrydashfiles.b-cdn.net/'.implode('/',array_map('rawurlencode',explode('/',$path))),'method'=>$method,'headers'=>$headers);
