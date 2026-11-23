@@ -22,7 +22,7 @@ import urllib.parse
 import urllib.request
 import zlib
 from shared_account_email import check_email_recovery
-from shared_player_dashboard import check_player_dashboard
+from shared_player_dashboard import check_music_delivery, check_player_dashboard
 
 REPO = Path(__file__).resolve().parents[2]
 PASSWORD = "P0Fixture-1!"
@@ -122,6 +122,22 @@ def run(php, report):
 
             check_player_dashboard("http://127.0.0.1:%d" % ports[0], fixture)
             checks.append("player-dashboard/login/profile/clans/mount/csrf/read-only")
+            check_music_delivery("http://127.0.0.1:%d" % ports[0], fixture)
+            checks.append("shared-music/head/single-range/suffix/if-range/unverified")
+            marker = root / "config/php7-complete.on"
+            marker.unlink()
+            fixture("read-only")
+            try:
+                require(post("/database/accounts/registerGJAccount.php", dict(
+                    VERSION, userName="ReadOnlyLegacy", password=PASSWORD,
+                    email="legacy-readonly@example.invalid")) == "-1",
+                    "Legacy registration ignored the read-only switch")
+                require(fixture("inspect")["accounts"] == 4,
+                        "Legacy registration wrote an account while read-only")
+            finally:
+                fixture("writable")
+                marker.write_text("1")
+            checks.append("native-pre-migration-registration-read-only")
             login = dict(VERSION, userName="P0Owner", password=PASSWORD)
             require(post("/a/accounts/loginGJAccount22.php", login, "account.login") == "1,101", "Password login IDs")
             require(post("/database/loginGJAccount20.php", dict(VERSION, userName="P0Owner", gjp2=GJP2)) == "1,101", "GJP2 login")
@@ -284,6 +300,16 @@ def run(php, report):
 
             # Three independent PHP processes exercise real simultaneous DB access,
             # including on PHP 7.0 (which has no CLI server worker pool).
+            baseline_downloads = fixture("inspect")
+            fixture("download-counter-fail")
+            try:
+                require(post("/a/downloadGJLevel22.php", dict(download_request, inc=1)).startswith("1:" + level + ":"),
+                        "Counter failure must not break a valid level response")
+                require(fixture("inspect") == baseline_downloads,
+                        "Counter failure must leave the download transaction unchanged")
+            finally:
+                fixture("download-counter-restore")
+
             def concurrent_download(index):
                 return post("/a/downloadGJLevel22.php", dict(download_request, inc=1), worker=index % 3)
             with ThreadPoolExecutor(max_workers=6) as pool:

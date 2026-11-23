@@ -41,6 +41,29 @@ $settings=require $settingsPath;$name=$settings['database'];
 if(!preg_match('/^mc_p0_http_[a-f0-9]{12}$/D',$name))throw new RuntimeException('Invalid disposable database name.');
 if($mode==='drop'){$server->exec('DROP DATABASE IF EXISTS '.$name);exit;}
 $db=new PDO($dsn.';dbname='.$name,'root',$password,$options);
+$db->exec("SET time_zone='+00:00'");
+if($mode==='music-seed'){
+    $id=731;
+    $leaf=str_repeat('a',40).'.mp3';
+    $url=$settings['site_url'].'/mc/music/'.$leaf;
+    $db->prepare('INSERT INTO songs(id,name,author_name,size,download_url,is_verified) VALUES(?,?,?,?,?,1)')
+        ->execute(array($id,'Shared fixture track','Fixture artist',1.25,$url));
+    if(!is_dir($stage.'/storage/music-public'))mkdir($stage.'/storage/music-public',0700,true);
+    file_put_contents($stage.'/storage/music-public/'.$leaf,'ID3'.str_repeat('0123456789',100));
+    exit;
+}
+if($mode==='music-unverify'){
+    $db->exec('UPDATE songs SET is_verified=0 WHERE id=731');
+    exit;
+}
+if($mode==='download-counter-fail'){
+    $db->exec("CREATE TRIGGER fixture_download_failure BEFORE INSERT ON mucho_level_downloads FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Fixture counter failure'");
+    exit;
+}
+if($mode==='download-counter-restore'){
+    $db->exec('DROP TRIGGER fixture_download_failure');
+    exit;
+}
 if($mode==='creator-install'){(new \MuchoCore\CreatorEvents\CreatorEventsService($db))->install();exit;}
 if($mode==='email-recovery-inspect'){
     $id=(int)$db->query("SELECT account_id FROM accounts WHERE username='P0MailUser'")->fetchColumn();
