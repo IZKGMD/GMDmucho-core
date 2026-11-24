@@ -37,7 +37,7 @@ final class CvoltonDatabaseImporter
     {
         $this->requireSourceTables($source, ['accounts', 'users', 'levels']);
         $this->requireSourceSchema($source);
-        return ['accounts' => $this->count($source, 'accounts'), 'users' => $this->count($source, 'users'), 'levels' => $this->count($source, 'levels'), 'levelscores' => $this->sourceTableExists($source, 'levelscores') ? $this->count($source, 'levelscores') : 0, 'platscores' => $this->sourceTableExists($source, 'platscores') ? $this->count($source, 'platscores') : 0];
+        return ['accounts' => $this->count($source, 'accounts'), 'users' => $this->count($source, 'users'), 'levels' => $this->count($source, 'levels'), 'levelscores' => $this->sourceTableExists($source, 'levelscores') ? $this->count($source, 'levelscores') : 0, 'platscores' => $this->sourceTableExists($source, 'platscores') ? $this->count($source, 'platscores') : 0] + (new CvoltonContentImporter($this->target))->preflight($source);
     }
     public function apply(PDO $source): array
     {
@@ -53,7 +53,7 @@ final class CvoltonDatabaseImporter
         if ($this->sourceTableExists($source, 'platscores')) {
             $this->importPlatformerScores($source, $stats);
         }
-        return $stats;
+        return $stats + (new CvoltonContentImporter($this->target))->apply($source);
     }
     private function importAccounts(PDO $source, array &$stats)
     {

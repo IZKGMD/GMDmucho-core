@@ -1,5 +1,5 @@
 {
-  "public/admin/core/AdminChrome.php": "726d5e60a6399b1072fc89f45cab4d5289e21e13f258d6b4e5decf6fcbe5ee11",
+  "public/admin/core/AdminChrome.php": "ff064ae5b90bd9814e370007665c11e3b14bbf8563d2248ae29dc772db6a30ee",
   "public/admin/core/navigation.php": "4503c88a48428e77fbcf1f2f88fe275ec9efd50d14cd155d5768ecb6bf315251",
   "public/admin/core/plain-shell.php": "407118a609ecadc236de18959bd171967a7289605db6934f128dd6afa938076b",
   "public/admin/pages/dashboard.php": "29792be6477751be82499eb68aa2cbf0e67a4b32f04912cd7370030bed4be99e",
@@ -8,7 +8,7 @@
   "public/admin/pages/songs.php": "5b9b44288bc35c9b7dece425648a4d5538f86a15a9584cc75c9cb731ca98fba1",
   "public/admin/pages/rating.php": "c9d110cc0682a749308c04160f89b0ed068c3d4025f44ae8fe1c8b8b14bc273f",
   "public/admin/pages/news.php": "c7beccd72c2c0ba88a904f259f87b9eb5f28ef7d293aa700d953a8d99ae57446",
-  "public/admin/index.php": "951d11afbbc9e0e97ed04bfa8fa562730ffa2a44cc04713f54db4169cb39fa39",
+  "public/admin/index.php": "4ce6f4fb9cd114ab1688bc2215507a92107a0cdb2db6cdbd4d92700fe890e933",
   "public/admin/core/AdminUi.php": "46ca3fcbe33977eb68d613b2844e34e651ffc6db82ed73a2c66d843af1c71afd",
   "public/admin/admin-ui-v2.css": "476c2407b1688c14ff0985a4cf6aec1090195b4a1ae738d4b664878d0ef3fee4",
   "public/admin/admin-i18n.css": "480e15f8571ac21d6d66ba45324c217c621645bd0c7b2e5dd3936c7a2cf595aa",
@@ -23,7 +23,7 @@
   "public/assets/product-ui.css": "c38c8a8f5c624377b3c3629381a917fbae6fe644f86752fa9d96e77e3ca9c954",
   "public/muchocore-theme.css": "cd2a79748a5bc9b1bba85aaab3b2257af2d66b7f2e4ddbb65bb3bb6c28fccf4b",
   "public/muchocore-theme.js": "392b07cf2a52821fc68ec87724948b0565d828d9a9a663bf5b07b0e228804370",
-  "public/admin/config/pages.php": "8cd26aab9b217cdc23a3de444473bc3eee19e971c3e1f682808a2e5514bb6bab",
+  "public/admin/config/pages.php": "0fdc784746ca1709f732305fe1927e9d87c30dad757ebf11d54cc1e0e6a9a7d2",
   "src/News/NewsService.php": "120898ff4a38fff02716cc769c956bff1d1b4a5905f396afa372e666cc1142c7",
   "src/News/NewsMediaService.php": "a0774da7338af7befce6b07653cbad9860f7729442016823fd305f92c056f7d2",
   "src/News/NewsImage.php": "98e2174030a82f9e9f6f301afce68235911d0ca3d9f6bfbc77c9f19ab8d7c2a9",
@@ -36,7 +36,7 @@
   "database/migrations/20261017_001_news_media.php": "45e4b79a579279b6eac987488bbe886b1906a3141760201dbf2b3e3a53151597",
   "public/admin/actions/news.php": "acaa0ea1ca080c34dd82d156f13526e1cd010c85310265bcc65754333520ad0c",
   "public/admin/assets/qrcode.min.js": "c541ef06327885a8415bca8df6071e14189b4855336def4f36db54bde8484f36",
-  "src/Admin/AdminRbac.php": "69fce495608f83a02fdd9df10f46117b0c008db7b70d18bf29478c494d35ecd6",
+  "src/Admin/AdminRbac.php": "ea9ab77ce33c08fbf8193bdeb95125f9f7137b39f8c31e2d139f5a491b2abaac",
   "src/Backup/DatabaseBackupService.php": "df8d9c37f191043b3557f3a5372f7bb712396fb84ae55f6a440b915984834a01",
   "public/admin/db-backup-center-module.php": "37de0bcc01eddc5152595c26135a78faadda75447b5bc32d5378a32838a9b014"
 }

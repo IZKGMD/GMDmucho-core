@@ -2789,6 +2789,10 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             require __DIR__.'/actions/contentpacks.php';
         }
 
+        if (in_array($action,['demonlist-level','demonlist-review'],true)) {
+            require __DIR__.'/actions/demonlist.php';
+        }
+
         if (str_starts_with($action,'client-patcher-')) {
             handleClientPatcherAction($db,$rootDir,$action);
         }

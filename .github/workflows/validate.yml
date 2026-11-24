@@ -692,7 +692,9 @@ jobs:
           TEST_DB_HOST: 127.0.0.1
           TEST_DB_PORT: 3306
           TEST_DB_ROOT_PASSWORD: ci-migration-root
-        run: php tests/application/cvolton-migration-integration.php
+        run: |
+          php tests/application/cvolton-migration-integration.php
+          php tests/application/migration-demonlist-integration.php
 
       - name: Verify PHP 8 registration race responses, GJP2 and transaction rollback
         env:

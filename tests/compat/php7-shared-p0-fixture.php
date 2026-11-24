@@ -42,6 +42,25 @@ if(!preg_match('/^mc_p0_http_[a-f0-9]{12}$/D',$name))throw new RuntimeException(
 if($mode==='drop'){$server->exec('DROP DATABASE IF EXISTS '.$name);exit;}
 $db=new PDO($dsn.';dbname='.$name,'root',$password,$options);
 $db->exec("SET time_zone='+00:00'");
+if($mode==='demonlist-seed'){
+    $db->exec("INSERT INTO levels(level_id,account_id,name,description,level_data,demon)
+        VALUES (951,1,'Shared Demon','','kS1,1;',1)");
+    (new \MuchoCore\Demonlist\DemonlistService($db))->saveLevel(951,1,true);
+    exit;
+}
+if($mode==='demonlist-approve'){
+    $list=new \MuchoCore\Demonlist\DemonlistService($db);
+    $pending=$list->pending();
+    if(count($pending)!==1||!$list->review((int)$pending[0]['id'],1,true))throw new RuntimeException('Demonlist approval failed.');
+    exit;
+}
+if($mode==='demonlist-clear'){
+    $db->exec('DELETE FROM mucho_demonlist_records WHERE level_id=951');
+    $db->exec('DELETE FROM mucho_demonlist_levels WHERE level_id=951');
+    $db->exec('DELETE FROM levels WHERE level_id=951');
+    $db->exec('ALTER TABLE levels AUTO_INCREMENT=1');
+    exit;
+}
 if($mode==='music-seed'){
     $id=731;
     $leaf=str_repeat('a',40).'.mp3';
