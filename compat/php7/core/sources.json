@@ -216,7 +216,7 @@
   "src/LevelList/LevelListController.php": "bddbb094abea2aa7f4b5a2e853c0bcab144871884a2d2bbc632c913328cc8ea8",
   "src/LevelList/LevelListRepository.php": "b8b60f97800050dd03bbe330c25e9639eebeb1b48dab456f2ff82a87e7764897",
   "src/LevelList/LevelListService.php": "0e2bbe870443670941dce2581b60da12c885696d071b2648db22433f7e9402e2",
-  "src/Migration/CvoltonContentImporter.php": "2a1656999a06142997f786f5d91a7c331227ec8c7ac58519e979fb1c5c5ba3ed",
+  "src/Migration/CvoltonContentImporter.php": "9204c9001f8c96e7c8616b038f16e9a700e252481b094cd2b6b82e70a290dbc4",
   "src/Migration/CvoltonDatabaseImporter.php": "43e1413f8fc16617e9674d66daff6e7551a64f410abc504a51da921365faf3b8",
   "src/Migration/CvoltonMigrationAdapter.php": "fba8d3bae7eaaafbe29bec2a881049d6e20b3481585e51d71f9b3013478c21da",
   "src/Migration/MigrationAdapterInterface.php": "de4aa3b4fdb91734a0601590c6b2fc095707211792a0cab1bced1d1306371db7",

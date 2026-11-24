@@ -35,7 +35,7 @@ final class CvoltonContentImporter
                 continue;
             }
             if (in_array($table, ['comments', 'acccomments'], true)
-                && !isset($available['users']['userid'])) {
+                && !isset($available['users']['userid'], $available['users']['extid'])) {
                 $plan[$table] = false;
                 continue;
             }
@@ -57,12 +57,6 @@ final class CvoltonContentImporter
     public function apply(PDO $source): array
     {
         $stats = [];
-        $mapped = $this->target->prepare(
-            'SELECT target_id FROM mucho_cvolton_content_map WHERE dataset=? AND source_id=?'
-        );
-        $remember = $this->target->prepare(
-            'INSERT INTO mucho_cvolton_content_map (dataset,source_id,target_id) VALUES (?,?,?)'
-        );
         foreach ($this->plan($source) as $table => $compatible) {
             $stats[$table . '_imported'] = 0;
             $stats[$table . '_skipped'] = 0;
@@ -71,6 +65,12 @@ final class CvoltonContentImporter
                 $stats[$table . '_skipped'] = (int)$source->query('SELECT COUNT(*) FROM ' . $table)->fetchColumn();
                 continue;
             }
+            $mapped = $this->target->prepare(
+                'SELECT target_id FROM mucho_cvolton_content_map WHERE dataset=? AND source_id=?'
+            );
+            $remember = $this->target->prepare(
+                'INSERT INTO mucho_cvolton_content_map (dataset,source_id,target_id) VALUES (?,?,?)'
+            );
             $id = self::DATASETS[$table][0];
             $comments = in_array($table, ['comments', 'acccomments'], true);
             $columns = $comments ? 'x.*, u.extID AS source_account' : 'x.*';
