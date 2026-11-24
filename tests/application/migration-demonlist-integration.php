@@ -43,8 +43,12 @@ try {
     $target->exec('INSERT INTO mucho_cvolton_account_map VALUES (1,33)');
     $target->exec('INSERT INTO mucho_cvolton_level_map VALUES (3,103),(4,104),(5,105),(6,106),(7,107),(8,108)');
     foreach (['012_interactions.php','20260924_003_v71_runtime_schema.php','20260929_001_content_packs.php',
-        '20261020_001_gameplay_rotations_rewards.php','20261124_001_cvolton_content_map.php','20261124_002_demonlist.php'] as $file) {
+        '20261020_001_gameplay_rotations_rewards.php','20261124_001_cvolton_content_map.php',
+        '20261124_002_demonlist.php','20261124_003_demonlist_review.php'] as $file) {
         $file = $root.'/database/migrations/'.$file;
+        if (basename($file) === '20261124_003_demonlist_review.php') {
+            $target->exec("INSERT INTO mucho_demonlist_records (account_id,level_id,video_id,status) VALUES (33,107,'abcdefghijk','approved')");
+        }
         $migration = require ($compiled ? mucho7_compiled_include($file) : $file);
         if (is_array($migration)) {
             foreach ($migration as $sql) {
@@ -88,6 +92,8 @@ try {
     verifyContent((int)$source->query('SELECT COUNT(*) FROM comments')->fetchColumn() === 2, 'Source database changed.');
 
     $list = new DemonlistService($target);
+    verifyContent($list->playerRecord(33,107) === ['status'=>'approved','decision_note'=>''], 'Schema upgrade changed an existing record.');
+    $target->exec('DELETE FROM mucho_demonlist_records WHERE level_id=107');
     $list->saveLevel(103, 1, true);
     verifyContent(count($list->levels()) === 1, 'Published level missing.');
     try {
@@ -100,10 +106,25 @@ try {
     verifyContent(DemonlistService::videoId('https://youtube.invalid/watch?v=abcdefghijk') === null, 'Untrusted proof hostname accepted.');
     verifyContent($list->submit(34,103,$proof) && !$list->submit(34,103,$proof), 'Duplicate record submission.');
     verifyContent($list->records(103) === [], 'Unreviewed record published.');
-    $id = (int)$list->pending()[0]['id'];
-    verifyContent($list->review($id,1,false) && $list->submit(34,103,$proof), 'Rejected record cannot be resubmitted.');
-    verifyContent($list->review($id,1,true) && !$list->review($id,1,false), 'Review outcome was applied twice.');
+    $pending = $list->pending()[0];
+    $id = (int)$pending['id'];
+    $revision = (int)$pending['revision'];
+    verifyContent($list->review($id,$revision,1,'reject','Show the start of the run.'), 'Pending run could not be rejected.');
+    verifyContent($list->playerRecord(34,103)['decision_note'] === 'Show the start of the run.', 'Player did not receive review feedback.');
+    $newProof = 'https://youtu.be/12345678901';
+    verifyContent($list->submit(34,103,$newProof), 'Rejected record cannot be resubmitted.');
+    verifyContent(!$list->review($id,$revision,1,'approve',''), 'Stale approval applied to a replacement video.');
+    $newRevision = (int)$list->pending()[0]['revision'];
+    verifyContent($newRevision > $revision && $list->playerRecord(34,103)['decision_note'] === '', 'Replacement retained stale review state.');
+    verifyContent($list->review($id,$newRevision,1,'approve','') && !$list->review($id,$newRevision,1,'reject',''), 'Review outcome was applied twice.');
     verifyContent($list->records(103)[0]['username'] === 'Runner', 'Approved record missing.');
+    $approved = $list->approvedForReview(103,0)[0];
+    verifyContent($approved['video_id'] === '12345678901' && $list->approvedForReview(103,$id) === [], 'Approved review list did not return the correct proof or cursor.');
+    verifyContent($list->review($id,$newRevision,1,'revoke','Recording is no longer available.'), 'Approved record could not be removed.');
+    verifyContent($list->records(103) === [] && $list->approvedForReview(103,0) === [], 'Revoked record remained approved.');
+    verifyContent($list->submit(34,103,$newProof) && !$list->review($id,$newRevision,1,'approve',''), 'Resubmitting the same URL reused its old review revision.');
+    $latest = (int)$list->pending()[0]['revision'];
+    verifyContent($list->review($id,$latest,1,'approve',''), 'Current record could not be approved.');
     $target->exec('UPDATE levels SET is_unlisted=1 WHERE level_id=103');
     verifyContent($list->levels() === [] && $list->records(103) === [] && !$list->submit(33,103,$proof), 'Hidden level remained public.');
     echo "MUCHOCORE_CVOLTON_CONTENT_AND_DEMONLIST_OK\n";

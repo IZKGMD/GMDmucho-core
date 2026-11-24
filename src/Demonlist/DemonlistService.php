@@ -38,18 +38,27 @@ final class DemonlistService
 
     public function pending(): array
     {
-        return $this->db->query("SELECT r.id,r.level_id,l.name,a.username,r.video_id,r.submitted_at
+        return $this->db->query("SELECT r.id,r.revision,r.level_id,l.name,a.username,r.video_id
             FROM mucho_demonlist_records r LEFT JOIN accounts a ON a.account_id=r.account_id
             LEFT JOIN levels l ON l.level_id=r.level_id
             WHERE r.status='pending' ORDER BY r.id LIMIT 100")->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function recordStatus(int $accountId, int $levelId): ?string
+    public function approvedForReview(int $levelId, int $after): array
     {
-        $q = $this->db->prepare('SELECT status FROM mucho_demonlist_records WHERE account_id=? AND level_id=?');
+        $q = $this->db->prepare("SELECT r.id,r.revision,r.level_id,l.name,a.username,r.video_id
+            FROM mucho_demonlist_records r LEFT JOIN accounts a ON a.account_id=r.account_id
+            LEFT JOIN levels l ON l.level_id=r.level_id
+            WHERE r.level_id=? AND r.status='approved' AND r.id>? ORDER BY r.id LIMIT 51");
+        $q->execute([$levelId, $after]);
+        return $q->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function playerRecord(int $accountId, int $levelId): ?array
+    {
+        $q = $this->db->prepare('SELECT status,decision_note FROM mucho_demonlist_records WHERE account_id=? AND level_id=?');
         $q->execute([$accountId, $levelId]);
-        $status = $q->fetchColumn();
-        return is_string($status) ? $status : null;
+        return $q->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 
     public function saveLevel(int $levelId, int $position, bool $published): void
@@ -95,21 +104,32 @@ final class DemonlistService
                 submitted_at=IF(status='rejected',CURRENT_TIMESTAMP,submitted_at),
                 reviewed_at=IF(status='rejected',NULL,reviewed_at),
                 reviewed_by=IF(status='rejected',NULL,reviewed_by),
+                revision=IF(status='rejected',revision+1,revision),
+                decision_note=IF(status='rejected','',decision_note),
                 status=IF(status='rejected','pending',status)");
         $q->execute([$videoId, $levelId, $accountId]);
         return $q->rowCount() > 0;
     }
 
-    public function review(int $recordId, int $adminId, bool $approve): bool
+    public function review(int $recordId, int $revision, int $adminId, string $decision, string $note): bool
     {
+        if (!in_array($decision, ['approve', 'reject', 'revoke'], true)) {
+            throw new InvalidArgumentException('Choose a valid review decision.');
+        }
+        $approve = $decision === 'approve';
+        $note = $approve ? '' : trim($note);
+        if (!preg_match('/\A[^\p{Cc}]{0,280}\z/u', $note)) {
+            throw new InvalidArgumentException('Enter a single-line reason of up to 280 characters.');
+        }
+        $requiredStatus = $decision === 'revoke' ? 'approved' : 'pending';
         $filter = $approve ? ' AND d.is_published=1 AND a.is_active=1 AND a.is_banned=0 AND ' . self::PUBLIC_LEVEL : '';
         $q = $this->db->prepare("UPDATE mucho_demonlist_records r
             LEFT JOIN mucho_demonlist_levels d ON d.level_id=r.level_id
             LEFT JOIN levels l ON l.level_id=r.level_id
             LEFT JOIN accounts a ON a.account_id=r.account_id
-            SET r.status=?,r.reviewed_by=?,r.reviewed_at=CURRENT_TIMESTAMP
-            WHERE r.id=? AND r.status='pending'{$filter}");
-        $q->execute([$approve ? 'approved' : 'rejected', $adminId, $recordId]);
+            SET r.status=?,r.reviewed_by=?,r.reviewed_at=CURRENT_TIMESTAMP,r.decision_note=?
+            WHERE r.id=? AND r.revision=? AND r.status=?{$filter}");
+        $q->execute([$approve ? 'approved' : 'rejected', $adminId, $note, $recordId, $revision, $requiredStatus]);
         return $q->rowCount() === 1;
     }
 

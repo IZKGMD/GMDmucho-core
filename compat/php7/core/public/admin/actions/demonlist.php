@@ -14,11 +14,13 @@ try {
         $notice = 'Demonlist updated.';
     } else {
         $recordId = (int) (filter_var($_POST['record_id'] ?? '', FILTER_VALIDATE_INT) ?: 0);
-        $decision = $_POST['decision'] ?? '';
-        if (!in_array($decision, ['approve', 'reject'], true) || !$list->review($recordId, (int) (admin()['id'] ?? admin()['account_id']), $decision === 'approve')) {
-            throw new InvalidArgumentException('The record is unavailable or already reviewed.');
+        $revision = (int) (filter_var($_POST['revision'] ?? '', FILTER_VALIDATE_INT) ?: 0);
+        $decision = is_string($_POST['decision'] ?? null) ? $_POST['decision'] : '';
+        $note = is_string($_POST['decision_note'] ?? null) ? $_POST['decision_note'] : '';
+        if (!$list->review($recordId, $revision, (int) (admin()['id'] ?? admin()['account_id']), $decision, $note)) {
+            throw new InvalidArgumentException('The record has changed or is unavailable. Review the current submission.');
         }
-        audit($db, 'demonlist.review', (string) $recordId, ['decision' => $decision]);
+        audit($db, 'demonlist.review', (string) $recordId, ['decision' => $decision, 'revision' => $revision]);
         $notice = 'Record reviewed.';
     }
     $db->commit();
@@ -34,3 +36,5 @@ try {
     }
     throw $e;
 }
+$filter = (int) (filter_var($_POST['return_filter'] ?? '', FILTER_VALIDATE_INT) ?: 0);
+$after = (int) (filter_var($_POST['return_p'] ?? '', FILTER_VALIDATE_INT) ?: 0);

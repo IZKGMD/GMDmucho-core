@@ -106,6 +106,13 @@ def check_player_dashboard(origin, fixture):
         fixture("demonlist-approve")
         approved, _ = request(demon_path)
         assert "Watch run" in approved and "Your record was approved" in approved
+        fixture("demonlist-revoke")
+        removed, _ = request(demon_path)
+        assert "Watch run" not in removed and "Review &lt;the recording&gt;." in removed
+        _, headers = request(demon_path, dict(proof, csrf=token(removed, "csrf")), 303)
+        assert headers["Location"] == demon_path
+        resent, _ = request(demon_path)
+        assert "awaiting review" in resent and "the recording" not in resent
     finally:
         fixture("demonlist-clear")
     fixture("read-only")
