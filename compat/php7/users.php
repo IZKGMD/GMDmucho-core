@@ -137,6 +137,10 @@ function mucho7_public_profile(PDO $pdo, $post, $verifiedViewer = 0, $social = f
     $stmt->bindValue(':id', $byAccount ? $aid : $uid, PDO::PARAM_INT);
     $stmt->execute();
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    if($row && $verifiedViewer>0 && $verifiedViewer!==(int)$row['account_id']
+        && function_exists('mucho7_social_blocked') && mucho7_social_blocked($pdo,$verifiedViewer,(int)$row['account_id'])) {
+        return '-1';
+    }
     if($row && function_exists('mucho7_enrich_users')) {
         $rows=mucho7_enrich_users($pdo,array($row)); $row=$rows[0];
         $aid=(int)$row['account_id'];

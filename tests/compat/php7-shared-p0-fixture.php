@@ -64,6 +64,35 @@ if($mode==='download-counter-restore'){
     $db->exec('DROP TRIGGER fixture_download_failure');
     exit;
 }
+if($mode==='profile-relationships-seed'){
+    $db->exec("INSERT INTO friend_requests(account_id,to_account_id,comment,is_read) VALUES
+        (2,1,'aW5jb21pbmc=',0),(3,1,'',1),(4,1,'',2)");
+    exit;
+}
+if($mode==='profile-relationships-clear'){
+    $db->exec('DELETE FROM friend_requests WHERE to_account_id=1');
+    exit;
+}
+if($mode==='profile-legacy-block'||$mode==='profile-legacy-unblock'){
+    $db->exec($mode==='profile-legacy-block'
+        ? 'INSERT INTO php7_blocks(account_id,blocked_account_id) VALUES (2,1)'
+        : 'DELETE FROM php7_blocks WHERE account_id=2 AND blocked_account_id=1');
+    exit;
+}
+if($mode==='profile-search-seed'){
+    $account=$db->prepare('INSERT INTO accounts(account_id,username,email,password_hash,gjp2_hash) VALUES (?,?,?,?,?)');
+    $profile=$db->prepare('INSERT INTO profiles(account_id,stars) VALUES (?,10)');
+    for($id=1000;$id<=1011;$id++){
+        $account->execute(array($id,'Paging_'.$id,'paging-'.$id.'@example.invalid','fixture','fixture'));
+        if($id!==1011)$profile->execute(array($id));
+    }
+    exit;
+}
+if($mode==='profile-search-clear'){
+    $db->exec('DELETE FROM profiles WHERE account_id BETWEEN 1000 AND 1011');
+    $db->exec('DELETE FROM accounts WHERE account_id BETWEEN 1000 AND 1011');
+    exit;
+}
 if($mode==='creator-install'){(new \MuchoCore\CreatorEvents\CreatorEventsService($db))->install();exit;}
 if($mode==='email-recovery-inspect'){
     $id=(int)$db->query("SELECT account_id FROM accounts WHERE username='P0MailUser'")->fetchColumn();
