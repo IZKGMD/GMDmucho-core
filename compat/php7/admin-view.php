@@ -59,7 +59,7 @@ if($isOwner&&(!is_file($root.'/config/php7-complete.on')||is_file($root.'/config
 }
 if($schemaReady && canAdminPage($page)){
     if($page==='system'){mucho7_core_render($db,$root);if($isOwner&&is_file($root.'/config/php7-complete.on'))require __DIR__.'/admin-ui/shared-worker.php';}
-    if(in_array($page,array('clans','contentpacks','social','plugins','muchoprofiles','analytics','database','endpoints','intelligence','clientfeatures','securitycenter','monitoring','advanced','migration'),true)){
+    if(in_array($page,array('clans','contentpacks','demonlist','social','plugins','muchoprofiles','analytics','database','endpoints','intelligence','clientfeatures','securitycenter','monitoring','advanced','migration'),true)){
         if(!is_file($root.'/config/php7-complete.on')||is_file($root.'/config/php7-core-transition.json')){
             if($isOwner){
                 echo '<p role="status">Almost done. Complete server initialization before using this feature. Your existing accounts and data are preserved.</p>';
@@ -73,6 +73,7 @@ if($schemaReady && canAdminPage($page)){
             if(in_array($page,array('social','analytics','database','endpoints'),true))require __DIR__.'/admin-ui/'.$page.'.php';
             elseif($page==='intelligence'){require mucho7_compiled_include($root.'/public/admin/pages/intelligence.php');ob_start();renderIntelligenceScalePage($db);$intelligence=ob_get_clean();$intelligence=preg_replace('~<pre>sudo .*?</pre>~s','<p>Use Server for the task queue, search index rebuild, provider cron and verified backups.</p>',$intelligence);echo str_replace('Run the rebuild command from the operator CLI.','Use Server → Search index rebuild.',$intelligence);}
             elseif($page==='advanced'){if(is_file(MUCHO7_COMPILED_ROOT.'/public/admin/advanced-module.php'))require mucho7_compiled_include($root.'/public/admin/advanced-module.php');else echo '<p>Install the uploaded build on the Server page to enable Control v4.</p>';}
+            elseif($page==='demonlist'&&!is_file(MUCHO7_COMPILED_ROOT.'/public/admin/pages/demonlist.php')) echo '<p>Install the uploaded build on the Server page to enable Demonlist.</p>';
             elseif($page==='migration'){if(is_file(MUCHO7_COMPILED_ROOT.'/public/admin/pages/migration.php'))require __DIR__.'/migration.php';else echo '<p>Install the uploaded build on the Server page to enable Migration Center.</p>';}
             elseif($page==='clientfeatures'){require mucho7_compiled_include($root.'/public/admin/client-features-module.php');renderClientFeaturesPage($db);}
             elseif($page==='securitycenter'||$page==='monitoring'){require mucho7_compiled_include($root.'/public/admin/security-monitoring-module.php');renderSecurityMonitoringPage($db);}

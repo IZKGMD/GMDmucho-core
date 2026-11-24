@@ -35,6 +35,8 @@ For shared hosting, download `MuchoCore-vX.Y.Z-shared-hosting.zip`, **not GitHub
 
 Use the admin panel for players, levels, music and server settings. Additional technical tools are under **More tools**.
 
+To publish a **Demonlist**, open **More tools → Content & moderation → Demonlist** and assign public Demon levels to numbered positions. Players can open Demonlist from the dashboard and submit a YouTube recording of a 100% run. A moderator reviews each submission before it appears publicly.
+
 ## Update an existing server
 
 **Use the updater, not first-time installation.** Keep a backup of your database, settings and Cloud Save key before updating.

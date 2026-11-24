@@ -1,0 +1,22 @@
+:root {
+    color-scheme: dark;
+    font-family: system-ui, sans-serif;
+    background: #101019;
+    color: #f1effb;
+}
+body { margin: 0; }
+main { width: min(52rem, calc(100% - 2rem)); margin: 3rem auto; }
+nav, .entries li, .submit { display: flex; flex-wrap: wrap; gap: .9rem; align-items: center; }
+nav { padding-bottom: 1rem; border-bottom: 1px solid #343049; }
+h1 { font-size: clamp(2.4rem, 8vw, 4.2rem); margin: 1.1rem 0 .4rem; }
+h2 { font-size: 1.2rem; }
+p, .entries span { color: #bcb6d2; }
+a { color: #c4b2ff; text-underline-offset: .2em; }
+.entries { list-style: none; padding: 0; }
+.entries li, form { background: #1b1828; border: 1px solid #39324f; border-radius: .65rem; padding: .85rem; margin: .5rem 0; }
+.entries .position { color: #e8dbff; font-weight: 700; min-width: 3rem; }
+.submit { margin-top: .5rem; }
+input, button { font: inherit; padding: .6rem; border-radius: .35rem; border: 1px solid #7564a6; }
+input { flex: 1; min-width: min(100%, 15rem); background: #121019; }
+button { background: #c4b2ff; color: #1d142e; font-weight: 700; cursor: pointer; }
+:focus-visible { outline: 2px solid #e1ceff; outline-offset: 3px; }

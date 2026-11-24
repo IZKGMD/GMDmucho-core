@@ -92,6 +92,22 @@ def check_player_dashboard(origin, fixture):
     assert "P0Other" in search and 'href="/mc/dashboard?u=P0Other"' in search
     clans, _ = request("/mc/dashboard/clans.php")
     assert "Create clan" in clans and 'href="/mc/dashboard"' in clans
+    fixture("demonlist-seed")
+    try:
+        demon_path = "/mc/demonlist.php?level=951"
+        demon, _ = request(demon_path)
+        assert "Shared Demon" in demon and 'href="/mc/public/assets/demonlist.css"' in demon
+        proof = {"level_id": 951, "proof": "https://youtu.be/abcdefghijk", "csrf": token(demon, "csrf")}
+        request(demon_path, dict(proof, csrf="wrong"), 403)
+        _, headers = request(demon_path, proof, 303)
+        assert headers["Location"] == demon_path
+        pending, _ = request(demon_path)
+        assert "awaiting review" in pending and "Watch run" not in pending
+        fixture("demonlist-approve")
+        approved, _ = request(demon_path)
+        assert "Watch run" in approved and "Your record was approved" in approved
+    finally:
+        fixture("demonlist-clear")
     fixture("read-only")
     try:
         request("/mc/dashboard/clans.php", {"action": "create", "csrf": token(clans, "csrf"),

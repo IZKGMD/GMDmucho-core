@@ -7,7 +7,7 @@ function mucho7_player_route($path)
     if(preg_match('~^/music/[a-f0-9]{40}\.mp3$~D',$path))return 'music';
     $routes=array('/dashboard'=>'public/dashboard/index.php',
         '/dashboard/index'=>'public/dashboard/index.php',
-        '/dashboard/clans'=>'public/dashboard/clans.php',
+        '/dashboard/clans'=>'public/dashboard/clans.php','/demonlist'=>'public/demonlist.php',
         '/profile-image'=>'public/profile-image.php','/clients'=>'public/clients.php');
     return isset($routes[$path])?$routes[$path]:null;
 }
@@ -16,14 +16,14 @@ function mucho7_player_url($url)
 {
     $mount=isset($GLOBALS['mucho7_domain_mount'])?$GLOBALS['mucho7_domain_mount']:'';
     if(preg_match('~^/(?:assets/|muchocore-theme\.)~',$url))return $mount.'/public'.$url;
-    if(preg_match('~^/(?:dashboard(?:[/?#]|$)|clients(?:[/?#]|$)|profile-image\.php(?:[?#]|$)|music/)~',$url))return $mount.$url;
+    if(preg_match('~^/(?:dashboard(?:[/?#]|$)|clients(?:[/?#]|$)|demonlist\.php(?:[?#]|$)|profile-image\.php(?:[?#]|$)|music/)~',$url))return $mount.$url;
     return $url;
 }
 
-function mucho7_player_header($value)
+function mucho7_player_header($value,$replace=true,$status=0)
 {
     if(stripos($value,'Location:')===0)$value='Location: '.mucho7_player_url(trim(substr($value,9)));
-    header($value);
+    header($value,$replace,$status);
 }
 
 function mucho7_player_session_start()
@@ -135,7 +135,7 @@ function mucho7_player_send(PDO $db,$path,$settings,$root,$method)
     if($method==='HEAD' && $path!=='/profile-image')return;
     if($method==='POST'){
         $action=isset($_POST['action'])&&is_string($_POST['action'])?$_POST['action']:'';
-        if(!in_array($path,array('/dashboard','/dashboard/index','/dashboard/clans'),true)
+        if(!in_array($path,array('/dashboard','/dashboard/index','/dashboard/clans','/demonlist'),true)
             || ($action!=='logout' && (empty($settings['enable_accounts'])
                 || ($action!=='login' && empty($settings['enable_writes']))
                 || ($path==='/dashboard/clans' && empty($settings['enable_social']))))){
