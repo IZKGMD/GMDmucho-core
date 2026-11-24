@@ -136,6 +136,13 @@ def run(php, report):
                     "Legacy registration ignored the read-only switch")
                 require(fixture("inspect")["accounts"] == 4,
                         "Legacy registration wrote an account while read-only")
+                fixture("profile-legacy-block")
+                try:
+                    require(post("/a/getGJUserInfo20.php",
+                                 dict(VERSION, accountID=1, gjp2=GJP2, targetAccountID=2)) == "-1",
+                            "Pre-migration PHP7 did not honor the existing block")
+                finally:
+                    fixture("profile-legacy-unblock")
             finally:
                 fixture("writable")
                 marker.write_text("1")
@@ -268,6 +275,58 @@ def run(php, report):
             require(post("/a/getGJScores20.php", dict(VERSION, type="friends", accountID=1, gjp2="wrong")) == "-1", "Friends leaderboard authentication")
             checks.append("search/download/byte-roundtrip/timestamps/leaderboard/empty-results")
 
+            viewer = dict(VERSION, accountID=1, gjp2=GJP2)
+            profile_path = "/a/getGJUserInfo20.php"
+            require(fields(post(profile_path, dict(viewer, targetAccountID=2)))["31"] == "0",
+                    "Unrelated profiles should have no relationship state")
+            fixture("profile-relationships-seed")
+            try:
+                own = fields(post(profile_path, dict(viewer, targetAccountID=1)))
+                require(own["39"] == "1", "Read and removed friend requests inflate the unread badge")
+                public = fields(post(profile_path, dict(VERSION, targetAccountID=1)))
+                require(all(key not in public for key in ("38", "39", "40")), "Public profile includes unread counters")
+                incoming = fields(post(profile_path, dict(viewer, targetAccountID=2)))
+                require(incoming["31"] == "3" and incoming["35"] == "aW5jb21pbmc=" and int(incoming["32"]) > 0,
+                        "Incoming friend request metadata missing from the profile")
+                other_viewer = dict(VERSION, accountID=2, gjp2=other)
+                outgoing = fields(post(profile_path, dict(other_viewer, targetAccountID=1)))
+                require(outgoing["31"] == "4" and "32" not in outgoing, "Outgoing friend request framing")
+            finally:
+                fixture("profile-relationships-clear")
+            require(post("/a/blockGJUser20.php", dict(viewer, targetAccountID=2)) == "1", "Create test block")
+            try:
+                require(post(profile_path, dict(viewer, targetAccountID=2)) == "-1", "Block sender saw blocked profile")
+                require(post(profile_path, dict(other_viewer, targetAccountID=1)) == "-1", "Blocked viewer saw profile")
+            finally:
+                require(post("/a/unblockGJUser20.php", dict(viewer, targetAccountID=2)) == "1", "Remove test block")
+            for target in (3, 4, 99999999):
+                require(post(profile_path, dict(VERSION, targetAccountID=target)) == "-1", "Unavailable profile was shown")
+            relative = post("/a/getGJScores20.php", dict(viewer, type="relative", count=10))
+            require([(fields(row)["1"], fields(row)["6"]) for row in relative.split("|")]
+                    == [("P0Other", "1"), ("P0Owner", "2")], "Relative leaderboard order or eligible ranks")
+            users = "/a/getGJUsers20.php"
+            found = post(users, dict(VERSION, str="P0"))
+            require(found.endswith("#2:0:10") and "P0Banned" not in found and "P0Inactive" not in found,
+                    "Search count exposed unavailable accounts")
+            require("P0Other" in post(users, dict(VERSION, str="102")), "Numeric user ID lookup")
+            require(post(users, dict(VERSION, str="P0_")) == "-1"
+                    and post(users, dict(VERSION, str="P0", page=1)) == "-1", "Search literal or empty page")
+            fixture("profile-search-seed")
+            try:
+                search = dict(VERSION, str="Paging_")
+                first = post(users, search)
+                last = post(users, dict(search, page=1))
+                require(first.endswith("#12:0:10") and last.endswith("#12:10:10"),
+                        "Full and short search pages disagree on the total")
+                require([fields(row)["1"] for row in first.split("#")[0].split("|")]
+                        == ["Paging_" + str(i) for i in range(1000, 1010)], "Search ties changed pagination order")
+                recovered = fields(post(profile_path, dict(VERSION, targetAccountID=1011)))
+                require(recovered["1"] == "Paging_1011" and int(recovered["2"]) > 0,
+                        "Legacy account without a profile did not recover its user ID")
+            finally:
+                fixture("profile-search-clear")
+            checks.append("profiles/block-directions/unread-counters/friend-state/eligible-ranks/pagination")
+
             comment = base64.b64encode(b"P0 comment").decode()
             require(post("/a/uploadGJComment21.php", dict(VERSION, accountID=1, gjp2=GJP2, levelID=level, comment=comment)) not in ("-1", "-2"), "Comment upload rejected")
             comments = post("/a/getGJComments21.php", dict(VERSION, levelID=level, count=10), "comments.read")
@@ -277,6 +336,8 @@ def run(php, report):
             checks.append("comment-write/read/content/timestamps/pagination")
 
             fixture("friendships")
+            require(fields(post(profile_path, dict(viewer, targetAccountID=2)))["31"] == "1",
+                    "Accepted friendship missing from the profile")
             require(post("/a/uploadGJLevel21.php", dict(upload, levelID=level, unlisted2=1)) == level, "Private update rejected")
             require(post("/a/downloadGJLevel22.php", download_request) == "-1", "Private download was public")
             friend_request = dict(download_request, accountID=2, gjp2=other)

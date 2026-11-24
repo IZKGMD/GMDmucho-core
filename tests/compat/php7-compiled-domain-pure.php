@@ -44,7 +44,6 @@ $php8OnlyDiagnosticHashes=array(
     'src/Level/LevelTransferRepository.php'=>'5d3fce996b77d2e0216d46d8e04804866ac98cfc7646835df812682c4c2349fb',
     'src/Level/LevelTransferService.php'=>'5d4c3456d6f379d28e8555dbc01d62728ef76b600b0f5021d599924a8bd6bd90',
     'src/Routing/Router.php'=>'d67bce97a1168d7682f2a9010b05f2a4ef4c0e54f170a2204817f6e011e85751',
-    'src/User/UserRepository.php'=>'e777296cda69f58974d65ffc77158d9f68c242fcb625081e665bff680a53d648',
     'src/Level/LevelDownloadTracker.php'=>'81a0a1314d86793d76961e4a4cf4b90b0f9ffe7b9a79f0951a63fb13ddd0e290',
 );
 $count=0;
