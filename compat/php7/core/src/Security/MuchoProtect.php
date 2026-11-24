@@ -6,9 +6,11 @@ namespace MuchoCore\Security;
 use MuchoCore\Core\Environment;
 use MuchoCore\Database\Database;
 use MuchoCore\Http\Request;
+use MuchoCore\Routing\Router;
 use PDO;
 final class MuchoProtect
 {
+    // Keep abuse telemetry bounded even during a sustained flood.
     const MAX_AUDIT_BYTES = 8 * 1024 * 1024;
     const RETAIN_AUDIT_BYTES = 1024 * 1024;
     const GLOBAL_LIMIT = 900;
@@ -90,6 +92,7 @@ final class MuchoProtect
         '/downloadgjlevel21' => ['limit' => 120, 'window' => 60, 'burst' => 30, 'burstWindow' => 10],
         '/downloadgjlevel22' => ['limit' => 120, 'window' => 60, 'burst' => 30, 'burstWindow' => 10],
         '/getgjsonginfo' => ['limit' => 180, 'window' => 60, 'burst' => 40, 'burstWindow' => 10],
+        '/getgjaudiofilesize' => ['limit' => 120, 'window' => 60, 'burst' => 30, 'burstWindow' => 10],
         '/getgjuserinfo20' => ['limit' => 180, 'window' => 60, 'burst' => 40, 'burstWindow' => 10],
         '/getgjusers20' => ['limit' => 120, 'window' => 60, 'burst' => 30, 'burstWindow' => 10],
         '/getgjscores20' => ['limit' => 120, 'window' => 60, 'burst' => 30, 'burstWindow' => 10],
@@ -146,7 +149,7 @@ final class MuchoProtect
     public function __construct($limiter = null, $penalties = null)
     {
         $db = null;
-        if (($limiter === null || $penalties === null) && $this->storageMode() === 'db') {
+        if (($limiter === null || $penalties === null) && $this->storageMode() === 'db' && $this->enabled()) {
             $db = (new Database())->connection();
         }
         // Reuse the DB-mode security connection in the application request.
@@ -182,36 +185,24 @@ final class MuchoProtect
         $ip = $request->clientIp();
         $identityKeys = $this->identityKeys($request);
         $ipPenaltyKey = 'ip:' . $ip . ':endpoint:' . $endpoint;
-        $ipPenalty = $this->penalties->status($ipPenaltyKey);
-        if ($ipPenalty['active']) {
-            $this->audit($request, $endpoint, 'temporary_penalty', $ipPenalty['remaining'], $ipPenalty['strikes']);
-            return ['decision' => 'block', 'reason' => 'temporary_penalty'];
-        }
-
         $globalKey = 'ip:' . $ip . ':global';
-        $globalPenalty = $this->penalties->status($globalKey);
-        if ($globalPenalty['active']) {
-            $this->audit(
-                $request, $endpoint, 'global_penalty',
-                $globalPenalty['remaining'], $globalPenalty['strikes']
-            );
-            return ['decision' => 'block', 'reason' => 'global_penalty'];
-        }
         $network = $this->networkKey($ip);
         $networkPenaltyKey = $network === null ? null : 'network:' . $network . ':endpoint:' . $endpoint;
+        $penaltyKeys = [$ipPenaltyKey => 'temporary_penalty', $globalKey => 'global_penalty'];
         if ($networkPenaltyKey !== null) {
-            $networkPenalty = $this->penalties->status($networkPenaltyKey);
-            if ($networkPenalty['active']) {
-                $this->audit($request, $endpoint, 'network_penalty', $networkPenalty['remaining'], $networkPenalty['strikes']);
-                return ['decision' => 'block', 'reason' => 'network_penalty'];
-            }
+            $penaltyKeys[$networkPenaltyKey] = 'network_penalty';
         }
         foreach ($identityKeys as $kind => $identityKey) {
-            $penaltyKey = $kind . ':' . $identityKey . ':endpoint:' . $endpoint;
-            $identityPenalty = $this->penalties->status($penaltyKey);
-            if ($identityPenalty['active']) {
-                $this->audit($request, $endpoint, $kind . '_penalty', $identityPenalty['remaining'], $identityPenalty['strikes']);
-                return ['decision' => 'block', 'reason' => $kind . '_penalty'];
+            $penaltyKeys[$kind . ':' . $identityKey . ':endpoint:' . $endpoint] = $kind . '_penalty';
+        }
+        // One indexed read for all candidate penalties in DB mode. Walk
+        // the keys in the original order so the first active reason wins.
+        $statuses = $this->penalties instanceof DatabasePenaltyStore ? $this->penalties->statuses(array_keys($penaltyKeys)) : null;
+        foreach ($penaltyKeys as $key => $reason) {
+            $penalty = $statuses === null ? $this->penalties->status($key) : $statuses[$key] ?? null;
+            if ($penalty !== null && $penalty['active']) {
+                $this->audit($request, $endpoint, $reason, $penalty['remaining'], $penalty['strikes']);
+                return ['decision' => 'block', 'reason' => $reason];
             }
         }
         if (!$this->allow($globalKey, self::GLOBAL_LIMIT, self::GLOBAL_WINDOW)) {
@@ -322,23 +313,12 @@ final class MuchoProtect
     }
     private function normalizeEndpoint(string $endpoint): string
     {
-        $path = parse_url($endpoint, PHP_URL_PATH);
-        $endpoint = is_string($path) ? $path : '/';
-        $endpoint = preg_replace('#/+#', '/', $endpoint) ?? '/';
-        // Nested legacy front-controller aliases consume the same policy.
-        for ($i = 0; $i < 8; $i++) {
-            $normalized = preg_replace('#^/(?:database|accounts|api|a)(?:/|$)#i', '/', $endpoint) ?? $endpoint;
-            if ($normalized === $endpoint) {
-                break;
-            }
-            $endpoint = $normalized;
-        }
-        $endpoint = preg_replace('#\.php$#i', '', $endpoint) ?? $endpoint;
-        if ($endpoint !== '/') {
-            $endpoint = rtrim($endpoint, '/');
-        }
-        $endpoint = strtolower($endpoint === '' ? '/' : $endpoint);
-        return substr($endpoint, 0, 256);
+        // Use the exact path that the dispatcher uses for the real endpoint.
+        // Keeping a second, partially synchronized implementation here
+        // allowed legacy aliases or deeply nested prefixes to miss their
+        // endpoint-specific abuse budgets while still reaching the handler.
+        $path = (new Router())->normalizePath($endpoint);
+        return $path === '/getgjusersearch' ? '/getgjusers20' : substr($path, 0, 256);
     }
     /**
      * Build non-spoofable request identities without ever trusting accountID
@@ -413,7 +393,9 @@ final class MuchoProtect
         }
         try {
             $entry = \mucho7_json_encode(['time' => gmdate('c'), 'endpoint' => $endpoint, 'reason' => $reason, 'ip_hash' => hash('sha256', $request->clientIp()), 'method' => $request->method, 'penalty_seconds' => $penaltySeconds, 'strikes' => $strikes], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . PHP_EOL;
-            // Bound abuse telemetry under one inode lock across workers.
+            // Bounded, in-place rotation under the same inode lock:
+            // independent workers cannot race a rename into an unbounded
+            // second file or accidentally erase an active writer's log.
             $path = $directory . '/events.ndjson';
             if (is_link($path)) {
                 return;
@@ -434,6 +416,7 @@ final class MuchoProtect
                     if (fseek($fp, -$retain, SEEK_END) !== 0) {
                         return;
                     }
+                    // Avoid keeping the tail of a partially cut JSON line.
                     if ($size > $retain) {
                         fgets($fp);
                     }

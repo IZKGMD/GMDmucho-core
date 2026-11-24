@@ -67,6 +67,7 @@ def run(php, report):
         # No request header can choose this behavior in the deployed runtime.
         router.write_text("<?php require __DIR__.'/mail-sink.php'; $_SERVER['HTTPS']='on';"
                           "$_SERVER['SCRIPT_NAME']='/mc/public/php7.php';"
+                          "if(is_file(__DIR__.'/config/protection-fixture.on'))$_ENV['MUCHO_PROTECT']='1';"
                           "ob_start(null,0,PHP_OUTPUT_HANDLER_CLEANABLE|PHP_OUTPUT_HANDLER_FLUSHABLE);"
                           "if(strpos($_SERVER['REQUEST_URI'],'/lost')!==false)date_default_timezone_set('Pacific/Honolulu');"
                           "header('X-P0-OPcache: '.(function_exists('opcache_get_status')&&opcache_get_status(false)!==false?'enabled':'missing'));"
@@ -731,6 +732,15 @@ def run(php, report):
                     "Shared read-only plugin mutation accepted")
             fixture("writable")
             checks.append("creator-events/bundled-install/shared-route/mount/read-only")
+            (root / "config/protection-fixture.on").touch()
+            aliases = ("/a/getGJUsers20.php", "/database/getGJUserSearch.php")
+            with ThreadPoolExecutor(max_workers=3) as executor:
+                responses = list(executor.map(lambda index: post(
+                    aliases[index % 2], dict(VERSION, str="P0Owner"), worker=index % 3), range(33)))
+            require(sum("P0Owner" in response for response in responses) == 30
+                    and responses.count("-1") == 3, "Parallel search aliases did not share the exact burst budget")
+            require(post("/a/checkIfServerOnline.php", VERSION) == "1", "Limiter blocked the native health route")
+            checks.append("muchoprotect-enabled/aliases/concurrent-db-quota/health-exemption")
             result = dict(kind="synthetic-local-http", native_client_certified=False,
                           php=Path(php).name, game_version=22, binary_version=51,
                           fixture_accounts=fixture("inspect")["accounts"], checks=checks, timings={})

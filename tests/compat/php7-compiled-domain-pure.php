@@ -22,8 +22,6 @@ $php8OnlyDiagnosticHashes=array(
     'tests/application/gd2209-gameplay-schema-integration.php'=>'0f24048f3757f9abb8001dbb8fd50e3a652c658dd7e35d3adc014e9234510856',
     // PHP 8 webhook SSRF hardening; PHP 7 compiled runtime remains unchanged.
     'src/Integration/WebhookDispatcher.php'=>'c330659d2243e22f2f75a1dee1cf5f1cc1d97d91dfe4d3f73a06bfbe3a51b6f5',
-    // PHP 8 routing-aware abuse budgets; keep the last verified PHP 7 snapshot pinned.
-    'src/Security/MuchoProtect.php'=>'2e20059ca9b82100dc4b05d153ee7badd30504fd9478ec99ffa4635d23c1e112',
     // PHP 8 admin copy is English-only; the native PHP 7 compiled snapshot remains frozen.
     'public/admin/advanced-module.php'=>'1fff523ddae413cbc47e4eb5a11b9ac8a7cc3f29b8578b405e97c49916a23eb0',
     // PHP 8-first native profile reporting. The PHP 7 generated snapshot is
