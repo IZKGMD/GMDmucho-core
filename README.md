@@ -35,7 +35,7 @@ For shared hosting, download `MuchoCore-vX.Y.Z-shared-hosting.zip`, **not GitHub
 
 Use the admin panel for players, levels, music and server settings. Additional technical tools are under **More tools**.
 
-To publish a **Demonlist**, open **More tools → Content & moderation → Demonlist** and assign public Demon levels to numbered positions. Players can open Demonlist from the dashboard and submit a YouTube recording of a 100% run. A moderator reviews each submission before it appears publicly.
+To publish a **Demonlist**, open **More tools → Content & moderation → Demonlist** and assign public Demon levels to numbered positions. Players can open Demonlist from the dashboard and submit a YouTube recording of a 100% run. A moderator reviews each submission before it appears publicly. Moderators can also find approved records by level and revoke an approval. A rejection or revocation can include a note visible to the player who submitted the record.
 
 ## Update an existing server
 

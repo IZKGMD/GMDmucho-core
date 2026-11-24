@@ -66,7 +66,8 @@ if ($selectedId > 0 && $selected === null) {
     http_response_code(404);
 }
 $records = $selected ? $list->records($selectedId) : [];
-$recordStatus = $selected && $account ? $list->recordStatus($account['id'], $selectedId) : null;
+$playerRecord = $selected && $account ? $list->playerRecord($account['id'], $selectedId) : null;
+$recordStatus = $playerRecord['status'] ?? null;
 $h = static function ($value): string {
     return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 };
@@ -138,7 +139,14 @@ if ($selectedId > 0 && !$selected) {
 <?php
     } elseif ($account) {
         if ($recordStatus === 'rejected') {
-            ?><p>Your last record was rejected. You can submit another recording.</p><?php
+            ?>
+<p>Your last record was rejected or removed. You can submit another recording.</p>
+<?php
+            if ($playerRecord['decision_note'] !== '') {
+                ?><p><strong>Moderator note</strong> <?php
+                echo $h($playerRecord['decision_note']);
+                ?></p><?php
+            }
         }
         ?>
 <form method="post">

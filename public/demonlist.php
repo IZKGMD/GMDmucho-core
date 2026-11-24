@@ -72,7 +72,8 @@ if ($selectedId > 0 && $selected === null) {
     http_response_code(404);
 }
 $records = $selected ? $list->records($selectedId) : [];
-$recordStatus = $selected && $account ? $list->recordStatus($account['id'], $selectedId) : null;
+$playerRecord = $selected && $account ? $list->playerRecord($account['id'], $selectedId) : null;
+$recordStatus = $playerRecord['status'] ?? null;
 $h = static fn(mixed $value): string => htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 ?>
 <!doctype html>
@@ -104,7 +105,10 @@ $h = static fn(mixed $value): string => htmlspecialchars((string)$value, ENT_QUO
 <?php elseif ($recordStatus === 'approved'): ?>
 <p>Your record was approved.</p>
 <?php elseif ($account): ?>
-<?php if ($recordStatus === 'rejected'): ?><p>Your last record was rejected. You can submit another recording.</p><?php endif ?>
+<?php if ($recordStatus === 'rejected'): ?>
+<p>Your last record was rejected or removed. You can submit another recording.</p>
+<?php if ($playerRecord['decision_note'] !== ''): ?><p><strong>Moderator note</strong> <?= $h($playerRecord['decision_note']) ?></p><?php endif ?>
+<?php endif ?>
 <form method="post">
 <input type="hidden" name="csrf" value="<?= $h($csrf) ?>">
 <input type="hidden" name="level_id" value="<?= $selectedId ?>">

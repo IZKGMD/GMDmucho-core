@@ -51,7 +51,13 @@ if($mode==='demonlist-seed'){
 if($mode==='demonlist-approve'){
     $list=new \MuchoCore\Demonlist\DemonlistService($db);
     $pending=$list->pending();
-    if(count($pending)!==1||!$list->review((int)$pending[0]['id'],1,true))throw new RuntimeException('Demonlist approval failed.');
+    if(count($pending)!==1||!$list->review((int)$pending[0]['id'],(int)$pending[0]['revision'],1,'approve',''))throw new RuntimeException('Demonlist approval failed.');
+    exit;
+}
+if($mode==='demonlist-revoke'){
+    $list=new \MuchoCore\Demonlist\DemonlistService($db);
+    $approved=$list->approvedForReview(951,0);
+    if(count($approved)!==1||!$list->review((int)$approved[0]['id'],(int)$approved[0]['revision'],1,'revoke','Review <the recording>.'))throw new RuntimeException('Demonlist revocation failed.');
     exit;
 }
 if($mode==='demonlist-clear'){
