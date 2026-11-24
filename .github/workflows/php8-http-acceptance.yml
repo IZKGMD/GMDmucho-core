@@ -181,9 +181,21 @@ jobs:
 
       - name: Install MP3 test utilities
         shell: bash
+        timeout-minutes: 3
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends ffmpeg
+          set -Eeuo pipefail
+          if command -v ffmpeg >/dev/null; then
+            ffmpeg_path="$(command -v ffmpeg)"
+          else
+            ffmpeg_dir="$RUNNER_TEMP/mucho-test-ffmpeg"
+            # The Linux x86-64 wheel bundles FFmpeg and needs no system packages.
+            python3 -m pip install --only-binary=:all: --no-deps --require-hashes \
+              --disable-pip-version-check --timeout 15 --retries 2 --target "$ffmpeg_dir" \
+              -r <(printf '%s\n' 'imageio-ffmpeg==0.6.0 --hash=sha256:c7e46fcec401dd990405049d2e2f475e2b397779df2519b544b8aab515195282')
+            ffmpeg_path="$(PYTHONPATH="$ffmpeg_dir" python3 -c 'import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())')"
+          fi
+          "$ffmpeg_path" -version
+          printf 'MUCHO_TEST_FFMPEG=%s\n' "$ffmpeg_path" >> "$GITHUB_ENV"
 
       - name: Verify cross-version song metadata and real MP3 HTTP/range delivery
         shell: bash
