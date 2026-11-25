@@ -6,6 +6,7 @@ namespace MuchoCore\Compatibility;
 
 use MuchoCore\Http\Request;
 use MuchoCore\Http\Response;
+use MuchoCore\Interaction\RewardsService;
 use MuchoCore\Protocol\GdUserEncoder;
 use MuchoCore\User\UserRepository;
 use PDO;
@@ -134,6 +135,12 @@ final readonly class DiscoveryController
             $index+=100001;
         }elseif($type===2){
             $index+=200001;
+            $reward = RewardsService::eventReward($index, $request->postString('chk'));
+            if ($reward === '-1') {
+                return Response::text('-1');
+            }
+
+            return Response::text($index . '|10|' . $reward);
         }
 
         return Response::text(

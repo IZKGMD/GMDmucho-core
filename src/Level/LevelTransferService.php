@@ -9,6 +9,7 @@ use MuchoCore\Cache\CacheInterface;
 use MuchoCore\Job\JobQueue;
 use MuchoCore\Compatibility\ClientVersion;
 use MuchoCore\Compatibility\Legacy10IdentityService;
+use MuchoCore\Protocol\GdHash;
 use MuchoCore\Protocol\GdLegacyText;
 use MuchoCore\Search\LevelSearchIndexer;
 use MuchoCore\Protocol\GdLevelDownloadEncoder;
@@ -603,20 +604,16 @@ final readonly class LevelTransferService
                 ? (int)$password
                 : 0;
 
-        $hashInput=
-            $userId.
-            $stars.
-            $demon.
-            $levelId.
-            $verifiedCoins.
-            $featured.
-            $passwordInt.
-            $timelyId;
-
-        $parts[2]=sha1(
-            $hashInput.
-            'xI25fpAapCQg'
-        );
+        $parts[2] = GdHash::metadata(implode(',', [
+            $userId,
+            $stars,
+            $demon,
+            $levelId,
+            $verifiedCoins,
+            $featured,
+            $passwordInt,
+            $timelyId,
+        ]));
 
 
         /*

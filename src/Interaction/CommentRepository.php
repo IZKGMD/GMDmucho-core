@@ -8,9 +8,15 @@ use PDO;
 
 final class CommentRepository
 {
+    private readonly string $creationEpoch;
+
     public function __construct(
         private readonly PDO $db
-    ) {}
+    ) {
+        $this->creationEpoch = $db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite'
+            ? "CAST(strftime('%s', c.created_at) AS INTEGER)"
+            : 'UNIX_TIMESTAMP(c.created_at)';
+    }
 
     public function addLevelComment(int $levelId, int $accountId, string $content, int $percent): int
     {
@@ -49,7 +55,7 @@ final class CommentRepository
             : 'c.id DESC';
 
         $stmt = $this->db->prepare(
-            "SELECT c.*,
+            "SELECT c.*, {$this->creationEpoch} AS created_epoch,
                     a.username, a.role,
                     COALESCE(p.user_id, a.account_id) AS user_id,
                     COALESCE(p.cube, 1) AS cube,
@@ -108,7 +114,7 @@ final class CommentRepository
 
         $stmt = $this->db->prepare(
             "SELECT
-                    c.*,
+                    c.*, {$this->creationEpoch} AS created_epoch,
                     l.level_id AS commented_level_id,
                     a.username,
                     a.role,
@@ -172,7 +178,7 @@ final class CommentRepository
         $offset = $page * $limit;
 
         $stmt = $this->db->prepare(
-            "SELECT c.*,
+            "SELECT c.*, {$this->creationEpoch} AS created_epoch,
                     a.role,
                     COALESCE(p.user_id, a.account_id) AS user_id
              FROM account_comments c
