@@ -26,6 +26,20 @@ if (mucho7_comment_text($nativeWire, 22) !== $shortcodes) {
 
 date_default_timezone_set('UTC');
 $encoder = new MuchoCore\Protocol\GdCommentEncoder();
+$withLegacyDisplayTime = static function (string $wire, int $binary): string {
+    // PHP 8 sends an elapsed time in field 9 for GD 2.209. PHP 7 still uses the fixture date.
+    if ($binary < 51) {
+        return $wire;
+    }
+    $normalized = preg_replace(
+        '/~9~\d+ (?:seconds?|minutes?|hours?|days?|weeks?|months?|years?)~/',
+        '~9~22/10/2026 1.02~', $wire, 1, $count
+    );
+    if ($count !== 1 || $normalized === null) {
+        throw new RuntimeException('Modern comment must carry one elapsed-time field');
+    }
+    return $normalized;
+};
 foreach (array(50,51) as $binary) {
     foreach (array('user','moderator','owner') as $role) {
         $row = array('id'=>7,'kind'=>1,'account_id'=>9,'user_id'=>42,'level_id'=>2,
@@ -34,11 +48,13 @@ foreach (array(50,51) as $binary) {
             'color1'=>2,'color2'=>3,'icon_type'=>0,'glow'=>1,'role'=>$role);
         $profile = array_merge($row,array('cube'=>5,'special'=>1,
             'badge'=>$role==='owner' ? 2 : ($role==='moderator' ? 1 : 0)));
-        if (mucho7_comment_wire($row,22,$binary) !== $encoder->encode($row,$profile,22,$binary)) {
+        if (mucho7_comment_wire($row,22,$binary) !==
+            $withLegacyDisplayTime($encoder->encode($row,$profile,22,$binary), $binary)) {
             throw new RuntimeException('Native level comment wire differs from modern encoder');
         }
         $row['kind'] = 2;
-        if (mucho7_comment_wire($row,22,$binary) !== $encoder->encodeAccountComment($row,22,$binary)) {
+        if (mucho7_comment_wire($row,22,$binary) !==
+            $withLegacyDisplayTime($encoder->encodeAccountComment($row,22,$binary), $binary)) {
             throw new RuntimeException('Native profile post wire differs from modern encoder');
         }
     }
