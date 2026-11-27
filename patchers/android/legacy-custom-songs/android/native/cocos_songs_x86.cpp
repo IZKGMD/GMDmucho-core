@@ -24,6 +24,9 @@ constexpr int paneTag = 0x4d430002;
 constexpr int titleTag = 0x4d430003;
 constexpr int closeTag = 10;
 constexpr int layerDepth = 5;
+// FLAlertLayer swallows touches at INT_MIN + 1. Its nested song menus
+// must receive the touch before it does.
+constexpr int songMenuTouchPriority = -2147483647 - 1;
 constexpr int bindingsMax = 1024;
 constexpr unsigned pageBytes = 4096;
 constexpr int protectionRead = 1, protectionWrite = 2, protectionExec = 4;
@@ -366,8 +369,6 @@ JNIEnv* gameEnv() {
 
 void closePane(Node* settings) {
     popupOwner = nullptr;
-    popupOwner = nullptr;
-    popupOwner = nullptr;
     api.remove(settings, paneTag, true);
     popupRevision = -1;
 }
@@ -415,7 +416,7 @@ void buildPane(JNIEnv* env, Node* settings, const Size& size) {
     api.add(settings, panel, 900, paneTag);
     api.position(menu, 0, 0);
     api.add(panel, menu, 1, 0);
-    api.priority(menu, -510);
+    api.priority(menu, songMenuTouchPriority);
     addLabel(panel, 0, "Custom Songs", width / 2, 201, 17);
     addButton(menu, settings, closeTag, "Close", 282, 201, rowPressed);
     addButton(menu, settings, 9, "Use built-in", 82, 15, rowPressed);
@@ -497,7 +498,7 @@ void editorPanel(JNIEnv* env, Node* settings, Node* level, const Size& size) {
         if (Node* menu = api.menu()) {
             api.position(menu, 0, 0);
             api.add(settings, menu, 200, tabTag);
-            api.priority(menu, -510);
+            api.priority(menu, songMenuTouchPriority);
             addButton(menu, settings, tabTag, "Custom Songs", size.width - 72, size.height - 22, showPane);
         }
     }
@@ -505,7 +506,6 @@ void editorPanel(JNIEnv* env, Node* settings, Node* level, const Size& size) {
     if (picked >= 0) {
         bind(level, picked, stock);
         closePane(settings);
-        popupOwner = nullptr;
     }
     if (popupOwner == settings) buildPane(env, settings, size);
     Node* parent = api.parent(originalLabel);
