@@ -123,12 +123,16 @@ final class CatalogClient {
     }
 
     File download(int id) throws IOException, JSONException {
+        return downloadWithMetadata(id).file;
+    }
+
+    LevelSong downloadWithMetadata(int id) throws IOException, JSONException {
         JSONObject response = json(endpoint("track", "id=" + id)).getJSONObject("track");
         Track track = new Track(response, mount, shared);
         if (track.id != id) {
             throw new IOException("Server returned a different song");
         }
-        return download(track, response);
+        return new LevelSong(track, download(track, response));
     }
 
     LevelSong downloadForLevel(int levelId) throws IOException, JSONException {

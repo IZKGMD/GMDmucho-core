@@ -67,3 +67,30 @@ py .\patch_apk.py .\Geometry.Dash.ver.1.81.build.20.apk .\GD-1.81-Custom-Songs-s
 На локальных стендах с PHP 8 и PHP 7.0.33 штатный маршрут публикации MuchoCore принял запрос в формате GD 1.8 с `songID`. На каждом стенде два отдельных HTTP-клиента запросили трек по ID опубликованного уровня, скачали одинаковый MP3 и сверили SHA-256. В режиме Shared проверена установка в подпапке `/mc`. Сборка 1.81 для Shared прошла проверку APK-подписи.
 
 Серверный запрос по уровню принимает песни размером до 64 МиБ, как и кабинет игрока. Штатный запрос публикации GD 1.81 передаёт номер встроенной мелодии в `audioTrack`. Выбор песни в редакторе, отправка `songID` при публикации и воспроизведение при старте уровня требуют отдельных изменений игрового клиента. Сценарий на самом 5v.pl пока не проверен.
+
+## Cocos2d integration for GD 1.81 x86
+
+The experimental native mode uses the original GD 1.81 build 20 x86
+library. The selector is installed in the level settings inside the editor.
+The local and published level screens, editor pause, and game pause resolve
+the song through the same selection and MuchoCore metadata.
+
+Build the native library with the Android NDK on Linux:
+
+```sh
+ANDROID_NDK_HOME=/path/to/android-ndk ./android/native/build-x86.sh ./libmuchocore_songs.so
+python3 patch_apk.py original-181.apk custom-181.apk \
+  --server https://gdps.example \
+  --cocos-x86-library ./libmuchocore_songs.so
+```
+
+Use a short server origin that fits the original native URL fields. This mode
+patches the game's legacy database URLs as well as the song catalog origin.
+It writes x86 only. Android ARM and other original GD versions require their
+own native bindings and runtime checks. Test using a dedicated x86 environment.
+
+The native selection retains the built-in track as the fallback and stores the
+custom ID separately in the game's save dictionary. The upload adapter adds
+the selected `songID` to the original upload form. Published levels resolve
+the ID and checksum through MuchoCore. A previous Android overlay build is an
+independent mode and does not support the native editor selection.

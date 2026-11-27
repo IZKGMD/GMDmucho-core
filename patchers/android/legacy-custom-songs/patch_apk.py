@@ -22,6 +22,9 @@ PACKAGE = Path(__file__).resolve().parent
 ACTIVITY = Path('com/robtopx/geometryjump/GeometryJump.smali')
 OVERLAY = 'Lspace/muchogdps/legacysongs/Overlay;'
 CONFIG = 'assets/muchocore-legacy.properties'
+COCOS = 'Lspace/muchogdps/legacysongs/CocosSongs;'
+RENDERER = Path('org/cocos2dx/lib/Cocos2dxRenderer.smali')
+AUDIO_HELPER = Path('org/cocos2dx/lib/Cocos2dxHelper.smali')
 
 BUILDS = {
     '0a57cba5d2c0ededba194a4770833302a32ea1ea8ad4606ebe1577baa5e73b27': '1.0 build 2',
@@ -156,21 +159,31 @@ def app_origin(raw, shared):
     return f'{parsed.scheme}://{parsed.netloc}{mount}'
 
 
-def instrument_activity(activity):
+def instrument_activity(activity, cocos=False):
     smali = activity.read_text(encoding='utf-8')
     super_class = re.search(r'^\.super (L[^\n;]+;)$', smali, re.M)
     if not super_class or OVERLAY in smali:
         raise ValueError('Unrecognized launcher class')
 
-    for signature, action in [('onCreate(Landroid/os/Bundle;)V', 'attach'), ('onPause()V', 'pause')]:
+    signatures = [('onCreate(Landroid/os/Bundle;)V', 'attach')]
+    if not cocos:
+        signatures.append(('onPause()V', 'pause'))
+    hook_class = COCOS if cocos else OVERLAY
+    for signature, action in signatures:
         method = re.compile(r'^\.method [^\n]*\b' + re.escape(signature) + r'\n.*?^\.end method', re.M | re.S)
-        hook = f'    invoke-static {{p0}}, {OVERLAY}->{action}(Landroid/app/Activity;)V'
+        hook = f'    invoke-static {{p0}}, {hook_class}->{action}(Landroid/app/Activity;)V'
         match = method.search(smali)
         if match:
             original = match.group()
             if '    return-void' not in original:
                 raise ValueError(f'No return in {signature}')
-            replacement = original.replace('    return-void', f'{hook}\n\n    return-void')
+            if cocos:
+                marker = '    invoke-super {p0, p1}, Lorg/cocos2dx/lib/Cocos2dxActivity;->onCreate(Landroid/os/Bundle;)V'
+                if original.count(marker) != 1:
+                    raise ValueError('Unrecognized GD 1.81 activity initialization')
+                replacement = original.replace(marker, f'{hook}\n\n{marker}')
+            else:
+                replacement = original.replace('    return-void', f'{hook}\n\n    return-void')
             smali = smali[:match.start()] + replacement + smali[match.end():]
         elif action == 'pause':
             smali += (f'\n.method protected onPause()V\n    .locals 0\n\n{hook}\n\n'
@@ -192,7 +205,45 @@ def guard_chartboost_callback(smali_root):
     callback.write_text(smali.replace(request_path, guarded), encoding='utf-8')
 
 
-def rebuild(input_apk, work, tool_dir, origin, build, shared):
+def instrument_renderer(renderer):
+    smali = renderer.read_text(encoding='utf-8')
+    render = '    invoke-static {}, Lorg/cocos2dx/lib/Cocos2dxRenderer;->nativeRender()V'
+    if smali.count(render) != 1:
+        raise ValueError('Unrecognized GD 1.81 Cocos2d renderer')
+    bridge = f'    invoke-static {{}}, {COCOS}->frame()V'
+    first_init = '    invoke-static {v0, v1}, Lorg/cocos2dx/lib/Cocos2dxRenderer;->nativeInit(II)V'
+    if smali.count(first_init) != 1:
+        raise ValueError('Unrecognized GD 1.81 Cocos2d initialization')
+    renderer.write_text(smali.replace(render, f'{bridge}\n\n{render}')
+                        .replace(first_init, f'{bridge}\n\n{first_init}'), encoding='utf-8')
+
+
+def instrument_audio(helper):
+    smali = helper.read_text(encoding='utf-8')
+    method = re.compile(r'(^\.method public static (?:preload|play)BackgroundMusic'
+                        r'\(Ljava/lang/String;Z?\)V\n[ \t]+\.locals [0-9]+\n)', re.M)
+    hook = f'    invoke-static {{p0}}, {COCOS}->musicPath(Ljava/lang/String;)Ljava/lang/String;'
+    smali, count = method.subn(lambda match: match[0] + '\n' + hook + '\n    move-result-object p0\n', smali)
+    if count != 2:
+        raise ValueError('Unrecognized GD 1.81 Cocos2d audio helper')
+    helper.write_text(smali, encoding='utf-8')
+
+
+def redirect_181_x86(data, origin):
+    def substitute(match):
+        url = origin.encode('ascii') + b'/database/' + match[1]
+        if len(url) >= len(match[0]):
+            raise ValueError('GD 1.81 needs a shorter server origin for its compiled game URLs')
+        return url.ljust(len(match[0]), b'\0')
+
+    patched, count = re.subn(rb'http://www[.]boomlings[.]com/database/([A-Za-z0-9/]+[.]php)\x00',
+                            substitute, data)
+    if count != 19:
+        raise ValueError('Unexpected GD 1.81 x86 endpoint layout')
+    return patched
+
+
+def rebuild(input_apk, work, tool_dir, origin, build, shared, cocos_library=None):
     apktool = tool_dir / 'apktool.jar'
     classes = work / 'overlay-classes'
     classes.mkdir()
@@ -214,7 +265,10 @@ def rebuild(input_apk, work, tool_dir, origin, build, shared):
         new.write(compiled / 'classes.dex', 'classes.dex')
     run('java', '-jar', apktool, 'd', '-q', '-r', '-o', game, input_apk)
     run('java', '-jar', apktool, 'd', '-q', '-r', '-o', module, module_apk)
-    instrument_activity(game / 'smali' / ACTIVITY)
+    instrument_activity(game / 'smali' / ACTIVITY, cocos_library is not None)
+    if cocos_library is not None:
+        instrument_renderer(game / 'smali' / RENDERER)
+        instrument_audio(game / 'smali' / AUDIO_HELPER)
     if build == '1.81 build 20':
         guard_chartboost_callback(game / 'smali')
     shutil.copytree(module / 'smali' / 'space', game / 'smali' / 'space')
@@ -224,10 +278,16 @@ def rebuild(input_apk, work, tool_dir, origin, build, shared):
     unsigned = work / 'unsigned.apk'
     with zipfile.ZipFile(input_apk) as old, zipfile.ZipFile(repacked) as fresh, zipfile.ZipFile(unsigned, 'w') as new:
         for item in old.infolist():
-            if item.filename.startswith('META-INF/'):
+            if item.filename.startswith('META-INF/') or (
+                    cocos_library is not None and item.filename.startswith('lib/')
+                    and not item.filename.startswith('lib/x86/')):
                 continue
             data = fresh.read('classes.dex') if item.filename == 'classes.dex' else old.read(item)
+            if cocos_library is not None and item.filename == 'lib/x86/libcocos2dcpp.so':
+                data = redirect_181_x86(data, origin)
             new.writestr(item, data)
+        if cocos_library is not None:
+            new.write(cocos_library, 'lib/x86/libmuchocore_songs.so', compress_type=zipfile.ZIP_DEFLATED)
         mode = 'shared' if shared else 'vps'
         new.writestr(CONFIG, f'server={origin}\nmode={mode}\n', compress_type=zipfile.ZIP_DEFLATED)
     return unsigned
@@ -270,6 +330,8 @@ def main():
     parser.add_argument('--server', required=True, help='MuchoCore HTTPS URL')
     parser.add_argument('--shared', action='store_true', help='Use the PHP 7 shared installation endpoint')
     parser.add_argument('--tools-dir', type=Path, default=PACKAGE / '.tools', help='Tool and local signing key directory')
+    parser.add_argument('--cocos-x86-library', type=Path,
+                        help='Enable experimental Cocos2d screens in the audited GD 1.81 x86 APK')
     args = parser.parse_args()
     source = args.input.resolve(strict=True)
     destination = args.output.resolve()
@@ -280,11 +342,18 @@ def main():
     build = detect_build(source)
     if build is None:
         raise ValueError('Unknown game code or manifest. Supported builds: ' + ', '.join(BUILDS.values()))
+    cocos_library = args.cocos_x86_library
+    if cocos_library is not None:
+        cocos_library = cocos_library.resolve(strict=True)
+        with cocos_library.open('rb') as stream:
+            header = stream.read(20)
+        if build != '1.81 build 20' or header[:6] != b'\x7fELF\x01\x01' or header[18:20] != b'\x03\x00':
+            raise ValueError('The Cocos2d module currently requires GD 1.81 build 20 and an x86 ELF library')
     print(f'Building Geometry Dash {build}', flush=True)
     tools(tool_dir)
     with tempfile.TemporaryDirectory(prefix='mucho-legacy-') as tmp:
         work = Path(tmp)
-        signed = sign(rebuild(source, work, tool_dir, origin, build, args.shared), work, tool_dir)
+        signed = sign(rebuild(source, work, tool_dir, origin, build, args.shared, cocos_library), work, tool_dir)
         destination.parent.mkdir(parents=True, exist_ok=True)
         with signed.open('rb') as incoming, destination.open('xb') as result:
             shutil.copyfileobj(incoming, result)
