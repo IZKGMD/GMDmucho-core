@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use MuchoCore\Client\AndroidClientPatcher;
+use MuchoCore\Client\LegacyAndroidBuild;
 use MuchoCore\Client\ParallelApkUpload;
 
 function handleAndroidPatcherAction(
@@ -23,6 +24,10 @@ function handleAndroidPatcherAction(
         $totalSize = (int)($_POST['total_size'] ?? 0);
         $serverUrl = (string)($_POST['server_url'] ?? '');
         $installAlongside = (string)($_POST['install_alongside'] ?? '1') === '1';
+        $expectedVersion = (string)($_POST['game_version'] ?? 'auto');
+        if ($expectedVersion !== 'auto' && !in_array($expectedVersion, LegacyAndroidBuild::versions(), true)) {
+            clientPatcherJson(['ok' => false, 'error' => 'Choose a supported Geometry Dash version.'], 400);
+        }
 
         if (
             $filename === '' ||
@@ -81,6 +86,7 @@ function handleAndroidPatcherAction(
             'total_size' => $totalSize,
             'server_url' => $server,
             'install_alongside' => $installAlongside,
+            'game_version' => $expectedVersion,
             'part_path' => $part,
             'upload_mode' => $parallel ? 'parallel-v1' : 'sequential',
             'part_size' => $partBytes,
@@ -337,6 +343,7 @@ function handleAndroidPatcherAction(
         }
 
         $output = $dir . '/' . bin2hex(random_bytes(16)) . '.apk';
+        $windowsBundle = null;
 
         try {
             $report = AndroidClientPatcher::patchFile(
@@ -344,9 +351,21 @@ function handleAndroidPatcherAction(
                 $output,
                 (string)$session['server_url'],
                 null,
-                (bool)($session['install_alongside'] ?? true)
+                (bool)($session['install_alongside'] ?? true),
+                (string)($session['game_version'] ?? 'auto')
             );
+            if (is_array($report['legacy_build'] ?? null)) {
+                $windowsBundle = $output . '.windows.zip';
+                LegacyAndroidBuild::writeWindowsBundle(
+                    $output, $windowsBundle, $report['legacy_build'], $rootDir . '/patchers/android/legacy-windows'
+                );
+            }
         } catch (Throwable $e) {
+            foreach ([$output, $output . '.rebuilt', $output . '.aligned', $windowsBundle] as $artifact) {
+                if (is_string($artifact)) {
+                    @unlink($artifact);
+                }
+            }
             @unlink($part);
             if ($parallel) {
                 ParallelApkUpload::cleanup($part, $totalSize, (int)$session['part_size']);
@@ -372,9 +391,12 @@ function handleAndroidPatcherAction(
         }
         unset($_SESSION['android_patcher_upload']);
 
+        $download = '/admin/?android_download=' . rawurlencode(basename($output, '.apk'));
         $_SESSION['android_patcher_result'] = [
             'id' => basename($output, '.apk'),
             'output' => $output,
+            'windows_bundle' => $windowsBundle,
+            'legacy_version' => $report['legacy_build']['version'] ?? null,
             'server_url' => $report['server_url'],
             'replacement_count' => $report['replacement_count'],
             'patched_entries' => count($report['patched_entries']),
@@ -413,9 +435,9 @@ function handleAndroidPatcherAction(
             'signed' => true,
             'package_id' => (string)($report['package_id'] ?? ''),
             'source_build' => (string)($report['source_build'] ?? 'Legacy Android GD'),
-            'download_url' =>
-                '/admin/?android_download=' .
-                rawurlencode(basename($output, '.apk')),
+            'download_url' => $download,
+            'windows_download_url' => $windowsBundle === null ? null : $download . '&format=windows',
+            'legacy_x86' => $report['legacy_build']['x86'] ?? null,
         ]);
     }
 
@@ -454,9 +476,11 @@ function handleAndroidPatcherDownload(string $rootDir): never
     }
 
     if ((int)($result['expires'] ?? 0) <= time()) {
-        $expired = (string)($result['output'] ?? '');
-        if ($expired !== '' && is_file($expired)) {
-            @unlink($expired);
+        foreach (['output', 'windows_bundle'] as $artifact) {
+            $expired = $result[$artifact] ?? null;
+            if (is_string($expired)) {
+                @unlink($expired);
+            }
         }
 
         unset($_SESSION['android_patcher_result']);
@@ -464,13 +488,14 @@ function handleAndroidPatcherDownload(string $rootDir): never
         exit('Download expired.');
     }
 
-    $file = (string)($result['output'] ?? '');
+    $windows = ($_GET['format'] ?? '') === 'windows';
+    $file = (string)($result[$windows ? 'windows_bundle' : 'output'] ?? '');
+    $legacyVersion = $result['legacy_version'] ?? null;
     $storage = clientPatcherStorage($rootDir);
 
     if ($file === '' || !is_file($file)) {
-        unset($_SESSION['android_patcher_result']);
         http_response_code(404);
-        exit('Patched APK no longer exists.');
+        exit('This download is unavailable.');
     }
 
     $realFile = realpath($file);
@@ -512,10 +537,12 @@ function handleAndroidPatcherDownload(string $rootDir): never
         basename($realFile)
     );
 
-    header('Content-Type: application/vnd.android.package-archive');
-    header(
-        'Content-Disposition: attachment; filename="GeometryDash-MuchoCore.apk"'
-    );
+    $filename = 'GeometryDash-MuchoCore.apk';
+    if (is_string($legacyVersion) && in_array($legacyVersion, LegacyAndroidBuild::versions(), true)) {
+        $filename = 'GeometryDash-' . $legacyVersion . '-MuchoCore' . ($windows ? '-Windows.zip' : '.apk');
+    }
+    header('Content-Type: ' . ($windows ? 'application/zip' : 'application/vnd.android.package-archive'));
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
     header('Content-Length: ' . (string)$size);
     header('Cache-Control: no-store, private');
     header('X-Content-Type-Options: nosniff');
@@ -527,8 +554,11 @@ function handleAndroidPatcherDownload(string $rootDir): never
         exit('Unable to read patched APK.');
     }
 
-    @unlink($realFile);
-    unset($_SESSION['android_patcher_result']);
+    // Legacy builds have two downloads. Keep both until expiration.
+    if ($legacyVersion === null) {
+        @unlink($realFile);
+        unset($_SESSION['android_patcher_result']);
+    }
     exit;
 }
 
@@ -596,6 +626,18 @@ function renderAndroidPatcherSection(PDO $db): void
             >
         </label>
 
+        <label>
+            Geometry Dash version
+            <select id="mcAndroidPatcherVersion">
+                <option value="auto">Auto-detect from APK</option>
+                <?php foreach (LegacyAndroidBuild::versions() as $version): ?>
+                    <option value="<?=h($version)?>">GD <?=h($version)?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+        <div class="muted small">
+            Recognized legacy APKs include a separate Windows download for BlueStacks 5.
+        </div>
         <label style="display:flex;align-items:center;gap:10px;font-size:13px">
             <input type="checkbox" id="mcAndroidPatcherAlongside" checked
                 aria-describedby="mcAndroidPatcherAlongsideHelp"
@@ -605,11 +647,9 @@ function renderAndroidPatcherSection(PDO $db): void
         <div id="mcAndroidPatcherAlongsideHelp" class="muted small" style="line-height:1.6">
             Side-by-side requires the exact verified, original GD 2.209 ARM64 APK
             (versionName 2.2.145; 174,568,364 bytes). Other GD 2.209 APK builds are
-            <b>not interchangeable</b> and must be verified before patching. For an
-            older supported Geometry Dash APK, uncheck this option to attempt URL-only
-            patching. Without side-by-side relocation the resulting APK does not have a
-            separate app ID and may not install over an existing differently signed app.
-            Keep your original game installed.
+            <b>not interchangeable</b> and must be verified before patching. Recognized
+            legacy builds keep the original application ID. Android cannot install them
+            over a copy signed with another key.
         </div>
 
         <label for="mcAndroidPatcherFile" class="mc-drop" id="mcAndroidPatcherDrop">
@@ -641,6 +681,10 @@ function renderAndroidPatcherSection(PDO $db): void
     const server = document.getElementById('mcAndroidPatcherServer');
     const fileInput = document.getElementById('mcAndroidPatcherFile');
     const alongside = document.getElementById('mcAndroidPatcherAlongside');
+    const version = document.getElementById('mcAndroidPatcherVersion');
+    version.addEventListener('change', () => {
+        alongside.disabled = version.value !== 'auto';
+    });
     const drop = document.getElementById('mcAndroidPatcherDrop');
     const fileName = document.getElementById('mcAndroidPatcherFileName');
     const progress = document.getElementById('mcAndroidPatcherProgress');
@@ -908,7 +952,8 @@ function renderAndroidPatcherSection(PDO $db): void
                     filename: selected.name,
                     total_size: selected.size,
                     server_url: server.value.trim(),
-                    install_alongside: alongside.checked ? '1' : '0',
+                    install_alongside: !alongside.disabled && alongside.checked ? '1' : '0',
+                    game_version: version.value,
                     supports_parallel: '1',
                     // Three 8 MiB requests at once can be unstable on
                     // mobile networks. Prefer smaller requests there.
@@ -1044,10 +1089,15 @@ function renderAndroidPatcherSection(PDO $db): void
                 '<div class="rowline"><span>SHA-256</span><code style="word-break:break-all">' +
                     escapeHtml(finished.output_sha256) +
                 '</code></div>' +
-                '<div><b>Signed output:</b> the APK is ready for installation.</div>' +
-                '<a class="btn" href="' + escapeHtml(finished.download_url) + '">' +
-                    '⬇️ Download patched APK' +
-                '</a>' +
+                (finished.windows_download_url
+                    ? '<div>Requires an Android environment with 32-bit support. Modern ARM64-only phones cannot install this APK.</div>' +
+                      (finished.legacy_x86 === false
+                        ? '<div>This build is ARM only. BlueStacks requires ARM translation for it.</div>' : '')
+                    : '<div><b>Signed output:</b> the APK is ready for installation.</div>') +
+                '<a class="btn" href="' + escapeHtml(finished.download_url) + '">Download Android APK</a>' +
+                (finished.windows_download_url
+                    ? ' <a class="btn" href="' + escapeHtml(finished.windows_download_url) + '">Download Windows ZIP</a>'
+                    : '') +
                 '</div>';
         } catch (error) {
             setStatus(error?.message || 'APK patch failed.');
