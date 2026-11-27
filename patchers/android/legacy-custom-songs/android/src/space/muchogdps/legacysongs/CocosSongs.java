@@ -80,6 +80,10 @@ public final class CocosSongs {
         });
     }
 
+    public static boolean canRunLifecycle() {
+        return rendering;
+    }
+
     public static boolean frame() {
         if (rendering) nativeFrame();
         return rendering;

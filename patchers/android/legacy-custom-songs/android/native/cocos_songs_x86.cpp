@@ -114,6 +114,12 @@ bool resolve() {
     if (!game) return false;
 #define BIND(slot, name) if (!symbol(game, api.slot, name)) return false
     BIND(director, "_ZN7cocos2d10CCDirector14sharedDirectorEv");
+    // KitKat's dlsym skips weak exports. The patcher has already fingerprinted
+    // the GD 1.81 x86 image, where sharedDirector is at virtual address 0x303660.
+    const unsigned imageBase = reinterpret_cast<unsigned>(api.director) - 0x303660;
+#define BIND_WEAK(slot, name, address) \
+    api.slot = reinterpret_cast<decltype(api.slot)>(dlsym(game, name)); \
+    if (!api.slot) api.slot = reinterpret_cast<decltype(api.slot)>(imageBase + address)
     BIND(children, "_ZN7cocos2d6CCNode11getChildrenEv");
     BIND(child, "_ZN7cocos2d7CCArray13objectAtIndexEj");
     BIND(count, "_ZNK7cocos2d7CCArray5countEv");
@@ -134,26 +140,27 @@ bool resolve() {
     BIND(label, "_ZN7cocos2d10CCLabelTTF6createEPKcS2_f");
     BIND(text, "_ZN7cocos2d10CCLabelTTF9setStringEPKc");
     BIND(shade, "_ZN7cocos2d12CCLayerColor6createERKNS_10_ccColor4BEff");
-    BIND(editorOfSettings, "_ZNK18LevelSettingsLayer14getEditorLayerEv");
-    BIND(editorLevel, "_ZNK16LevelEditorLayer8getLevelEv");
-    BIND(editorSettings, "_ZNK16LevelEditorLayer16getLevelSettingsEv");
-    BIND(playLevel, "_ZNK9PlayLayer8getLevelEv");
-    BIND(levelId, "_ZNK11GJGameLevel10getLevelIDEv");
-    BIND(objectId, "_ZNK11GJGameLevel7getM_IDEv");
-    BIND(audioTrack, "_ZNK11GJGameLevel13getAudioTrackEv");
-    BIND(settingsTrack, "_ZNK19LevelSettingsObject13getAudioTrackEv");
+    BIND_WEAK(editorOfSettings, "_ZNK18LevelSettingsLayer14getEditorLayerEv", 0x208960);
+    BIND_WEAK(editorLevel, "_ZNK16LevelEditorLayer8getLevelEv", 0x2083b0);
+    BIND_WEAK(editorSettings, "_ZNK16LevelEditorLayer16getLevelSettingsEv", 0x2083c0);
+    BIND_WEAK(playLevel, "_ZNK9PlayLayer8getLevelEv", 0x1cabf0);
+    BIND_WEAK(levelId, "_ZNK11GJGameLevel10getLevelIDEv", 0x2484b0);
+    BIND_WEAK(objectId, "_ZNK11GJGameLevel7getM_IDEv", 0x248cf0);
+    BIND_WEAK(audioTrack, "_ZNK11GJGameLevel13getAudioTrackEv", 0x248540);
+    BIND_WEAK(settingsTrack, "_ZNK19LevelSettingsObject13getAudioTrackEv", 0x208810);
     BIND(readInteger, "_ZN13DS_Dictionary16getIntegerForKeyEPKc");
     BIND(writeInteger, "_ZN13DS_Dictionary16setIntegerForKeyEPKci");
     BIND(bitmapLabelText, "_ZN7cocos2d13CCLabelBMFont9getStringEv");
-    BIND(bitmapLabelType, "_ZTVN7cocos2d13CCLabelBMFontE");
+    BIND_WEAK(bitmapLabelType, "_ZTVN7cocos2d13CCLabelBMFontE", 0x83ada0);
     BIND(stockTitle, "_ZN10LevelTools13getAudioTitleEi");
-    BIND(editorType, "_ZTV16LevelEditorLayer");
-    BIND(settingsType, "_ZTV18LevelSettingsLayer");
-    BIND(levelPageType, "_ZTV14LevelInfoLayer");
-    BIND(editLevelType, "_ZTV14EditLevelLayer");
-    BIND(editorPauseType, "_ZTV16EditorPauseLayer");
-    BIND(playType, "_ZTV9PlayLayer");
-    BIND(pauseType, "_ZTV10PauseLayer");
+    BIND_WEAK(editorType, "_ZTV16LevelEditorLayer", 0x823380);
+    BIND_WEAK(settingsType, "_ZTV18LevelSettingsLayer", 0x823c40);
+    BIND_WEAK(levelPageType, "_ZTV14LevelInfoLayer", 0x826700);
+    BIND_WEAK(editLevelType, "_ZTV14EditLevelLayer", 0x826ae0);
+    BIND_WEAK(editorPauseType, "_ZTV16EditorPauseLayer", 0x82a120);
+    BIND_WEAK(playType, "_ZTV9PlayLayer", 0x81f2a0);
+    BIND_WEAK(pauseType, "_ZTV10PauseLayer", 0x824ec0);
+#undef BIND_WEAK
 #undef BIND
     return installHooks(game);
 }

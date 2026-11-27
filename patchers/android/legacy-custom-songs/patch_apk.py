@@ -224,7 +224,16 @@ def instrument_renderer(renderer):
                   '    return-void\n\n    :mucho_initialize')
     smali = smali.replace(frame_header, frame_header[:-1] + '1', 1)
     smali = smali.replace(render, f'{guard_render}\n{render}', 1)
-    renderer.write_text(smali.replace(init_header, f'{init_header}\n\n{guard_init}', 1), encoding='utf-8')
+    smali = smali.replace(init_header, f'{init_header}\n\n{guard_init}', 1)
+    for action in ('Pause', 'Resume'):
+        lifecycle = f'.method public handleOn{action}()V\n    .locals 0'
+        if smali.count(lifecycle) != 1:
+            raise ValueError(f'Unrecognized GD 1.81 {action} handler')
+        guard = (f'    invoke-static {{}}, {COCOS}->canRunLifecycle()Z\n'
+                 f'    move-result v0\n    if-nez v0, :mucho_lifecycle_{action}\n'
+                 f'    return-void\n\n    :mucho_lifecycle_{action}')
+        smali = smali.replace(lifecycle, f'{lifecycle[:-1]}1\n\n{guard}', 1)
+    renderer.write_text(smali, encoding='utf-8')
 
 
 def instrument_audio(helper):
