@@ -2,8 +2,10 @@ package space.muchogdps.legacysongs;
 
 import android.app.Activity;
 import android.util.Log;
+import android.widget.Toast;
 import java.io.File;
 import java.io.InputStream;
+import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
@@ -27,6 +29,8 @@ public final class CocosSongs {
             new ConcurrentHashMap<Integer, TrackState>();
 
     private static volatile boolean enabled;
+    private static volatile boolean rendering;
+    private static volatile WeakReference<Activity> activityRef;
     private static CatalogClient client;
     private static volatile Page page = new Page("Loading...", Collections.<CatalogClient.Track>emptyList(), 0, 0);
     private static volatile int catalogRevision;
@@ -37,6 +41,7 @@ public final class CocosSongs {
     private CocosSongs() {}
 
     public static void attach(Activity activity) {
+        activityRef = new WeakReference<Activity>(activity);
         try (InputStream configuration = activity.getAssets().open("muchocore-legacy.properties")) {
             Properties properties = new Properties();
             properties.load(configuration);
@@ -47,13 +52,40 @@ public final class CocosSongs {
             enabled = true;
         } catch (Exception | LinkageError error) {
             Log.e(TAG, "Cocos2d integration could not start", error);
+            stopStartup();
         }
     }
 
-    public static void frame() {
-        if (enabled) nativeFrame();
+    public static boolean start() {
+        try {
+            rendering = enabled && nativeStart();
+        } catch (LinkageError error) {
+            Log.e(TAG, "Native plugin could not initialize", error);
+        }
+        if (!rendering) stopStartup();
+        return rendering;
     }
 
+    private static synchronized void stopStartup() {
+        rendering = false;
+        final Activity activity = activityRef == null ? null : activityRef.get();
+        activityRef = null;
+        if (activity == null) return;
+        activity.runOnUiThread(new Runnable() {
+            @Override public void run() {
+                Toast.makeText(activity, "MuchoCore cannot start: Custom Songs plugin is unavailable.",
+                        Toast.LENGTH_LONG).show();
+                activity.finish();
+            }
+        });
+    }
+
+    public static boolean frame() {
+        if (rendering) nativeFrame();
+        return rendering;
+    }
+
+    private static native boolean nativeStart();
     private static native void nativeFrame();
     private static native String nativeMusicPath();
 

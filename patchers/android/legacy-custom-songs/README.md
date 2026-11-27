@@ -86,6 +86,8 @@ python3 patch_apk.py original-181.apk custom-181.apk \
 
 Use a short server origin that fits the original native URL fields. This mode
 patches the game's legacy database URLs as well as the song catalog origin.
+The client displays an error and exits before initializing the game if the
+required native module cannot start.
 It writes x86 only. Android ARM and other original GD versions require their
 own native bindings and runtime checks. Test using a dedicated x86 environment.
 

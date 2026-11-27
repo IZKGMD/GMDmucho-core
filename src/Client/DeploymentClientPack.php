@@ -93,6 +93,11 @@ final class DeploymentClientPack
             $rootDir . '/tools/client/START-MuchoCore.cmd',
             $rootDir . '/patchers/android/legacy-windows/Start-GD.ps1',
         ];
+        $cocos = $rootDir . '/patchers/android/legacy-custom-songs';
+        $packFiles[] = $cocos . '/patch_apk.py';
+        foreach (glob($cocos . '/android/src/space/muchogdps/legacysongs/*.java') ?: [] as $source) {
+            $packFiles[] = $source;
+        }
         $packHash = hash_init('sha256');
         foreach ($packFiles as $file) {
             if (is_readable($file)) {
@@ -298,8 +303,16 @@ final class DeploymentClientPack
         }
 
         foreach (['windows', 'android', 'archive'] as $type) {
-            $path = $existing[$type]['path'] ?? null;
-            if (!is_string($path) || $path === '' || !is_file($path)) {
+            $entry = $existing[$type] ?? [];
+            $path = $entry['path'] ?? null;
+            $digest = $entry['sha256'] ?? null;
+            if (!is_string($path) || !is_readable($path) || !is_file($path) ||
+                !is_string($digest) || !preg_match('/^[a-f0-9]{64}$/D', $digest) ||
+                @filesize($path) !== ($entry['size'] ?? null)) {
+                return false;
+            }
+            $actual = hash_file('sha256', $path);
+            if (!is_string($actual) || !hash_equals($digest, $actual)) {
                 return false;
             }
         }

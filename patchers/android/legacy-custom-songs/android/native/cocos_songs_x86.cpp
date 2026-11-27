@@ -522,8 +522,8 @@ bool javaMethods(JNIEnv* env, jclass type) {
 }
 }
 
-extern "C" JNIEXPORT void JNICALL
-Java_space_muchogdps_legacysongs_CocosSongs_nativeFrame(JNIEnv* env, jclass type) {
+extern "C" JNIEXPORT jboolean JNICALL
+Java_space_muchogdps_legacysongs_CocosSongs_nativeStart(JNIEnv* env, jclass type) {
     if (!initialized) {
         initialized = true;
         ready = resolve() && javaMethods(env, type);
@@ -531,6 +531,11 @@ Java_space_muchogdps_legacysongs_CocosSongs_nativeFrame(JNIEnv* env, jclass type
         __android_log_write(ready ? 4 : 6, "MuchoCoreCocos",
                             ready ? "Native song screens loaded" : "Native song screens unavailable");
     }
+    return ready ? JNI_TRUE : JNI_FALSE;
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_space_muchogdps_legacysongs_CocosSongs_nativeFrame(JNIEnv* env, jclass) {
     if (!ready || (++frames % 12) != 0) return;
     Node* scene = field(api.director(), runningSceneOffset);
     if (!scene) return;

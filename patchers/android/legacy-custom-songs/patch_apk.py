@@ -210,12 +210,21 @@ def instrument_renderer(renderer):
     render = '    invoke-static {}, Lorg/cocos2dx/lib/Cocos2dxRenderer;->nativeRender()V'
     if smali.count(render) != 1:
         raise ValueError('Unrecognized GD 1.81 Cocos2d renderer')
-    bridge = f'    invoke-static {{}}, {COCOS}->frame()V'
+    frame_header = ".method public onDrawFrame(Ljavax/microedition/khronos/opengles/GL10;)V\n    .locals 0"
     first_init = '    invoke-static {v0, v1}, Lorg/cocos2dx/lib/Cocos2dxRenderer;->nativeInit(II)V'
-    if smali.count(first_init) != 1:
+    init_header = (".method public onSurfaceCreated(Ljavax/microedition/khronos/opengles/GL10;"
+                   "Ljavax/microedition/khronos/egl/EGLConfig;)V\n    .locals 2")
+    if any(smali.count(marker) != 1 for marker in (frame_header, first_init, init_header)):
         raise ValueError('Unrecognized GD 1.81 Cocos2d initialization')
-    renderer.write_text(smali.replace(render, f'{bridge}\n\n{render}')
-                        .replace(first_init, f'{bridge}\n\n{first_init}'), encoding='utf-8')
+    guard_render = (f'    invoke-static {{}}, {COCOS}->frame()Z\n'
+                    '    move-result v0\n    if-nez v0, :mucho_render\n'
+                    '    return-void\n\n    :mucho_render')
+    guard_init = (f'    invoke-static {{}}, {COCOS}->start()Z\n'
+                  '    move-result v0\n    if-nez v0, :mucho_initialize\n'
+                  '    return-void\n\n    :mucho_initialize')
+    smali = smali.replace(frame_header, frame_header[:-1] + '1', 1)
+    smali = smali.replace(render, f'{guard_render}\n{render}', 1)
+    renderer.write_text(smali.replace(init_header, f'{init_header}\n\n{guard_init}', 1), encoding='utf-8')
 
 
 def instrument_audio(helper):
