@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use MuchoCore\Client\AndroidClientPatcher;
+use MuchoCore\Client\DeploymentClientFiles;
 use MuchoCore\Client\ParallelApkUpload;
 
 function handleAndroidPatcherAction(
@@ -339,14 +339,22 @@ function handleAndroidPatcherAction(
         $output = $dir . '/' . bin2hex(random_bytes(16)) . '.apk';
 
         try {
-            $report = AndroidClientPatcher::patchFile(
+            $requiredFiles = DeploymentClientFiles::load($rootDir);
+            $report = DeploymentClientFiles::patchAndroid(
+                $rootDir,
                 $part,
                 $output,
                 (string)$session['server_url'],
+                $requiredFiles,
                 null,
-                (bool)($session['install_alongside'] ?? true)
+                (bool)($session['install_alongside'] ?? true),
+                (string)($session['game_version'] ?? 'auto')
             );
+            if ($requiredFiles !== null) {
+                DeploymentClientFiles::verifyApk($output, $requiredFiles);
+            }
         } catch (Throwable $e) {
+            @unlink($output);
             @unlink($part);
             if ($parallel) {
                 ParallelApkUpload::cleanup($part, $totalSize, (int)$session['part_size']);

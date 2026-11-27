@@ -159,4 +159,13 @@ else
 fi
 
 php bin/migrate.php migrate
+if [[ "${1:-}" == "php-fpm" && -f storage/client-sources/required-client-files.json ]]; then
+  if php bin/mucho-client-patch.php; then
+    chgrp www-data storage/clients storage/clients/manifest.json \
+      storage/clients/GeometryDash-MuchoGDPS.exe storage/clients/GeometryDash-MuchoGDPS.apk \
+      storage/clients/MuchoGDPS-Client-Pack.zip
+  else
+    echo "[MuchoCore] Client pack publication failed. Check the configured client files." >&2
+  fi
+fi
 exec "$@"

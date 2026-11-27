@@ -114,6 +114,12 @@ function upload_tenant_clients(
         'source_windows_sha256' => (string)($manifest['source_windows_sha256'] ?? ''),
         'source_android_sha256' => (string)($manifest['source_android_sha256'] ?? ''),
         'created_at' => gmdate('c'),
+        'verified_launch' => (bool)($manifest['verified_launch'] ?? false),
+        'archive' => [
+            'name' => (string)$manifest['archive']['name'],
+            'size' => (int)$manifest['archive']['size'],
+            'sha256' => (string)$manifest['archive']['sha256'],
+        ],
         'windows' => [
             'name' => (string)($manifest['windows']['name'] ?? 'GeometryDash-MuchoGDPS.exe'),
             'size' => (int)($manifest['windows']['size'] ?? 0),
@@ -121,6 +127,7 @@ function upload_tenant_clients(
             'replacement_count' => (int)($manifest['windows']['replacement_count'] ?? 0),
         ],
         'android' => [
+            'server_plugin' => $manifest['android']['server_plugin'] ?? null,
             'name' => (string)($manifest['android']['name'] ?? 'GeometryDash-MuchoGDPS.apk'),
             'size' => (int)($manifest['android']['size'] ?? 0),
             'sha256' => (string)($manifest['android']['sha256'] ?? ''),
@@ -163,6 +170,7 @@ function upload_tenant_clients(
     $files = [
         (string)$manifest['windows']['path'],
         (string)$manifest['android']['path'],
+        (string)$manifest['archive']['path'],
         $manifestPath,
     ];
 
@@ -181,9 +189,10 @@ function upload_tenant_clients(
     shell_command(
         $sshPrefix . $sshOptions . ' ' . shell_quote($remote) . ' ' .
         shell_quote(
-            'chmod 640 /opt/mucho-core/storage/clients/GeometryDash-MuchoGDPS.exe ' .
-            '/opt/mucho-core/storage/clients/GeometryDash-MuchoGDPS.apk ' .
-            '/opt/mucho-core/storage/clients/manifest.json'
+            'cd /opt/mucho-core/storage/clients && ' .
+            'chmod 640 GeometryDash-MuchoGDPS.exe GeometryDash-MuchoGDPS.apk ' .
+            'MuchoGDPS-Client-Pack.zip tenant-client-manifest.json && ' .
+            'mv -f tenant-client-manifest.json manifest.json'
         )
     );
 

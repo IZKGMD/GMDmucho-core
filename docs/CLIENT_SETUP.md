@@ -248,3 +248,43 @@ still does not fit is rejected with instructions to choose a shorter
 domain; no dangerous offset edits, truncated URLs or made-up success.
 This checks binary integrity only — a working in-game GDPS also needs
 correct server endpoints, HTTPS and native client acceptance tests.
+
+### Require all client files before publishing
+
+Keep the original Windows client files in
+`storage/client-sources/windows-runtime/`. Use the files for the exact build
+of the original EXE. Include its runtime DLLs, Resources, compatible plugin
+loader and all required Windows plugins. Set the original Android APK through
+`MUCHO_ANDROID_BASE_APK`.
+
+Create `storage/client-sources/required-client-files.json`:
+
+```json
+{
+  "version": 1,
+  "windows": [
+    "libcocos2d.dll",
+    "libfmod.dll",
+    "Resources/game-sheet.png",
+    "plugins/example.dll"
+  ],
+  "android_builder": "standard",
+  "android_plugins": {
+    "lib/arm64-v8a/libexample.so": "<64 lowercase hexadecimal SHA-256 characters>"
+  }
+}
+```
+
+Replace each example with a required file from your compatible plugin package.
+Use `legacy-cocos-x86` with the GD 1.81 x86 Cocos2d builder when installed.
+That mode builds from the original APK and embeds
+`storage/client-sources/android/libmuchocore_songs.so`. Set its expected hash
+under `lib/x86/libmuchocore_songs.so` in the profile. The builder requires
+Python 3, Java, and a persistent private directory for its signing key and tools.
+
+The install worker uses the normal client pack generation path. A configured
+profile with incomplete inputs fails client publication. The Windows ZIP includes
+`START-MuchoCore.cmd`. It checks every listed file before starting the EXE.
+On the download page, verified releases offer the complete Windows ZIP and the
+signed Android APK. The profile describes compatible Windows plugins supplied by
+the owner and the APK entries present in the output.

@@ -88,6 +88,11 @@ final class DeploymentClientPack
             'android' => $androidSourceSha,
         ];
 
+        $requirements = DeploymentClientFiles::load($rootDir);
+        if ($requirements !== null) {
+            $sourceSha256['required_files'] = $requirements['fingerprint'];
+        }
+
         $lockPath = $jobDir . '/client-pack.lock';
         $lock = fopen($lockPath, 'c');
         if ($lock === false) {
@@ -122,12 +127,19 @@ final class DeploymentClientPack
                 $server
             );
 
-            $android = AndroidClientPatcher::patchFile(
-                $sourceApk,
-                $androidPath,
-                $server,
-                $heartbeat
+            $android = DeploymentClientFiles::patchAndroid(
+                $rootDir, $sourceApk, $androidPath, $server, $requirements, $heartbeat
             );
+
+            if ($requirements !== null) {
+                try {
+                    DeploymentClientFiles::verifyApk($androidPath, $requirements);
+                } catch (\Throwable $error) {
+                    @unlink($windowsPath);
+                    @unlink($androidPath);
+                    throw $error;
+                }
+            }
 
             $createdAt = gmdate('c');
             $publicManifest = [
@@ -155,7 +167,9 @@ final class DeploymentClientPack
             }
 
             try {
-                if (!$zip->addFile($windowsPath, 'windows/GeometryDash-MuchoGDPS.exe')) {
+                if ($requirements !== null) {
+                    DeploymentClientFiles::addWindows($zip, $rootDir, $windowsPath, $requirements, $server);
+                } elseif (!$zip->addFile($windowsPath, 'windows/GeometryDash-MuchoGDPS.exe')) {
                     throw new RuntimeException('Cannot add the Windows client to the client pack ZIP.');
                 }
                 if (!$zip->addFile($androidPath, 'android/GeometryDash-MuchoGDPS.apk')) {
@@ -167,8 +181,17 @@ final class DeploymentClientPack
                 )) {
                     throw new RuntimeException('Cannot add the client pack manifest to the ZIP archive.');
                 }
-            } finally {
+            } catch (\Throwable $error) {
+                $zip->unchangeAll();
                 $zip->close();
+                @unlink($archivePath);
+                @unlink($windowsPath);
+                @unlink($androidPath);
+                throw $error;
+            }
+            if (!$zip->close()) {
+                @unlink($archivePath);
+                throw new RuntimeException('Cannot finalize client pack ZIP.');
             }
 
             $archiveSize = filesize($archivePath);
@@ -190,6 +213,7 @@ final class DeploymentClientPack
                 // Key the cached pack to the actual input binaries, not only
                 // the server URL. Existing manifests without hashes expire.
                 'source_sha256' => $sourceSha256,
+                'verified_launch' => $requirements !== null,
                 'windows' => [
                     'path' => $windowsPath,
                     'name' => 'GeometryDash-MuchoGDPS.exe',
@@ -203,6 +227,7 @@ final class DeploymentClientPack
                     'size' => (int)$android['output_size'],
                     'sha256' => (string)$android['output_sha256'],
                     'replacement_count' => (int)$android['replacement_count'],
+                    'server_plugin' => isset($requirements['cocos_library']) ? 'legacy-songs' : null,
                 ],
                 'archive' => [
                     'path' => $archivePath,
@@ -242,7 +267,8 @@ final class DeploymentClientPack
             !is_array($existing) ||
             ($existing['server_url'] ?? null) !== $server ||
             ($existing['source_sha256']['windows'] ?? null) !== $sourceSha256['windows'] ||
-            ($existing['source_sha256']['android'] ?? null) !== $sourceSha256['android']
+            ($existing['source_sha256']['android'] ?? null) !== $sourceSha256['android'] ||
+            ($existing['source_sha256']['required_files'] ?? null) !== ($sourceSha256['required_files'] ?? null)
         ) {
             return false;
         }

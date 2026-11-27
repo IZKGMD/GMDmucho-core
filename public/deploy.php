@@ -322,7 +322,8 @@ function handle_client_pack_request(string $root): never
             json_response([
                 'ok' => true,
                 'server_url' => $manifest['server_url'] ?? ('https://' . $domain),
-                'windows' => [
+                'verified_launch' => (bool)($manifest['verified_launch'] ?? false),
+                'windows' => !empty($manifest['verified_launch']) ? null : [
                     'url' => '/api/deploy/client-pack?id=' . rawurlencode($id)
                         . '&token=' . rawurlencode($token)
                         . '&kind=windows',
@@ -362,7 +363,11 @@ function handle_client_pack_request(string $root): never
     try {
         $file = client_pack_path($dir, $kind);
         $manifest = \MuchoCore\Client\DeploymentClientPack::manifest($dir);
-        $entry = is_array($manifest[$kind] ?? null) ? $manifest[$kind] : [];
+        if ($kind === 'windows' && !empty($manifest['verified_launch'])) {
+            json_response(['ok' => false, 'error' => 'Download the complete Windows client pack.'], 404);
+        }
+        $key = $kind === 'zip' ? 'archive' : $kind;
+        $entry = is_array($manifest[$key] ?? null) ? $manifest[$key] : [];
         $name = basename((string)($entry['name'] ?? ($kind === 'android'
             ? 'GeometryDash-MuchoGDPS.apk'
             : 'GeometryDash-MuchoGDPS.exe')));

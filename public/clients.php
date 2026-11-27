@@ -14,6 +14,10 @@ header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 $manifest = is_file($manifestPath)
     ? json_decode((string)@file_get_contents($manifestPath), true)
     : null;
+if (is_file($root . '/storage/client-sources/required-client-files.json') &&
+    empty($manifest['verified_launch'])) {
+    $manifest = null;
+}
 
 if (!is_array($manifest)) {
     http_response_code(503);
@@ -63,7 +67,8 @@ if ($kind !== '') {
         'zip' => $manifest['archive'] ?? null,
     ];
 
-    if (!isset($entries[$kind]) || !is_array($entries[$kind])) {
+    if (($kind === 'windows' && !empty($manifest['verified_launch'])) ||
+        !isset($entries[$kind]) || !is_array($entries[$kind])) {
         http_response_code(404);
         exit('Unknown client download.');
     }
@@ -113,6 +118,12 @@ $files = [
     ],
 ];
 
+$verifiedLaunch = !empty($manifest['verified_launch']);
+if ($verifiedLaunch) {
+    unset($files['windows']);
+    $files['zip']['label'] = 'Windows Client Pack';
+    $files['zip']['description'] = 'Extract the ZIP and run START-MuchoCore.cmd to verify and start the game.';
+}
 foreach ($files as $kind => &$file) {
     try {
         $path = client_file($file['entry'], $clientDir);
@@ -159,7 +170,11 @@ function size_label(mixed $value): string
 <div class="eyebrow">MuchoGDPS · Player Downloads</div>
 <section class="hero">
 <h1><?= e($serverName) ?> clients.</h1>
-<p>These clients are already patched for this GDPS. Players do not need a launcher or updater: download the client and connect directly.</p>
+<?php if ($verifiedLaunch): ?>
+<p>Download the patched APK for Android or use the included launcher to check the Windows installation before playing.</p>
+<?php else: ?>
+<p>Download a client patched for this GDPS.</p>
+<?php endif; ?>
 <?php if ($serverUrl !== ''): ?><div class="server"><?= e($serverUrl) ?></div><?php endif; ?>
 </section>
 

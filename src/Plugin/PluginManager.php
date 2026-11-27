@@ -20,7 +20,8 @@ final class PluginManager
         private readonly PDO $db,
         private readonly Router $router,
         private readonly string $rootDirectory,
-        private readonly string $coreVersion = '0.0.0'
+        private readonly string $coreVersion = '0.0.0',
+        private readonly ?string $bundledClientPlugin = null
     ) {
         $this->events = new PluginEventBus();
         $this->clientFeatures = new ClientFeatureRegistry();
@@ -40,7 +41,15 @@ final class PluginManager
             ? trim((string)file_get_contents($projectRoot . '/VERSION'))
             : '0.0.0';
 
-        return new self($db, $router, $root, $version);
+        $clientManifest = $projectRoot . '/storage/clients/manifest.json';
+        $published = is_file($clientManifest)
+            ? json_decode((string)file_get_contents($clientManifest), true)
+            : null;
+        $bundled = ($published['android']['server_plugin'] ?? null) === 'legacy-songs'
+            ? $projectRoot . '/patchers/android/legacy-custom-songs/server/legacy-songs'
+            : null;
+
+        return new self($db, $router, $root, $version, $bundled);
     }
 
     public function load(): void
@@ -50,7 +59,7 @@ final class PluginManager
             (new \MuchoCore\CreatorEvents\CreatorEventsPlugin())->register($context);
             $this->loaded['creator-events']=['id'=>'creator-events','name'=>'Creator Events','version'=>'1.0.0','directory'=>'bundled','permissions'=>['routes','database'],'api'=>1];
         }
-        if (!$this->enabled() || !is_dir($this->rootDirectory)) {
+        if (!$this->enabled()) {
             return;
         }
 
@@ -101,10 +110,6 @@ final class PluginManager
         $result = [];
         $creator = new \MuchoCore\CreatorEvents\CreatorEventsService($this->db);
         if ($creator->installed()) $result[] = ['id'=>'creator-events','name'=>'Creator Events','version'=>'1.0.0','api'=>1,'directory'=>'bundled/creator-events','permissions'=>['routes','database'],'status'=>$creator->enabled()?'ready':'disabled','reason'=>'Managed in the official Creator Events card.','min_core_version'=>null,'max_core_version'=>null];
-        if (!is_dir($this->rootDirectory)) {
-            return $result;
-        }
-
         foreach ($this->directories() as $directory) {
             $result[] = $this->diagnoseOne($directory);
         }
@@ -114,11 +119,7 @@ final class PluginManager
 
     private function directories(): array
     {
-        $entries = scandir($this->rootDirectory);
-        if ($entries === false) {
-            return [];
-        }
-
+        $entries = is_dir($this->rootDirectory) ? (scandir($this->rootDirectory) ?: []) : [];
         sort($entries, SORT_NATURAL | SORT_FLAG_CASE);
 
         $directories = [];
@@ -132,6 +133,11 @@ final class PluginManager
             if (is_dir($directory)) {
                 $directories[] = $directory;
             }
+        }
+
+        if ($this->bundledClientPlugin !== null && is_dir($this->bundledClientPlugin) &&
+            !in_array($this->rootDirectory . '/legacy-songs', $directories, true)) {
+            $directories[] = $this->bundledClientPlugin;
         }
 
         return $directories;
