@@ -83,9 +83,26 @@ final class DeploymentClientPack
         if (!is_string($windowsSourceSha) || !is_string($androidSourceSha)) {
             throw new RuntimeException('Cannot calculate the input client SHA-256 hashes.');
         }
+        $packFiles = [
+            __FILE__,
+            __DIR__ . '/DeploymentClientFiles.php',
+            __DIR__ . '/AndroidClientPatcher.php',
+            __DIR__ . '/LegacyAndroidBuild.php',
+            __DIR__ . '/WindowsClientPatcher.php',
+            $rootDir . '/tools/client/Start-MuchoCore.ps1',
+            $rootDir . '/tools/client/START-MuchoCore.cmd',
+            $rootDir . '/patchers/android/legacy-windows/Start-GD.ps1',
+        ];
+        $packHash = hash_init('sha256');
+        foreach ($packFiles as $file) {
+            if (is_readable($file)) {
+                hash_update_file($packHash, $file);
+            }
+        }
         $sourceSha256 = [
             'windows' => $windowsSourceSha,
             'android' => $androidSourceSha,
+            'pack_code' => hash_final($packHash),
         ];
 
         $requirements = DeploymentClientFiles::load($rootDir);
@@ -174,6 +191,12 @@ final class DeploymentClientPack
                 }
                 if (!$zip->addFile($androidPath, 'android/GeometryDash-MuchoGDPS.apk')) {
                     throw new RuntimeException('Cannot add the Android client to the client pack ZIP.');
+                }
+                if (is_array($android['legacy_build'] ?? null)) {
+                    LegacyAndroidBuild::addWindowsLauncher(
+                        $zip, 'windows-emulator/', $androidPath, $android['legacy_build'],
+                        $rootDir . '/patchers/android/legacy-windows'
+                    );
                 }
                 if (!$zip->addFromString(
                     'client-pack.json',
@@ -268,7 +291,8 @@ final class DeploymentClientPack
             ($existing['server_url'] ?? null) !== $server ||
             ($existing['source_sha256']['windows'] ?? null) !== $sourceSha256['windows'] ||
             ($existing['source_sha256']['android'] ?? null) !== $sourceSha256['android'] ||
-            ($existing['source_sha256']['required_files'] ?? null) !== ($sourceSha256['required_files'] ?? null)
+            ($existing['source_sha256']['required_files'] ?? null) !== ($sourceSha256['required_files'] ?? null) ||
+            ($existing['source_sha256']['pack_code'] ?? null) !== ($sourceSha256['pack_code'] ?? null)
         ) {
             return false;
         }
