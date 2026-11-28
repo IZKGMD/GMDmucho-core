@@ -41,9 +41,13 @@ func scoreProgresses(value string) (string, bool) {
 }
 func (h *Handler) regularScores(r request) (string, error) {
 	id, levelID, percent := scoreValue(r.str("accountID"), 0, 0), scoreValue(r.str("levelID"), 0, 0), scoreValue(r.str("percent"), 0, 0)
-	typ := int64(1)
+	typ := int64(0)
 	if _, ok := r.form["type"]; ok {
-		typ = scoreValue(r.str("type"), 0, 0)
+		typ = scoreValue(r.str("type"), -1, 2)
+	}
+	_, hasPercent := r.form["percent"]
+	if hasPercent {
+		percent = scoreValue(r.str("percent"), -1, 3)
 	}
 	if id <= 0 || levelID <= 0 || percent < 0 || percent > 100 || typ < 0 || typ > 2 {
 		return "-1", nil
@@ -54,47 +58,50 @@ func (h *Handler) regularScores(r request) (string, error) {
 	if _, err := h.findLevel(r, levelID); err != nil {
 		return "", err
 	}
-	decoded := make([]int64, 4)
-	for i, f := range []struct {
-		key         string
-		offset, max int64
-	}{{"s1", 8354, 1000000}, {"s2", 3991, 10000000}, {"s3", 4085, 86400}, {"s9", 5819, 3}} {
-		value := r.str(f.key)
-		if value == "" {
-			continue
-		}
-		if !scoreInteger.MatchString(value) {
+	dailyID := int64(0)
+	if _, ok := r.form["s10"]; ok {
+		dailyID = scoreValue(r.str("s10"), -1, 10)
+		if dailyID < 0 {
 			return "-1", nil
 		}
-		n, err := strconv.ParseInt(value, 10, 64)
-		if err != nil || n < f.offset || n > f.offset+f.max {
-			return "-1", nil
-		}
-		decoded[i] = n - f.offset
 	}
-	dailyID := scoreValue(r.str("s10"), 0, 0)
-	if dailyID < 0 {
-		return "-1", nil
-	}
-	daily := 0
-	scoreType := "regular"
+	daily, scoreType := 0, "regular"
 	if dailyID > 0 {
-		daily = 1
-		scoreType = "regular_daily"
-	}
-	progress, ok := scoreProgresses(r.str("s6"))
-	if !ok {
-		return "-1", nil
+		daily, scoreType = 1, "regular_daily"
 	}
 	now := h.now().Unix()
-	result, err := h.db.ExecContext(r.ctx, `INSERT INTO mucho_level_scores(account_id,level_id,is_daily,daily_id,percent,coins,attempts,clicks,play_time,progresses,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE score_id=LAST_INSERT_ID(score_id),daily_id=IF(VALUES(percent)>=percent,VALUES(daily_id),daily_id),coins=IF(VALUES(percent)>=percent,VALUES(coins),coins),attempts=IF(VALUES(percent)>=percent,VALUES(attempts),attempts),clicks=IF(VALUES(percent)>=percent,VALUES(clicks),clicks),play_time=IF(VALUES(percent)>=percent,VALUES(play_time),play_time),progresses=IF(VALUES(percent)>=percent,VALUES(progresses),progresses),updated_at=IF(VALUES(percent)>=percent,VALUES(updated_at),updated_at),percent=GREATEST(percent,VALUES(percent))`, id, levelID, daily, dailyID, percent, decoded[3], decoded[0], decoded[1], decoded[2], progress, now, now)
-	if err != nil {
-		return "", err
-	}
-	if n, e := result.RowsAffected(); e == nil && n > 0 {
-		scoreID, _ := result.LastInsertId()
-		risk, reasons := regularRisk(percent, decoded[0], decoded[1], decoded[2], progress)
-		h.scoreIntegrity(r, scoreType, scoreID, id, levelID, risk, reasons, map[string]any{"percent": percent, "attempts": decoded[0], "clicks": decoded[1], "play_time": decoded[2], "progress_bytes": len(progress)})
+	if hasPercent {
+		decoded := make([]int64, 4)
+		for i, f := range []struct {
+			key         string
+			offset, max int64
+		}{{"s1", 8354, 1000000}, {"s2", 3991, 10000000}, {"s3", 4085, 86400}, {"s9", 5819, 3}} {
+			value := r.str(f.key)
+			if value == "" {
+				continue
+			}
+			if !scoreInteger.MatchString(value) {
+				return "-1", nil
+			}
+			n, err := strconv.ParseInt(value, 10, 64)
+			if err != nil || n < f.offset || n > f.offset+f.max {
+				return "-1", nil
+			}
+			decoded[i] = n - f.offset
+		}
+		progress, ok := scoreProgresses(r.str("s6"))
+		if !ok {
+			return "-1", nil
+		}
+		result, err := h.db.ExecContext(r.ctx, `INSERT INTO mucho_level_scores(account_id,level_id,is_daily,daily_id,percent,coins,attempts,clicks,play_time,progresses,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE score_id=LAST_INSERT_ID(score_id),daily_id=IF(VALUES(percent)>=percent,VALUES(daily_id),daily_id),coins=IF(VALUES(percent)>=percent,VALUES(coins),coins),attempts=IF(VALUES(percent)>=percent,VALUES(attempts),attempts),clicks=IF(VALUES(percent)>=percent,VALUES(clicks),clicks),play_time=IF(VALUES(percent)>=percent,VALUES(play_time),play_time),progresses=IF(VALUES(percent)>=percent,VALUES(progresses),progresses),updated_at=IF(VALUES(percent)>=percent,VALUES(updated_at),updated_at),percent=GREATEST(percent,VALUES(percent))`, id, levelID, daily, dailyID, percent, decoded[3], decoded[0], decoded[1], decoded[2], progress, now, now)
+		if err != nil {
+			return "", err
+		}
+		if n, e := result.RowsAffected(); e == nil && n > 0 {
+			scoreID, _ := result.LastInsertId()
+			risk, reasons := regularRisk(percent, decoded[0], decoded[1], decoded[2], progress)
+			h.scoreIntegrity(r, scoreType, scoreID, id, levelID, risk, reasons, map[string]any{"percent": percent, "attempts": decoded[0], "clicks": decoded[1], "play_time": decoded[2], "progress_bytes": len(progress)})
+		}
 	}
 	where := `s.level_id=? AND s.is_daily=? AND a.is_active=1 AND a.is_banned=0`
 	args := []any{levelID, daily}
@@ -121,7 +128,12 @@ func (h *Handler) regularScores(r request) (string, error) {
 		} else if row.Int("percent") > 75 {
 			place = 2
 		}
-		items = append(items, protocol.Pairs(1, protocol.Username(row["username"]), 2, row.Value("user_id", row["account_id"]), 9, row.Value("cube", "1"), 10, row.Int("color1"), 11, row.Value("color2", "3"), 51, row.Int("color3"), 14, row.Int("icon_type"), 15, row.Int("special"), 16, row.Int("account_id"), 3, row.Int("percent"), 6, place, 13, row.Int("coins"), 42, scoreDate(row.Int("updated_at"))))
+		stamp := row.Int("updated_at")
+		date := scoreDate(stamp)
+		if r.version.Effective() >= 22 && r.version.Binary >= 51 {
+			date = protocol.RelativeTime(stamp, now)
+		}
+		items = append(items, protocol.Pairs(1, protocol.Username(row["username"]), 2, row.Value("user_id", row["account_id"]), 9, row.Value("cube", "1"), 10, row.Int("color1"), 11, row.Value("color2", "3"), 51, row.Int("color3"), 14, row.Int("icon_type"), 15, row.Int("special"), 16, row.Int("account_id"), 3, row.Int("percent"), 6, place, 13, row.Int("coins"), 42, date))
 	}
 	return strings.Join(items, "|"), nil
 }

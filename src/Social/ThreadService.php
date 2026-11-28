@@ -476,7 +476,7 @@ final readonly class ThreadService
         $args = ['thread'=>$threadId,
             'cleared'=>(int)$thread['last_cleared_message_id']];
         $select = 'SELECT m.id,m.thread_id,m.sender_account_id,m.body,
-                          m.created_at,a.username
+                          m.created_at,UNIX_TIMESTAMP(m.created_at) AS created_epoch,a.username
                    FROM mucho_thread_messages m
                    JOIN accounts a ON a.account_id=m.sender_account_id
                    WHERE m.thread_id=:thread AND m.id>:cleared';
@@ -494,11 +494,8 @@ final readonly class ThreadService
             );
             $newer->execute($args);
             $messages = array_merge(
-                $older->fetchAll(PDO::FETCH_ASSOC),
+                array_reverse($older->fetchAll(PDO::FETCH_ASSOC)),
                 $newer->fetchAll(PDO::FETCH_ASSOC)
-            );
-            usort($messages, static fn(array $a,array $b): int =>
-                (int)$b['id'] <=> (int)$a['id']
             );
         } else {
             $filter = '';
@@ -509,21 +506,20 @@ final readonly class ThreadService
                 $filter = ' AND m.id>:cursor';
                 $args['cursor'] = $after;
             }
-            $stmt = $this->db->prepare(
-                $select . $filter . ' ORDER BY m.id DESC LIMIT 50'
-            );
+            $order = $after > 0 ? 'ASC' : 'DESC';
+            $stmt = $this->db->prepare($select . $filter . ' ORDER BY m.id ' . $order . ' LIMIT 50');
             $stmt->execute($args);
             $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            if ($after === 0) {
+                $messages = array_reverse($messages);
+            }
         }
 
         // Native metadata field 6 tells the client when "Show Earlier"
         // should be available. Never hide history if older rows exist.
         $hasOlder = false;
         if ($messages !== []) {
-            $lowest = min(array_map(
-                static fn(array $message): int => (int)$message['id'],
-                $messages
-            ));
+            $lowest = (int)$messages[0]['id'];
             $olderCheck = $this->db->prepare(
                 'SELECT 1 FROM mucho_thread_messages
                  WHERE thread_id=:thread AND id>:cleared AND id<:lowest LIMIT 1'
@@ -775,7 +771,8 @@ final readonly class ThreadService
         $stmt = $this->db->prepare(
             "SELECT i.id,i.thread_id,i.inviter_account_id,
                     t.title,t.description,t.emote,t.is_dm,
-                    i.created_at,a.username AS inviter_username,
+                    i.created_at,UNIX_TIMESTAMP(i.created_at) AS created_epoch,
+                    a.username AS inviter_username,
                     p.cube AS inviter_cube,p.color1 AS inviter_color1,
                     p.color2 AS inviter_color2,p.special AS inviter_special
              FROM mucho_thread_invites i
@@ -826,6 +823,7 @@ final readonly class ThreadService
 
         $rows = $this->db->prepare(
             'SELECT m.id,m.thread_id,m.sender_account_id,m.body,m.created_at,
+                    UNIX_TIMESTAMP(m.created_at) AS created_epoch,
                     a.username
              FROM mucho_thread_messages m
              JOIN accounts a ON a.account_id=m.sender_account_id

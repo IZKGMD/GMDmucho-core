@@ -234,20 +234,27 @@ func (h *Handler) levelList(r request) (string, error) {
 			add("l.audio_track=? AND l.song_id=0", max(0, r.int("song")-1))
 		}
 	}
-	if r.str("gauntlet") != "" {
+	gauntlet := r.str("gauntlet")
+	isGauntlet := gauntlet != "" && gauntlet != "0"
+	if isGauntlet {
+		if !digits.MatchString(gauntlet) {
+			return "-2", nil
+		}
 		g, err := dbutil.One(r.ctx, h.db, `SELECT level1,level2,level3,level4,level5 FROM mucho_gauntlets WHERE id=? AND enabled=1 LIMIT 1`, r.int("gauntlet"))
-		if err == nil {
-			var ids []int64
-			for i := 1; i <= 5; i++ {
-				if id := g.Int(fmt.Sprintf("level%d", i)); id > 0 {
-					ids = append(ids, id)
-				}
-			}
-			if len(ids) > 0 {
-				fixed = ids
-				in("l.level_id", ids, false)
+		if err != nil {
+			return "-2", nil
+		}
+		var ids []int64
+		for i := 1; i <= 5; i++ {
+			if id := g.Int(fmt.Sprintf("level%d", i)); id > 0 {
+				ids = append(ids, id)
 			}
 		}
+		if len(ids) == 0 {
+			return "-2", nil
+		}
+		fixed = ids
+		in("l.level_id", ids, false)
 	}
 	if len(fixed) > 0 {
 		v := make([]string, len(fixed))
@@ -275,6 +282,11 @@ func (h *Handler) levelList(r request) (string, error) {
 	if r.page() > 0 || len(rows) == 10 || join != "" {
 		if err = h.db.QueryRowContext(r.ctx, "SELECT COUNT(*)"+from, args...).Scan(&total); err != nil {
 			return "", err
+		}
+	}
+	if isGauntlet {
+		for _, row := range rows {
+			row["is_gauntlet"] = "1"
 		}
 	}
 	return protocol.LevelList(rows, total, r.page()*10, game, r.version.Binary), nil

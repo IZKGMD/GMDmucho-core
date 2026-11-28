@@ -69,7 +69,7 @@ foreach (['songID=1','songID=2','songID=3','songID=999','songID=-1','songID=bad'
 }
 foreach (['getGJGauntlets','getGJGauntlets19','getGJGauntlets20','getGJGauntlets21'] as $name) { $cases[]=['/database/'.$name.'.php','']; }
 foreach (['','page=1','page=2','page=-1','page=1001','page=1junk'] as $form) { $cases[]=['/a/getGJMapPacks20.php/',$form]; }
-foreach (['','type=0','type=1','type=2','weekly=1','weekly=2','type=0&weekly=1','type=3','type=-1','type=bad'] as $form) {
+foreach (['','type=0','type=1','type=2','type=2&chk=SaKuJBQkA','weekly=1','weekly=2','type=0&weekly=1','type=3','type=-1','type=bad'] as $form) {
     $cases[]=['/database/getGJDailyLevel.php',$form];
 }
 $result=[];

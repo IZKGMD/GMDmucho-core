@@ -7,6 +7,7 @@ namespace MuchoCore\Score;
 use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Http\Request;
 use MuchoCore\Http\Response;
+use MuchoCore\Protocol\ProtocolText;
 use PDO;
 use RuntimeException;
 use Throwable;
@@ -117,9 +118,11 @@ final readonly class LevelScoreController
                 }
             }
 
-            return Response::text(
-                $this->leaderboard($accountId, $levelId, $isDaily, $type)
-            );
+            $client = $request->clientVersion();
+            return Response::text($this->leaderboard(
+                $accountId, $levelId, $isDaily, $type,
+                $client->effectiveGameVersion() >= 22 && $client->binaryVersion >= 51
+            ));
         } catch (Throwable $e) {
             return Response::text('-1');
         }
@@ -251,7 +254,8 @@ final readonly class LevelScoreController
         int $accountId,
         int $levelId,
         int $isDaily,
-        int $type
+        int $type,
+        bool $relativeTime = false
     ): string {
         $params = [
             'level' => $levelId,
@@ -335,12 +339,13 @@ final readonly class LevelScoreController
         }
 
         $out = '';
+        $now = time();
         foreach ($rows as $score) {
             $username = (string)$score['username'];
             if ($username === '') {
                 continue;
             }
-            $username = \MuchoCore\Protocol\ProtocolText::username($username);
+            $username = ProtocolText::username($username);
 
             $id = (int)$score['account_id'];
             $userId = (int)$score['user_id'];
@@ -350,6 +355,10 @@ final readonly class LevelScoreController
 
             $percent = (int)$score['percent'];
             $place = $percent === 100 ? 1 : ($percent > 75 ? 2 : 3);
+            $updatedAt = (int)$score['updated_at'];
+            $age = $relativeTime
+                ? ProtocolText::relativeTime($updatedAt, $now)
+                : gmdate('d/m/Y G.i', $updatedAt);
 
             $out .= '1:' . $username
                 . ':2:' . $userId
@@ -363,7 +372,7 @@ final readonly class LevelScoreController
                 . ':3:' . $percent
                 . ':6:' . $place
                 . ':13:' . (int)$score['coins']
-                . ':42:' . gmdate('d/m/Y G.i', (int)$score['updated_at'])
+                . ':42:' . $age
                 . '|';
         }
 

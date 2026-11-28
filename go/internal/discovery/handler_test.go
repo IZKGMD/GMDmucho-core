@@ -52,7 +52,7 @@ func TestHTTPCompatibility(t *testing.T) {
 		{"/getGJSongInfo.php?songID=1", "", "-1"},
 		{"/getGJDailyLevel.php", "", "42|3600"},
 		{"/a/database/getGJDailyLevel.php", "type=1", "100043|3600"},
-		{"/getGJDailyLevel.php", "type=2", "200043|3600"},
+		{"/getGJDailyLevel.php", "type=2", "-1"},
 		{"/getGJDailyLevel.php", "weekly=1", "100043|3600"},
 		{"/getGJDailyLevel.php", "type=0&weekly=1", "42|3600"},
 		{"/getGJDailyLevel.php", "type=3", "-1"},
@@ -76,7 +76,7 @@ func TestInputBoundaries(t *testing.T) {
 	}{
 		{"songID=1&songID=42", 42}, {"songID=%2B42", 0}, {"songID=42junk", 0},
 		{"songID=42%0A", 42}, {"songID[]=42", 0}, {"songID=-1", 0},
-		{"songID=9223372036854775808", 9223372036854775807},
+		{"songID=9223372036854775808", 0},
 	} {
 		s := &fakeStore{}
 		request(Handler{Store: s}, "POST", "/getGJSongInfo.php", tc.body)
@@ -88,9 +88,10 @@ func TestInputBoundaries(t *testing.T) {
 		body   string
 		offset int
 	}{
-		{"page=-1", 0}, {"page=1001", 10000}, {"page=2junk", 20}, {"page=9223372036854775808", 10000},
+		{"page=-1", -1}, {"page=1001", 10000}, {"page=2junk", -1},
+		{"page=9223372036854775808", -1}, {"page=", -1}, {"page=2", 20},
 	} {
-		s := &fakeStore{}
+		s := &fakeStore{offset: -1}
 		request(Handler{Store: s}, "POST", "/getGJMapPacks20.php", tc.body)
 		if s.offset != tc.offset {
 			t.Errorf("%q: offset=%d, want %d", tc.body, s.offset, tc.offset)
@@ -143,13 +144,13 @@ func TestRealHTTPDoesNotRedirectPOST(t *testing.T) {
 	defer server.Close()
 	client := server.Client()
 	client.CheckRedirect = func(*http.Request, []*http.Request) error { return errors.New("unexpected redirect") }
-	response, err := client.Post(server.URL+"/a//database/getGJDailyLevel.php/", "application/x-www-form-urlencoded", strings.NewReader("type=2"))
+	response, err := client.Post(server.URL+"/a//database/getGJDailyLevel.php/", "application/x-www-form-urlencoded", strings.NewReader("type=1"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer response.Body.Close()
 	body, err := io.ReadAll(response.Body)
-	if err != nil || string(body) != "200043|3600" {
+	if err != nil || string(body) != "100043|3600" {
 		t.Fatalf("unexpected response %q: %v", body, err)
 	}
 }

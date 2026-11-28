@@ -50,6 +50,9 @@ func (h *Handler) commentHistory(r request) (string, error) {
 		if stamp > 0 {
 			date = time.Unix(stamp, 0).UTC().Format("02/01/2006 15.04")
 		}
+		if game >= 22 && binary >= 51 {
+			date = protocol.RelativeTime(stamp, h.now().Unix())
+		}
 		base := fmt.Sprintf("1~%s~2~%s~3~%s~4~%s~5~0~7~%s~9~%s~6~%s~10~%s", row["level_id"], protocol.CommentResponse(row["content"], int(game)), row["user_id"], row["likes"], row["is_spam"], date, row["id"], row["percent"])
 		if game >= 22 && binary >= 51 {
 			base += fmt.Sprintf("~15~%d", stamp)
