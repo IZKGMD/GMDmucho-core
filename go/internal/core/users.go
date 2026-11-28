@@ -282,7 +282,9 @@ func (h *Handler) updateUserScore(r request) (string, error) {
 			return "", err
 		}
 	}
-	tx, err := h.db.BeginTx(r.ctx, nil)
+	// Membership lookup precedes the clan lock. Later statements need to see
+	// scores committed by the previous writer while this request was waiting.
+	tx, err := h.db.BeginTx(r.ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
 		return "", err
 	}
