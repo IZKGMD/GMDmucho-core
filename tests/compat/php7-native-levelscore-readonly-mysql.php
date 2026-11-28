@@ -200,9 +200,22 @@ try{
     $oldTZ=date_default_timezone_get();
     date_default_timezone_set('Pacific/Honolulu');
     try{
-        $unchanged=$plat->handle($platReq(array('type'=>'1')))->body;
-        scoreReadCheck(strpos($unchanged,':42:14/11/2023 22.13')!==false,
-            'platformer score timestamps always use UTC');
+        $legacy=$plat->handle($platReq(array('type'=>'1','binaryVersion'=>'50')))->body;
+        scoreReadCheck(strpos($legacy,':42:14/11/2023 22.13')!==false,
+            'older platformer clients still receive a UTC date');
+        $native=$platReq(array('type'=>'1'));
+        if(getenv('MUCHO_SCORE_TEST_COMPILED')==='1'){
+            scoreReadCheck(strpos($plat->handle($native)->body,':42:14/11/2023 22.13')!==false,
+                'compiled PHP7 still sends a UTC date');
+        }else{
+            $storedTime=time()-4*3600-60;
+            $db->prepare('UPDATE mucho_platformer_scores SET updated_at=? WHERE account_id=1')
+                ->execute(array($storedTime));
+            scoreReadCheck(strpos($plat->handle($native)->body,':42:4 hours')!==false,
+                'the 2.209 platformer leaderboard receives a relative age');
+            scoreReadCheck((int)$db->query('SELECT updated_at FROM mucho_platformer_scores WHERE account_id=1')
+                ->fetchColumn()===$storedTime, 'reading a relative age leaves the stored timestamp untouched');
+        }
     }finally{
         date_default_timezone_set($oldTZ);
     }

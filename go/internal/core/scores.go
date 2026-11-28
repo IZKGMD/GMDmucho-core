@@ -242,12 +242,18 @@ func (h *Handler) platformerScores(r request) (string, error) {
 		return "", err
 	}
 	items := make([]string, len(rows))
+	relativeTime := r.version.Effective() >= 22 && r.version.Binary >= 51
 	for i, row := range rows {
 		value := row.Int("time_ms")
 		if mode == 1 {
 			value = row.Int("points")
 		}
-		items[i] = protocol.Pairs(1, protocol.Username(row["username"]), 2, row.Value("user_id", row["account_id"]), 9, row.Value("cube", "1"), 10, row.Int("color1"), 11, row.Value("color2", "3"), 14, 0, 15, row.Int("color3"), 16, row.Int("account_id"), 3, value, 6, i+1, 42, scoreDate(row.Int("updated_at")))
+		stamp := row.Int("updated_at")
+		date := scoreDate(stamp)
+		if relativeTime {
+			date = protocol.RelativeTime(stamp, now)
+		}
+		items[i] = protocol.Pairs(1, protocol.Username(row["username"]), 2, row.Value("user_id", row["account_id"]), 9, row.Value("cube", "1"), 10, row.Int("color1"), 11, row.Value("color2", "3"), 14, 0, 15, row.Int("color3"), 16, row.Int("account_id"), 3, value, 6, i+1, 42, date)
 	}
 	return strings.Join(items, "|"), nil
 }

@@ -51,6 +51,7 @@ $php8OnlyDiagnosticHashes=array(
     'src/Protocol/Gd2209ThreadWire.php'=>'ee7277d71dc5524937f8dd272af4c42af53ac1737135a58c0fa6e1f4cbbf831c',
     'src/Protocol/GdCommentEncoder.php'=>'0687a6e6be2335301b62c9b80b5762e226e48796776cb3f29c2d1d10965b032a',
     'src/Protocol/ProtocolText.php'=>'3f23cd6158b6dcc6116e871c6490948dc4a67aac66a5969e6ed0daa685a05a06',
+    'src/Score/PlatformerScoreController.php'=>'0a943fc14f7fc00399d3ff0328bf95e9dbf24c54b9084ea79fc7970909672cbc',
     'src/Score/LevelScoreController.php'=>'22e26c358f19ed939671ffcfa184898bb1b8e5479143ba45b82fb67b7f1163b0',
     'src/Social/ThreadService.php'=>'736d728e9905b96f59036b7090a0d637167a86357a5ae9382fb2af094560a81e',
     'tests/application/gd2209-thread-integration.php'=>'40b72d2aeba970da2d1325c5d47f830bd2295fb3b27c9a03e25df92e524cc3a0',

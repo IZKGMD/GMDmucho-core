@@ -7,6 +7,7 @@ namespace MuchoCore\Score;
 use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Http\Request;
 use MuchoCore\Http\Response;
+use MuchoCore\Protocol\ProtocolText;
 use PDO;
 use RuntimeException;
 use Throwable;
@@ -88,12 +89,14 @@ final readonly class PlatformerScoreController
                 }
             }
 
+            $client = $request->clientVersion();
             return Response::text(
                 $this->leaderboard(
                     $accountId,
                     $levelId,
                     $mode,
-                    $type
+                    $type,
+                    $client->effectiveGameVersion() >= 22 && $client->binaryVersion >= 51
                 )
             );
 
@@ -199,7 +202,8 @@ final readonly class PlatformerScoreController
         int $accountId,
         int $levelId,
         int $mode,
-        int $type
+        int $type,
+        bool $relativeTime
     ): string {
 
         $params=[
@@ -306,6 +310,7 @@ final readonly class PlatformerScoreController
 
         $out=[];
         $rank=0;
+        $now = time();
 
         foreach($rows as $row){
 
@@ -316,8 +321,13 @@ final readonly class PlatformerScoreController
                     ? (int)$row['time_ms']
                     : (int)$row['points'];
 
+            $updatedAt = (int)$row['updated_at'];
+            $age = $relativeTime
+                ? ProtocolText::relativeTime($updatedAt, $now)
+                : gmdate('d/m/Y G.i', $updatedAt);
+
             $out[]=
-                '1:'.\MuchoCore\Protocol\ProtocolText::username(
+                '1:'.ProtocolText::username(
                     $row['username'] ?? 'Player'
                 ).
                 ':2:'.(int)$row['user_id'].
@@ -329,9 +339,7 @@ final readonly class PlatformerScoreController
                 ':16:'.(int)$row['account_id'].
                 ':3:'.$score.
                 ':6:'.$rank.
-                ':42:'.gmdate('d/m/Y G.i',
-                    (int)$row['updated_at']
-                );
+                ':42:'.$age;
         }
 
         return implode('|',$out);

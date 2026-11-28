@@ -377,6 +377,7 @@ $cases=array_merge($cases,[
     ['/getGJLevelScoresPlat.php',$a+['levelID'=>5,'time'=>1000,'points'=>250,'mode'=>1,'type'=>1]],
     ['/getGJLevelScoresPlat.php',$a+['levelID'=>5,'mode'=>0,'type'=>0]],
     ['/getGJLevelScoresPlat.php',$a+['levelID'=>5,'mode'=>1,'type'=>2]],
+    ['/getGJLevelScoresPlat.php',array_replace($a,['levelID'=>5,'mode'=>0,'type'=>1,'binaryVersion'=>50])],
     ['/getGJLevelScoresPlat.php',$a+['levelID'=>4,'time'=>1000]],
     ['/getGJRewards.php',['udid'=>'anonymous','chk'=>$check('59182'),'rewardType'=>0]],
     ['/getGJRewards.php',$rewardBase+['rewardType'=>0]],
