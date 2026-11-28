@@ -12,6 +12,7 @@ final class UserRepository
     }
     public function search(string $query, int $offset = 0, int $limit = 100): array
     {
+        list($filter, $parameters) = $this->searchFilter($query);
         $sql = '
             SELECT
                 COALESCE(p.stars, 0) AS stars,
@@ -51,28 +52,31 @@ final class UserRepository
                 ON p.account_id = a.account_id
             LEFT JOIN roles ar
                 ON ar.id = a.role_id
-            WHERE
-                (a.username LIKE :query
-                 OR (:numeric_query = 1 AND COALESCE(p.user_id, 0) = :user_id))
-            ORDER BY COALESCE(p.stars, 0) DESC
+            WHERE ' . $filter . '
+            ORDER BY COALESCE(p.stars, 0) DESC, a.account_id ASC
             LIMIT ' . (int) $limit . ' OFFSET ' . (int) $offset;
         $stmt = $this->pdo->prepare($sql);
-        $isNumeric = ctype_digit($query) && $query !== '';
-        $stmt->execute(['query' => '%' . $query . '%', 'numeric_query' => $isNumeric ? 1 : 0, 'user_id' => $isNumeric ? (int) $query : 0]);
+        $stmt->execute($parameters);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
     public function searchCount(string $query): int
     {
-        $isNumeric = ctype_digit($query) && $query !== '';
-        $stmt = $this->pdo->prepare('SELECT COUNT(*)
-             FROM accounts a
-             LEFT JOIN profiles p
-               ON p.account_id = a.account_id
-             WHERE
-                (a.username LIKE :query
-                 OR (:numeric_query = 1 AND COALESCE(p.user_id, 0) = :user_id))');
-        $stmt->execute(['query' => '%' . $query . '%', 'numeric_query' => $isNumeric ? 1 : 0, 'user_id' => $isNumeric ? (int) $query : 0]);
+        list($filter, $parameters) = $this->searchFilter($query);
+        $join = isset($parameters['user_id']) ? ' LEFT JOIN profiles p ON p.account_id = a.account_id' : '';
+        $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM accounts a' . $join . ' WHERE ' . $filter);
+        $stmt->execute($parameters);
         return (int) $stmt->fetchColumn();
+    }
+    private function searchFilter(string $query): array
+    {
+        $parameters = ['query' => '%' . strtr($query, ['!' => '!!', '%' => '!%', '_' => '!_']) . '%'];
+        $name = "a.username LIKE :query ESCAPE '!'";
+        $userId = ctype_digit($query) ? (int) $query : 0;
+        if ($userId > 0) {
+            $parameters['user_id'] = $userId;
+            $name .= ' OR p.user_id = :user_id';
+        }
+        return ['a.is_active = 1 AND a.is_banned = 0 AND (' . $name . ')', $parameters];
     }
     public function findAccountIdByUserId(int $userId): int
     {
@@ -103,29 +107,8 @@ final class UserRepository
         $query->execute(['followers_for' => $targetId, 'following_for' => $targetId, 'viewer' => max(0, $viewerId), 'peer' => $targetId, 'notifications_for' => $viewerId === $targetId ? $targetId : 0]);
         return $query->fetch(PDO::FETCH_ASSOC) ?: [];
     }
-    private function ensureProfileForAccount(int $accountId)
-    {
-        $stmt = $this->pdo->prepare('SELECT 1
-             FROM profiles
-             WHERE account_id = :account_id
-             LIMIT 1');
-        $stmt->execute(['account_id' => $accountId]);
-        if ($stmt->fetchColumn() !== false) {
-            return;
-        }
-        /*
-         * updateGJUserScore and getGJUserInfo20 may arrive concurrently.
-         * Create the profile atomically so the first request does not fail.
-         */
-        $stmt = $this->pdo->prepare('INSERT IGNORE INTO profiles (account_id)
-             SELECT account_id
-             FROM accounts
-             WHERE account_id = :account_id');
-        $stmt->execute(['account_id' => $accountId]);
-    }
     public function getProfileByTarget(int $targetAccountId, int $viewerAccountId = 0)
     {
-        $this->ensureProfileForAccount($targetAccountId);
         $sql = '
             SELECT
                 p.user_id,
@@ -170,14 +153,14 @@ final class UserRepository
                 COALESCE(p.color1, 0) AS color1,
                 COALESCE(p.color2, 3) AS color2,
                 COALESCE(p.color3, 0) AS color3,
-                COALESCE(p.special, 0) AS special,
-                COALESCE((SELECT COUNT(*) FROM levels WHERE account_id = a.account_id AND is_deleted = 0), 0) AS levels_count
+                COALESCE(p.special, 0) AS special
             FROM accounts a
             LEFT JOIN profiles p
                 ON p.account_id = a.account_id
             LEFT JOIN roles ar
                 ON ar.id = a.role_id
             WHERE a.account_id = :account_id
+              AND a.is_active = 1 AND a.is_banned = 0
             LIMIT 1';
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute(['account_id' => $targetAccountId]);
@@ -185,120 +168,89 @@ final class UserRepository
         if (!$row) {
             return null;
         }
-        $row['friend_state'] = 0;
-        $row['request_id'] = 0;
-        $row['request_comment'] = '';
-        $row['request_date'] = '';
-        if ($viewerAccountId > 0) {
-            try {
-                if ($viewerAccountId === $targetAccountId) {
-                    $row['messages_count'] = (int) $this->scalar('SELECT COUNT(*) FROM messages
-                         WHERE to_account_id=:id
-                           AND is_read=0
-                           AND is_receiver_deleted=0', ['id' => $viewerAccountId]);
-                    $row['friend_requests_count'] = (int) $this->scalar('SELECT COUNT(*) FROM friend_requests
-                         WHERE to_account_id=:id', ['id' => $viewerAccountId]);
-                    $row['friends_count'] = (int) $this->scalar('SELECT COUNT(*) FROM friends
-                         WHERE account_id=:id
-                           AND is_new=1', ['id' => $viewerAccountId]);
-                } else {
-                    $blocked = (int) $this->scalar('SELECT COUNT(*) FROM blocks
-                         WHERE (account_id=:viewer AND blocked_account_id=:target)
-                            OR (account_id=:target AND blocked_account_id=:viewer)', ['viewer' => $viewerAccountId, 'target' => $targetAccountId]);
-                    if ($blocked > 0) {
-                        return null;
-                    }
-                    $friend = (int) $this->scalar('SELECT COUNT(*) FROM friends
-                         WHERE account_id=:viewer
-                           AND friend_account_id=:target', ['viewer' => $viewerAccountId, 'target' => $targetAccountId]);
-                    if ($friend > 0) {
-                        $row['friend_state'] = 1;
-                    } else {
-                        $incoming = $this->pdo->prepare('SELECT id,comment,created_at
-                             FROM friend_requests
-                             WHERE account_id=:target
-                               AND to_account_id=:viewer
-                             LIMIT 1');
-                        $incoming->execute(['target' => $targetAccountId, 'viewer' => $viewerAccountId]);
-                        $request = $incoming->fetch(PDO::FETCH_ASSOC);
-                        if ($request) {
-                            $row['friend_state'] = 3;
-                            $row['request_id'] = (int) $request['id'];
-                            $row['request_comment'] = (string) $request['comment'];
-                            $row['request_date'] = date('d/m/Y G.i', strtotime((string) $request['created_at']));
-                        } else {
-                            $outgoing = (int) $this->scalar('SELECT COUNT(*) FROM friend_requests
-                                 WHERE account_id=:viewer
-                                   AND to_account_id=:target', ['viewer' => $viewerAccountId, 'target' => $targetAccountId]);
-                            if ($outgoing > 0) {
-                                $row['friend_state'] = 4;
-                            }
-                        }
-                    }
-                }
-            } catch (\Throwable $__mcCaught) {
-                // Optional social metadata must never break profile loading.
+        if ($row['user_id'] === null) {
+            // Old imports can contain accounts without profiles. Only repair a
+            // missing row, and re-read it after a concurrent score update.
+            $insert = $this->pdo->prepare('INSERT IGNORE INTO profiles (account_id)
+                SELECT account_id FROM accounts WHERE account_id = :account_id
+                  AND is_active = 1 AND is_banned = 0');
+            $insert->execute(['account_id' => $targetAccountId]);
+            $stmt->execute(['account_id' => $targetAccountId]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$row || $row['user_id'] === null) {
+                return null;
             }
+        }
+        $row['friend_state'] = 0;
+        if ($viewerAccountId <= 0) {
+            return $row;
+        }
+        if ($viewerAccountId === $targetAccountId) {
+            $counters = $this->pdo->prepare('SELECT
+                    (SELECT COUNT(*) FROM messages
+                     WHERE to_account_id=? AND is_read=0 AND is_receiver_deleted=0) AS messages_count,
+                    (SELECT COUNT(*) FROM friend_requests
+                     WHERE to_account_id=? AND is_read=0) AS friend_requests_count,
+                    (SELECT COUNT(*) FROM friends
+                     WHERE account_id=? AND is_new=1) AS friends_count');
+            $counters->execute([$viewerAccountId, $viewerAccountId, $viewerAccountId]);
+            return array_merge($row, $counters->fetch(PDO::FETCH_ASSOC) ?: []);
+        }
+        $relationship = $this->pdo->prepare('SELECT
+                EXISTS(SELECT 1 FROM blocks WHERE account_id=? AND blocked_account_id=?)
+                OR EXISTS(SELECT 1 FROM blocks WHERE account_id=? AND blocked_account_id=?) AS blocked,
+                EXISTS(SELECT 1 FROM friends WHERE account_id=? AND friend_account_id=?) AS friends,
+                EXISTS(SELECT 1 FROM friend_requests WHERE account_id=? AND to_account_id=?) AS outgoing,
+                incoming.id, incoming.comment, incoming.created_at
+             FROM (SELECT 1) AS profile_view
+             LEFT JOIN friend_requests incoming
+                ON incoming.account_id=? AND incoming.to_account_id=? AND incoming.is_read<>2');
+        $relationship->execute([$viewerAccountId, $targetAccountId, $targetAccountId, $viewerAccountId, $viewerAccountId, $targetAccountId, $viewerAccountId, $targetAccountId, $targetAccountId, $viewerAccountId]);
+        $state = $relationship->fetch(PDO::FETCH_ASSOC);
+        if (!$state || (int) $state['blocked'] === 1) {
+            return null;
+        }
+        if ((int) $state['friends'] === 1) {
+            $row['friend_state'] = 1;
+        } elseif ($state['id'] !== null) {
+            $row['friend_state'] = 3;
+            $row['request_id'] = (int) $state['id'];
+            $row['request_comment'] = (string) $state['comment'];
+            $row['request_date'] = date('d/m/Y G.i', strtotime((string) $state['created_at']));
+        } elseif ((int) $state['outgoing'] === 1) {
+            $row['friend_state'] = 4;
         }
         return $row;
     }
-    private function scalar(string $sql, array $params)
-    {
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($params);
-        return $stmt->fetchColumn();
-    }
     public function leaderboardTop(int $limit = 1000, int $gameVersion = 0): array
     {
-        $sql = '
-            SELECT
-                p.*,
-                a.username,
-                COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=p.account_id LIMIT 1), \'\') AS clan_tag,
-                COALESCE(ar.code, \'user\') AS role_code,
-                ROW_NUMBER() OVER (ORDER BY p.stars DESC, p.account_id ASC) AS `rank`
-            FROM profiles p
-            INNER JOIN accounts a
-                ON a.account_id = p.account_id
-            LEFT JOIN roles ar
-                ON ar.id = a.role_id
-            WHERE p.stars > 0
-              AND a.is_active=1
-              AND a.is_banned=0
-            ORDER BY `rank`
-            LIMIT ' . (int) $limit;
-        if ($gameVersion >= 20) {
-            $sql = str_replace('WHERE p.stars > 0', 'WHERE p.stars > 0 AND COALESCE(p.game_version, 0) >= 20', $sql);
-        } elseif ($gameVersion > 0) {
-            $sql = str_replace('WHERE p.stars > 0', 'WHERE p.stars > 0 AND COALESCE(p.game_version, 0) > 0 AND COALESCE(p.game_version, 0) < 20', $sql);
-        }
-        return $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+        return $this->leaderboardByMetric('stars', $limit, $gameVersion);
     }
     public function leaderboardCreators(int $limit = 1000, int $gameVersion = 0): array
     {
-        $sql = '
-            SELECT
-                p.*,
-                a.username,
-                COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=p.account_id LIMIT 1), \'\') AS clan_tag,
-                COALESCE(ar.code, \'user\') AS role_code,
-                ROW_NUMBER() OVER (ORDER BY p.creator_points DESC, p.account_id ASC) AS `rank`
-            FROM profiles p
-            INNER JOIN accounts a
-                ON a.account_id = p.account_id
-            LEFT JOIN roles ar
-                ON ar.id = a.role_id
-            WHERE p.creator_points > 0
-              AND a.is_active=1
-              AND a.is_banned=0
-            ORDER BY `rank`
-            LIMIT ' . (int) $limit;
-        if ($gameVersion >= 20) {
-            $sql = str_replace('WHERE p.creator_points > 0', 'WHERE p.creator_points > 0 AND COALESCE(p.game_version, 0) >= 20', $sql);
-        } elseif ($gameVersion > 0) {
-            $sql = str_replace('WHERE p.creator_points > 0', 'WHERE p.creator_points > 0 AND COALESCE(p.game_version, 0) > 0 AND COALESCE(p.game_version, 0) < 20', $sql);
+        return $this->leaderboardByMetric('creator_points', $limit, $gameVersion);
+    }
+    private function leaderboardByMetric(string $metric, int $limit, int $gameVersion): array
+    {
+        // Select leaders before fetching full profiles and resolving their
+        // clan tags. Filters run before LIMIT so rank stays gap-free.
+        $versionFilter = (function () use (&$gameVersion) {
+            $__mcMatch1 = true;
+            if ($__mcMatch1 === $gameVersion >= 20) {
+                return 'AND ranked.game_version >= 20';
+            }
+            if ($__mcMatch1 === $gameVersion > 0) {
+                return 'AND ranked.game_version > 0 AND ranked.game_version < 20';
+            }
+            return '';
+        })();
+        $sql = "\n            SELECT\n                p.*,\n                a.username,\n                COALESCE((\n                    SELECT c.tag FROM mucho_clan_members cm\n                    INNER JOIN mucho_clans c ON c.clan_id = cm.clan_id\n                    WHERE cm.account_id = p.account_id LIMIT 1\n                ), '') AS clan_tag,\n                COALESCE(ar.code, 'user') AS role_code\n            FROM (\n                SELECT ranked.account_id, ranked.{$metric}\n                FROM profiles ranked\n                INNER JOIN accounts eligible ON eligible.account_id = ranked.account_id\n                WHERE ranked.{$metric} > 0\n                  AND eligible.is_active = 1\n                  AND eligible.is_banned = 0\n                  {$versionFilter}\n                ORDER BY ranked.{$metric} DESC, ranked.account_id ASC\n                LIMIT {$limit}\n            ) leaders\n            INNER JOIN profiles p ON p.account_id = leaders.account_id\n            INNER JOIN accounts a ON a.account_id = leaders.account_id\n            LEFT JOIN roles ar ON ar.id = a.role_id\n            ORDER BY leaders.{$metric} DESC, leaders.account_id ASC";
+        $rows = $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($rows as $index => &$row) {
+            $row['rank'] = $index + 1;
         }
-        return $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+        unset($row);
+        return $rows;
     }
     public function leaderboardFriends(int $accountId, int $limit = 100, int $gameVersion = 0): array
     {
@@ -347,8 +299,17 @@ final class UserRepository
     }
     public function leaderboardRelative(int $accountId, int $limit = 50, int $gameVersion = 0): array
     {
-        $versionFilter = $gameVersion >= 20 ? 'WHERE COALESCE(p.game_version, 0) >= 20' : ($gameVersion > 0 ? 'WHERE COALESCE(p.game_version, 0) > 0 AND COALESCE(p.game_version, 0) < 20' : '');
-        $sql = "WITH RankedProfiles AS (\n            SELECT p.*, a.username,\n                   COALESCE((SELECT c.tag FROM mucho_clan_members cm INNER JOIN mucho_clans c ON c.clan_id=cm.clan_id WHERE cm.account_id=p.account_id LIMIT 1), '') AS clan_tag,\n                   COALESCE(ar.code, 'user') AS role_code,\n                   ROW_NUMBER() OVER (ORDER BY p.stars DESC, p.account_id ASC) AS `rank`\n            FROM profiles p\n            INNER JOIN accounts a ON a.account_id = p.account_id\n            LEFT JOIN roles ar ON ar.id = a.role_id\n            {$versionFilter}\n        ),\n        TargetRank AS (\n            SELECT `rank` FROM RankedProfiles WHERE account_id = :account_id\n        )\n        SELECT r.* FROM RankedProfiles r\n        JOIN TargetRank t ON 1=1\n        WHERE r.`rank` BETWEEN t.`rank` - 25 AND t.`rank` + 25\n        LIMIT " . (int) $limit;
+        $versionFilter = (function () use (&$gameVersion) {
+            $__mcMatch2 = true;
+            if ($__mcMatch2 === $gameVersion >= 20) {
+                return 'AND ranked.game_version >= 20';
+            }
+            if ($__mcMatch2 === $gameVersion > 0) {
+                return 'AND ranked.game_version > 0 AND ranked.game_version < 20';
+            }
+            return '';
+        })();
+        $sql = "WITH RankedProfiles AS (\n            SELECT ranked.account_id,\n                   ROW_NUMBER() OVER (ORDER BY ranked.stars DESC, ranked.account_id ASC) AS `rank`\n            FROM profiles ranked\n            INNER JOIN accounts eligible ON eligible.account_id = ranked.account_id\n            WHERE eligible.is_active = 1 AND eligible.is_banned = 0\n            {$versionFilter}\n        ),\n        TargetRank AS (\n            SELECT `rank` FROM RankedProfiles WHERE account_id = :account_id\n        ),\n        Nearby AS (\n            SELECT r.account_id, r.`rank`\n            FROM RankedProfiles r CROSS JOIN TargetRank t\n            WHERE r.`rank` BETWEEN GREATEST(CAST(t.`rank` AS SIGNED) - 25, 1) AND t.`rank` + 25\n            ORDER BY r.`rank`\n            LIMIT " . (int) $limit . "\n        )\n        SELECT p.*, a.username, n.`rank`,\n               COALESCE((SELECT c.tag FROM mucho_clan_members cm\n                   INNER JOIN mucho_clans c ON c.clan_id = cm.clan_id\n                   WHERE cm.account_id = n.account_id LIMIT 1), '') AS clan_tag,\n               COALESCE(ar.code, 'user') AS role_code\n        FROM Nearby n\n        INNER JOIN profiles p ON p.account_id = n.account_id\n        INNER JOIN accounts a ON a.account_id = n.account_id\n        LEFT JOIN roles ar ON ar.id = a.role_id\n        ORDER BY n.`rank`";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute(['account_id' => $accountId]);
         $res = $stmt->fetchAll(PDO::FETCH_ASSOC);

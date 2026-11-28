@@ -19,45 +19,45 @@ final class RateLimiter implements RateLimitBackend
     }
     public function allowStrict(string $key, int $limit, int $windowSeconds): bool
     {
-        if ($limit < 1 || $windowSeconds < 1) {
-            return false;
-        }
+        return $limit > 0 && $windowSeconds > 0 && $this->consume($key, $limit, $windowSeconds) === true;
+    }
+    public function allow(string $key, int $limit, int $windowSeconds): bool
+    {
+        return $limit < 1 || $windowSeconds < 1 || ($this->consume($key, $limit, $windowSeconds) ?? true);
+    }
+    /** null means storage was unavailable; false means the quota was exhausted. */
+    private function consume(string $key, int $limit, int $windowSeconds)
+    {
         $this->maybeCleanup();
         if (!is_dir($this->directory) && !@mkdir($this->directory, 0700, true) && !is_dir($this->directory)) {
-            return false;
+            return null;
         }
         $file = $this->directory . '/' . hash('sha256', $key) . '.json';
         if (is_link($file)) {
-            return false;
+            return null;
         }
         $fp = @fopen($file, 'c+');
         if ($fp === false) {
-            return false;
+            return null;
         }
         try {
             if (!flock($fp, LOCK_EX)) {
-                return false;
+                return null;
             }
             rewind($fp);
             $raw = stream_get_contents($fp);
             $state = is_string($raw) && $raw !== '' ? \mucho7_json_decode($raw, true) : null;
-            // Corrupted persistent state cannot silently reset a quota.
-            if ($raw === false || ($raw !== '' && (
-                !is_array($state) ||
-                !isset($state['start'], $state['count']) ||
-                !is_int($state['start']) ||
-                !is_int($state['count']) ||
-                $state['start'] < 0 ||
-                $state['count'] < 0 ||
-                $state['count'] === PHP_INT_MAX
-            ))) {
-                return false;
+            // A torn or invalid on-disk counter must never be interpreted
+            // as a fresh budget. Only genuinely empty new buckets reset.
+            if ($raw === false || $raw !== '' && (!is_array($state) || !isset($state['start'], $state['count']) || !is_int($state['start']) || !is_int($state['count']) || $state['start'] < 0 || $state['count'] < 0 || $state['count'] === PHP_INT_MAX)) {
+                return null;
             }
             $now = time();
             $start = is_array($state) ? $state['start'] : 0;
             $count = is_array($state) ? $state['count'] : 0;
+            // Allow minor wall-clock corrections without changing quota.
             if ($start > $now + $windowSeconds) {
-                return false;
+                return null;
             }
             $start = min($start, $now);
             if ($start <= 0 || $now - $start >= $windowSeconds) {
@@ -67,19 +67,19 @@ final class RateLimiter implements RateLimitBackend
             $count++;
             rewind($fp);
             if (!ftruncate($fp, 0)) {
-                return false;
+                return null;
             }
             $payload = \mucho7_json_encode(['start' => $start, 'count' => $count, 'window' => $windowSeconds], JSON_THROW_ON_ERROR);
             $written = fwrite($fp, $payload);
             if ($written !== strlen($payload)) {
-                return false;
+                return null;
             }
             if (!fflush($fp)) {
-                return false;
+                return null;
             }
             return $count <= $limit;
-        } catch (Throwable $__mcCaught) {
-            return false;
+        } catch (\Throwable $__mcCaught) {
+            return null;
         } finally {
             @flock($fp, LOCK_UN);
             fclose($fp);
@@ -136,11 +136,10 @@ final class RateLimiter implements RateLimitBackend
                     if ($start > 0 && $start + $window > time()) {
                         continue;
                     }
-                    // Never unlink a concurrently replaced fresh bucket.
+                    // A concurrent worker may have replaced the path
+                    // since it was opened. Never remove its fresh bucket.
                     $onDisk = @lstat($path);
-                    if (!is_array($onDisk)
-                        || (int)($onDisk['ino'] ?? -1) !== (int)($stat['ino'] ?? -2)
-                        || (int)($onDisk['dev'] ?? -1) !== (int)($stat['dev'] ?? -2)) {
+                    if (!is_array($onDisk) || (int) ($onDisk['ino'] ?? -1) !== (int) ($stat['ino'] ?? -2) || (int) ($onDisk['dev'] ?? -1) !== (int) ($stat['dev'] ?? -2)) {
                         continue;
                     }
                     if (@unlink($path)) {
@@ -166,46 +165,6 @@ final class RateLimiter implements RateLimitBackend
         if ($calls >= self::AUTO_CLEANUP_INTERVAL) {
             $calls = 0;
             $this->cleanup();
-        }
-    }
-    public function allow(string $key, int $limit, int $windowSeconds): bool
-    {
-        if ($limit < 1 || $windowSeconds < 1) {
-            return true;
-        }
-        $this->maybeCleanup();
-        if (!is_dir($this->directory) && !@mkdir($this->directory, 0700, true) && !is_dir($this->directory)) {
-            return true;
-            // Keep the game protocol available if storage is unavailable.
-        }
-        $file = $this->directory . '/' . hash('sha256', $key) . '.json';
-        $fp = @fopen($file, 'c+');
-        if ($fp === false) {
-            return true;
-        }
-        try {
-            if (!flock($fp, LOCK_EX)) {
-                return true;
-            }
-            rewind($fp);
-            $raw = stream_get_contents($fp);
-            $state = is_string($raw) && $raw !== '' ? \mucho7_json_decode($raw, true) : null;
-            $now = time();
-            $start = is_array($state) ? (int) ($state['start'] ?? 0) : 0;
-            $count = is_array($state) ? (int) ($state['count'] ?? 0) : 0;
-            if ($start <= 0 || $now - $start >= $windowSeconds) {
-                $start = $now;
-                $count = 0;
-            }
-            $count++;
-            rewind($fp);
-            ftruncate($fp, 0);
-            fwrite($fp, \mucho7_json_encode(['start' => $start, 'count' => $count, 'window' => $windowSeconds], JSON_THROW_ON_ERROR));
-            fflush($fp);
-            return $count <= $limit;
-        } finally {
-            @flock($fp, LOCK_UN);
-            fclose($fp);
         }
     }
 }

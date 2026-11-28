@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace MuchoCore\Security;
 
-use MuchoCore\Core\Environment;
 use PDO;
 use Throwable;
 
@@ -14,71 +13,61 @@ final readonly class DatabaseRateLimiter implements RateLimitBackend
 
     public function __construct(private PDO $db) {}
 
-    public function allowStrict(string $key,int $limit,int $windowSeconds): bool
+    public function allowStrict(string $key, int $limit, int $windowSeconds): bool
     {
-        if ($limit < 1 || $windowSeconds < 1) return false;
+        return $limit > 0 && $windowSeconds > 0 && $this->consume($key, $limit, $windowSeconds) === true;
+    }
 
+    public function allow(string $key, int $limit, int $windowSeconds): bool
+    {
+        return $limit < 1 || $windowSeconds < 1 || ($this->consume($key, $limit, $windowSeconds) ?? true);
+    }
+
+    /** null means storage was unavailable; false means the quota was exhausted. */
+    private function consume(string $key, int $limit, int $windowSeconds): ?bool
+    {
+        if ($this->db->inTransaction()) {
+            // Limiter writes have their own lifetime and must never roll back
+            // the caller's transaction on a shared database connection.
+            return null;
+        }
         $bucket = hash('sha256', $key);
         $now = time();
+        $cutoff = max(0, $now - $windowSeconds);
 
         try {
             $this->db->beginTransaction();
-
-            $insert = $this->db->prepare(
-                'INSERT INTO mucho_security_rate_limits
-                 (bucket_key,window_start,request_count)
-                 VALUES(:bucket,:start,0)
-                 ON DUPLICATE KEY UPDATE bucket_key=VALUES(bucket_key)'
+            $increment = $this->db->prepare(
+                'INSERT INTO mucho_security_rate_limits (bucket_key,window_start,request_count)
+                 VALUES (:bucket,:start,1)
+                 ON DUPLICATE KEY UPDATE
+                    request_count = IF(window_start <= :reset_count, 1, LEAST(request_count + 1, 4294967295)),
+                    window_start = IF(window_start <= :reset_start, VALUES(window_start), window_start),
+                    updated_at = CURRENT_TIMESTAMP'
             );
-            $insert->execute(['bucket'=>$bucket,'start'=>$now]);
-
-            $select = $this->db->prepare(
-                'SELECT window_start,request_count
-                 FROM mucho_security_rate_limits
-                 WHERE bucket_key=:bucket
-                 FOR UPDATE'
-            );
-            $select->execute(['bucket'=>$bucket]);
-            $row = $select->fetch(PDO::FETCH_ASSOC);
-
-            if (!is_array($row)) {
-                $this->db->rollBack();
-                return false;
-            }
-
-            $start = (int)($row['window_start'] ?? 0);
-            $count = (int)($row['request_count'] ?? 0);
-
-            if ($start <= 0 || ($now - $start) >= $windowSeconds) {
-                $start = $now;
-                $count = 0;
-            }
-
-            ++$count;
-
-            $update = $this->db->prepare(
-                'UPDATE mucho_security_rate_limits
-                 SET window_start=:start,request_count=:count,updated_at=CURRENT_TIMESTAMP
-                 WHERE bucket_key=:bucket'
-            );
-            $update->execute([
-                'start'=>$start,
-                'count'=>$count,
-                'bucket'=>$bucket,
+            $increment->execute([
+                'bucket' => $bucket,
+                'start' => $now,
+                'reset_count' => $cutoff,
+                'reset_start' => $cutoff,
             ]);
 
+            // The upsert already owns the row lock. Read our own increment
+            // before committing so parallel workers see distinct counts.
+            $read = $this->db->prepare(
+                'SELECT request_count FROM mucho_security_rate_limits WHERE bucket_key=:bucket'
+            );
+            $read->execute(['bucket' => $bucket]);
+            $count = $read->fetchColumn();
             $this->db->commit();
-            return $count <= $limit;
-        } catch (Throwable) {
-            if ($this->db->inTransaction()) $this->db->rollBack();
-            return false;
-        }
-    }
 
-    public function allow(string $key,int $limit,int $windowSeconds): bool
-    {
-        if ($this->failOpen()) return true;
-        return $this->allowStrict($key,$limit,$windowSeconds);
+            return $count === false ? null : (float)$count <= $limit;
+        } catch (Throwable) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            return null;
+        }
     }
 
     public function cleanup(int $staleAfterSeconds=self::MIN_BUCKET_RETENTION,int $maxEntries=64): int
@@ -101,12 +90,4 @@ final readonly class DatabaseRateLimiter implements RateLimitBackend
         }
     }
 
-    private function failOpen(): bool
-    {
-        return in_array(
-            strtolower(trim((string)(Environment::get('MUCHO_PROTECT_FAIL_OPEN', '') ?? ''))),
-            ['1','true','yes','on'],
-            true
-        );
-    }
 }

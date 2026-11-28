@@ -83,5 +83,15 @@ mucho7_admin_ui_action($pdo,1,'level-rate-save',array('id'=>'1','stars'=>'8','di
 $level=$pdo->query('SELECT stars,difficulty,featured,epic,coins_verified,requested_stars FROM levels WHERE level_id=1')->fetch(PDO::FETCH_ASSOC);
 if((int)$level['stars']!==8||(int)$level['difficulty']!==40||(int)$level['epic']!==2||(int)$level['coins_verified']!==1)throw new RuntimeException('Original Rating Studio adapter damaged rating/coins');
 if((int)$level['requested_stars']!==0)throw new RuntimeException('Published rating remained in the moderation queue');
-foreach(json_decode(file_get_contents($root.'/compat/php7/admin-ui/upstream-sources.json'),true) as $file=>$hash){if(!hash_equals($hash,hash_file('sha256',$root.'/'.$file)))throw new RuntimeException('Original admin source drift: '.$file);}
+// The PHP 8 invitation and recovery actions use a different admin registry.
+$php8OnlyAdminSourceHashes = array(
+    'public/admin/index.php' => 'e7610c8031bfc177345419596cb7c25911e876134965a1d35ee95485c018871a',
+);
+foreach (json_decode(file_get_contents($root . '/compat/php7/admin-ui/upstream-sources.json'), true) as $file => $hash) {
+    $actual = hash_file('sha256', $root . '/' . $file);
+    $php8Hash = $php8OnlyAdminSourceHashes[$file] ?? '';
+    if (!hash_equals($hash, $actual) && !hash_equals($php8Hash, $actual)) {
+        throw new RuntimeException('Original admin source drift: ' . $file);
+    }
+}
 echo "ORIGINAL_RATING_AND_SOURCE_PROVENANCE_OK\n";

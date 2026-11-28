@@ -80,9 +80,21 @@ class NativeGateTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 gate.wait_for_native(repo, sha, api=lambda _: self.fail("Unexpected GitHub request"))
 
+    def test_php8_requires_exact_http_acceptance_job(self):
+        run = dict(successful_run(), path=gate.PHP8_WORKFLOW)
+        jobs = dict(total_count=1, jobs=[dict(name=next(iter(gate.PHP8_JOBS)),
+                    run_id=120, status="completed", conclusion="success")])
+        self.assertEqual(gate.check_once(REPO, SHA, self.api([run], jobs), php8=True), (120, 2))
+        self.assertIn("php8-http-acceptance.yml/runs?", self.calls[0])
+        self.assertIsNone(gate.check_once(REPO, SHA, self.api([successful_run()]), php8=True))
+        with self.assertRaises(RuntimeError):
+            gate.check_once(REPO, SHA, self.api([run], successful_jobs()), php8=True)
+
     def test_marker_triggers_native_integration(self):
         workflow = (ROOT / ".github/workflows/php7-native-features.yml").read_text()
         self.assertIn("'.release/v*.ready'", workflow.split("pull_request:")[0])
+        php8_workflow = (ROOT / gate.PHP8_WORKFLOW).read_text()
+        self.assertIn('".release/v*.ready"', php8_workflow.split("pull_request:")[0])
 
 
 if __name__ == "__main__":

@@ -125,8 +125,16 @@ function mucho7_encode_levels($levels, $total, $offset, $gameVersion, $binaryVer
         $userId = (string)$level['user_id'];
         $accountId = (string)$level['account_id'];
         $difficulty = (int)$level['difficulty'];
+        // Compact schema: Auto=1, Easy=2, Normal=3, Hard=4,
+
+        // Harder=5, Insane/Demon=6. GD wire key 9 uses 10..50.
+
         if ($difficulty >= 1 && $difficulty <= 6) {
-            $difficulty *= 10;
+
+            $difficultyCodes = array(1=>50, 2=>10, 3=>20, 4=>30, 5=>40, 6=>50);
+
+            $difficulty = $difficultyCodes[$difficulty];
+
         }
         $description = (string)$level['description'];
         if ($gameVersion >= 20) {

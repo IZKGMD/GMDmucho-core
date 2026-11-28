@@ -47,8 +47,16 @@ function mucho7_encode_download($level, $gameVersion, $binaryVersion, $extras = 
         $data = strtr(base64_encode($packed), '/+', '_-');
     }
     $difficulty = (int)$level['difficulty'];
+    // Compact schema: Auto=1, Easy=2, Normal=3, Hard=4,
+
+    // Harder=5, Insane/Demon=6. GD wire key 9 uses 10..50.
+
     if ($difficulty >= 1 && $difficulty <= 6) {
-        $difficulty *= 10;
+
+        $difficultyCodes = array(1=>50, 2=>10, 3=>20, 4=>30, 5=>40, 6=>50);
+
+        $difficulty = $difficultyCodes[$difficulty];
+
     }
     $plainPassword = (string)$level['copy_password'];
     $password = $gameVersion > 19

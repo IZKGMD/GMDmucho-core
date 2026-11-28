@@ -80,13 +80,20 @@ final readonly class RelationshipController
 
     public function delete(Request $r): Response
     {
+        $target = $r->postInt('targetAccountID', array_key_exists('targetAccountID', $r->post) ? -1 : 0);
+        $requestId = $r->postInt('requestID', array_key_exists('requestID', $r->post) ? -1 : 0);
+        if ($target < 0 || $requestId < 0) {
+            return Response::text('-1');
+        }
+
         try {
             return Response::text(
                 $this->service->delete(
                     $r->postInt('accountID'),
                     $this->gjp($r),
-                    $r->postInt('targetAccountID'),
-                    $r->postInt('isSender') === 1
+                    $target,
+                    $r->postInt('isSender') === 1,
+                    $requestId
                 ) ? '1' : '-1'
             );
         } catch (Throwable) {

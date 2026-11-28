@@ -48,11 +48,13 @@ final class GdLevelDownloadEncoder
     }
     private function wireDifficulty(int $difficulty): int
     {
-        /*
-         * MuchoCore stores standard difficulties internally as 1..6,
-         * while Geometry Dash expects 10..60 on the wire. Accept both
-         * representations so legacy data remains compatible.
-         */
-        return $difficulty >= 1 && $difficulty <= 6 ? $difficulty * 10 : max(0, $difficulty);
+        // Compact schema 1=Auto through 6=Insane/Demon.
+        // GD wire key 9: Easy=10, Normal=20, Hard=30, Harder=40,
+        // Insane/Auto/Demon=50; separate keys 17/25 supply flags.
+        if ($difficulty >= 1 && $difficulty <= 6) {
+            $map = array(1=>50,2=>10,3=>20,4=>30,5=>40,6=>50);
+            return $map[$difficulty];
+        }
+        return max(0, $difficulty);
     }
 }

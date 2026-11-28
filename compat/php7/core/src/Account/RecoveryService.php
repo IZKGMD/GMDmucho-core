@@ -38,8 +38,7 @@ final class RecoveryService
         }
         $token = bin2hex(random_bytes(32));
         $tokenHash = hash('sha256', $token);
-        $expiresAt = date('Y-m-d H:i:s', time() + self::TOKEN_TTL_SECONDS);
-        $this->repository->createToken((int) $account['account_id'], $tokenHash, $expiresAt, hash('sha256', $ip));
+        $this->repository->createToken((int) $account['account_id'], $tokenHash, self::TOKEN_TTL_SECONDS, hash('sha256', $ip));
         $link = rtrim($baseUrl, '/') . '/api/api/accounts/lostusername.php?token=' . rawurlencode($token);
         $this->sendMail($email, (string) $account['username'], $link);
         $this->repository->audit((int) $account['account_id'], 'account.recovery.requested', $ip);

@@ -41,6 +41,83 @@ $settings=require $settingsPath;$name=$settings['database'];
 if(!preg_match('/^mc_p0_http_[a-f0-9]{12}$/D',$name))throw new RuntimeException('Invalid disposable database name.');
 if($mode==='drop'){$server->exec('DROP DATABASE IF EXISTS '.$name);exit;}
 $db=new PDO($dsn.';dbname='.$name,'root',$password,$options);
+$db->exec("SET time_zone='+00:00'");
+if($mode==='demonlist-seed'){
+    $db->exec("INSERT INTO levels(level_id,account_id,name,description,level_data,demon)
+        VALUES (951,1,'Shared Demon','','kS1,1;',1)");
+    (new \MuchoCore\Demonlist\DemonlistService($db))->saveLevel(951,1,true);
+    exit;
+}
+if($mode==='demonlist-approve'){
+    $list=new \MuchoCore\Demonlist\DemonlistService($db);
+    $pending=$list->pending();
+    if(count($pending)!==1||!$list->review((int)$pending[0]['id'],(int)$pending[0]['revision'],1,'approve',''))throw new RuntimeException('Demonlist approval failed.');
+    exit;
+}
+if($mode==='demonlist-revoke'){
+    $list=new \MuchoCore\Demonlist\DemonlistService($db);
+    $approved=$list->approvedForReview(951,0);
+    if(count($approved)!==1||!$list->review((int)$approved[0]['id'],(int)$approved[0]['revision'],1,'revoke','Review <the recording>.'))throw new RuntimeException('Demonlist revocation failed.');
+    exit;
+}
+if($mode==='demonlist-clear'){
+    $db->exec('DELETE FROM mucho_demonlist_records WHERE level_id=951');
+    $db->exec('DELETE FROM mucho_demonlist_levels WHERE level_id=951');
+    $db->exec('DELETE FROM levels WHERE level_id=951');
+    $db->exec('ALTER TABLE levels AUTO_INCREMENT=1');
+    exit;
+}
+if($mode==='music-seed'){
+    $id=731;
+    $leaf=str_repeat('a',40).'.mp3';
+    $url=$settings['site_url'].'/mc/music/'.$leaf;
+    $db->prepare('INSERT INTO songs(id,name,author_name,size,download_url,is_verified) VALUES(?,?,?,?,?,1)')
+        ->execute(array($id,'Shared fixture track','Fixture artist',1.25,$url));
+    if(!is_dir($stage.'/storage/music-public'))mkdir($stage.'/storage/music-public',0700,true);
+    file_put_contents($stage.'/storage/music-public/'.$leaf,'ID3'.str_repeat('0123456789',100));
+    exit;
+}
+if($mode==='music-unverify'){
+    $db->exec('UPDATE songs SET is_verified=0 WHERE id=731');
+    exit;
+}
+if($mode==='download-counter-fail'){
+    $db->exec("CREATE TRIGGER fixture_download_failure BEFORE INSERT ON mucho_level_downloads FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Fixture counter failure'");
+    exit;
+}
+if($mode==='download-counter-restore'){
+    $db->exec('DROP TRIGGER fixture_download_failure');
+    exit;
+}
+if($mode==='profile-relationships-seed'){
+    $db->exec("INSERT INTO friend_requests(account_id,to_account_id,comment,is_read) VALUES
+        (2,1,'aW5jb21pbmc=',0),(3,1,'',1),(4,1,'',2)");
+    exit;
+}
+if($mode==='profile-relationships-clear'){
+    $db->exec('DELETE FROM friend_requests WHERE to_account_id=1');
+    exit;
+}
+if($mode==='profile-legacy-block'||$mode==='profile-legacy-unblock'){
+    $db->exec($mode==='profile-legacy-block'
+        ? 'INSERT INTO php7_blocks(account_id,blocked_account_id) VALUES (2,1)'
+        : 'DELETE FROM php7_blocks WHERE account_id=2 AND blocked_account_id=1');
+    exit;
+}
+if($mode==='profile-search-seed'){
+    $account=$db->prepare('INSERT INTO accounts(account_id,username,email,password_hash,gjp2_hash) VALUES (?,?,?,?,?)');
+    $profile=$db->prepare('INSERT INTO profiles(account_id,stars) VALUES (?,10)');
+    for($id=1000;$id<=1011;$id++){
+        $account->execute(array($id,'Paging_'.$id,'paging-'.$id.'@example.invalid','fixture','fixture'));
+        if($id!==1011)$profile->execute(array($id));
+    }
+    exit;
+}
+if($mode==='profile-search-clear'){
+    $db->exec('DELETE FROM profiles WHERE account_id BETWEEN 1000 AND 1011');
+    $db->exec('DELETE FROM accounts WHERE account_id BETWEEN 1000 AND 1011');
+    exit;
+}
 if($mode==='creator-install'){(new \MuchoCore\CreatorEvents\CreatorEventsService($db))->install();exit;}
 if($mode==='email-recovery-inspect'){
     $id=(int)$db->query("SELECT account_id FROM accounts WHERE username='P0MailUser'")->fetchColumn();
@@ -52,6 +129,44 @@ if($mode==='email-recovery-inspect'){
 }
 if($mode==='email-recovery-expire'){
     $db->exec("UPDATE account_recovery_tokens SET expires_at=DATE_SUB(NOW(),INTERVAL 1 SECOND) WHERE account_id=(SELECT account_id FROM accounts WHERE username='P0MailUser')");exit;
+}
+if($mode==='email-recovery-atomic'){
+    $recovery=new \MuchoCore\Account\RecoveryRepository($db);
+    $ip=hash('sha256','127.0.0.1');
+    $original=hash('sha256','fixture-original');
+    $duplicate=hash('sha256','fixture-duplicate');
+    $recovery->createToken(1,$original,1800,$ip);
+    $recovery->createToken(2,$duplicate,1800,$ip);
+    try {
+        $recovery->createToken(1,$duplicate,1800,$ip);
+        throw new RuntimeException('Duplicate token hash accepted.');
+    } catch(PDOException $error) {
+        if($error->getCode()!=='23000')throw $error;
+    }
+    if($db->inTransaction()||!$recovery->tokenIsValid($original)||!$recovery->tokenIsValid($duplicate))
+        throw new RuntimeException('A failed token replacement removed a valid recovery token.');
+    $replacement=hash('sha256','fixture-replacement');
+    $recovery->createToken(1,$replacement,1800,$ip);
+    if($recovery->tokenIsValid($original)||!$recovery->tokenIsValid($replacement)||!$recovery->tokenIsValid($duplicate))
+        throw new RuntimeException('Replacing a token did not isolate the target account.');
+    exit;
+}
+if($mode==='email-recovery-race-prepare'){
+    $db->exec('DELETE FROM account_recovery_tokens WHERE account_id IN (1,2)');
+    $db->exec('CREATE TRIGGER fixture_recovery_delay BEFORE INSERT ON account_recovery_tokens FOR EACH ROW DO SLEEP(0.4)');
+    exit;
+}
+if(in_array($mode,array('email-recovery-race-first','email-recovery-race-second','email-recovery-race-same'),true)){
+    $accountId=$mode==='email-recovery-race-second'?2:1;
+    (new \MuchoCore\Account\RecoveryRepository($db))->createToken($accountId,hash('sha256',$mode),1800,hash('sha256','127.0.0.1'));
+    exit;
+}
+if($mode==='email-recovery-race-verify'){
+    $db->exec('DROP TRIGGER fixture_recovery_delay');
+    $counts=$db->query('SELECT account_id, COUNT(*) FROM account_recovery_tokens WHERE account_id IN (1,2) GROUP BY account_id ORDER BY account_id')->fetchAll(PDO::FETCH_KEY_PAIR);
+    if(count($counts)!==2||(int)$counts[1]!==1||(int)$counts[2]!==1)
+        throw new RuntimeException('Parallel recovery writes lost or duplicated active tokens.');
+    exit;
 }
 if($mode==='account-change-seed'){
     $db->prepare('INSERT INTO mucho_legacy_19_sessions(account_id,udid_hash,ip_address,expires_at) VALUES(2,?,?,DATE_ADD(NOW(),INTERVAL 1 HOUR))')->execute(array(password_hash('fixture-device',PASSWORD_BCRYPT,array('cost'=>4)),'127.0.0.1'));

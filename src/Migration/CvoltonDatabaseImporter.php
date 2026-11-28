@@ -65,7 +65,7 @@ final class CvoltonDatabaseImporter
             'platscores' => $this->sourceTableExists($source, 'platscores')
                 ? $this->count($source, 'platscores')
                 : 0,
-        ];
+        ] + (new CvoltonContentImporter($this->target))->preflight($source);
     }
 
     public function apply(PDO $source): array
@@ -100,7 +100,7 @@ final class CvoltonDatabaseImporter
             $this->importPlatformerScores($source, $stats);
         }
 
-        return $stats;
+        return $stats + (new CvoltonContentImporter($this->target))->apply($source);
     }
 
     private function importAccounts(PDO $source, array &$stats): void

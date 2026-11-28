@@ -28,11 +28,12 @@ assert names.index('Build native PHP7 shared-hosting package') < names.index('Pr
 assert names.index('Checksum release distributions') < names.index('Prepare validated release draft')
 assert names.index('Require native PHP7 and PHP8 integration at the release commit') < names.index('Build native PHP7 shared-hosting package')
 assert "steps.marker.outputs.version == '1.1.0'" not in workflow
-assert (
-    "      - name: Verify endpoint certification before every stable publication\n"
-    "        if: steps.marker.outputs.ready == 'true'\n"
-    "        run: php tests/release/v110-endpoint-gate.php\n"
-) in workflow, "Stable publication must certify all versions, not just 1.1.0"
+readiness = steps['Verify endpoint readiness before stable publication']
+assert "php tests/protocol/endpoint-perfection.php" in readiness
+assert "php tests/release/v110-endpoint-gate.php" in readiness
+php8_check = 'Require PHP 8 HTTP acceptance for the PHP 8 release commit'
+assert names.index(php8_check) < names.index('Prepare validated release draft')
+assert '--sha "$RELEASE_SHA" --php8' in steps[php8_check]
 validate_workflow = (ROOT / '.github/workflows/validate.yml').read_text()
 assert 'if [[ -f ".release/v${VERSION}.ready" ]]; then' in validate_workflow
 assert 'if [[ "$VERSION" == \'1.1.0\'' not in validate_workflow
@@ -79,8 +80,9 @@ if a[:2]==['release','upload']:
  if a[3] not in d['assets']: d['assets'].append(a[3])
 elif a[:2]==['release','edit']:
  assert '--draft=false' in a and '--latest' in a
- assert set(d['assets'])=={'MuchoCore-v1.0.1.zip','MuchoCore-v1.0.1-shared-hosting.zip',
-                         'MuchoCore-v1.0.1-PHP7-shared-hosting.zip','checksums.sha256'}
+ assets = {'MuchoCore-v1.0.1.zip','MuchoCore-v1.0.1-shared-hosting.zip','checksums.sha256'}
+ if os.environ.get('PHP8_ONLY')!='true': assets.add('MuchoCore-v1.0.1-PHP7-shared-hosting.zip')
+ assert set(d['assets'])==assets
  d['draft']=False
 else: raise RuntimeError(a)
 p.write_text(json.dumps(d))
@@ -193,5 +195,29 @@ PY
     with zipfile.ZipFile(repo/'MuchoCore-v1.0.0.zip') as archive:
         assert archive.read('MuchoCore-v1.0.0/VERSION')==b'1.0.0\n'
     print('PASS historical archive repair uses its requested tag without inventing a PHP7 package')
+
+    (repo/'.release').mkdir(exist_ok=True)
+    marker = repo/'.release/v1.0.1.ready'
+    (base/'outputs').write_text('')
+    (repo/'VERSION').write_text('1.0.1\n')
+    marker.write_text('php8-maintenance\n')
+    step('Check release marker',repo,env)
+    assert 'php8_only=true' in (base/'outputs').read_text()
+    assert 'ready=true' in (base/'outputs').read_text()
+    marker.write_text('unknown\n')
+    assert step('Check release marker',repo,env,good=False).returncode != 0
+    print('PASS stable marker explicitly selects PHP 8 and rejects unsupported profiles')
+
+    state.unlink()
+    php8_env = dict(env, PHP8_ONLY='true')
+    step('Checksum release distributions',repo,php8_env)
+    assert len((repo/'checksums.sha256').read_text().splitlines()) == 2
+    step('Prepare validated release draft',repo,php8_env)
+    step('Upload shared-hosting package',repo,php8_env)
+    step('Upload source archive',repo,php8_env)
+    step('Upload release checksums',repo,php8_env)
+    step('Publish complete validated release',repo,php8_env)
+    assert json.loads(state.read_text())['draft'] is False
+    print('PASS PHP 8 stable publishing uploads exactly two packages and their checksums')
 
 print('MUCHOCORE_RELEASE_PUBLICATION_OK')

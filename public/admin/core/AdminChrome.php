@@ -25,7 +25,7 @@ function adminExtraGroups(): array
 {
     return [
         'Community' => ['muchoprofiles', 'comments', 'messages', 'social'],
-        'Content & moderation' => ['contentpacks', 'moderation'],
+        'Content & moderation' => ['contentpacks', 'moderation', 'demonlist'],
         'Clients & extensions' => ['clientfeatures', 'clientpatcher', 'plugins', 'updates'],
         'Operations & security' => [
             'analytics', 'monitoring', 'intelligence', 'securitycenter',

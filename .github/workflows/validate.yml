@@ -83,7 +83,11 @@ jobs:
         run: |
           VERSION="$(tr -d '[:space:]' < VERSION)"
           if [[ -f ".release/v${VERSION}.ready" ]]; then
-            php tests/release/v110-endpoint-gate.php
+            case "$(cat ".release/v${VERSION}.ready")" in
+              php8-maintenance) php tests/protocol/endpoint-perfection.php ;;
+              '') php tests/release/v110-endpoint-gate.php ;;
+              *) echo "Unknown stable release profile" >&2; exit 1 ;;
+            esac
           fi
 
       - name: Check PHP sources
@@ -216,6 +220,11 @@ jobs:
           php tests/client/android-client-patcher.php
           bash tests/client/client-auto-patch-contract.sh
 
+      - name: Enforce continuous endpoint quality and test coverage
+        run: |
+          python3 tests/release/php8-ci-continuity-test.py
+          python3 tests/release/endpoint-inventory-growth-test.py
+
       - name: Audit 1.1.0 P0 endpoint evidence (diagnostic, not release signoff)
         run: |
           python3 tests/release/v110_p0_audit_test.py
@@ -251,6 +260,7 @@ jobs:
           php tests/compat/php7-gd2209-client-route-inventory.php
           php tests/compat/php7-native-download-parity.php
           php tests/compat/php7-native-auth.php
+          php tests/compat/php7-admin-mail-recovery.php
           php tests/compat/php7-cloudsave-crypto.php
           php tests/compat/php7-domain-complete-query.php
           php tests/compat/php7-native-original-admin.php
@@ -687,7 +697,9 @@ jobs:
           TEST_DB_HOST: 127.0.0.1
           TEST_DB_PORT: 3306
           TEST_DB_ROOT_PASSWORD: ci-migration-root
-        run: php tests/application/cvolton-migration-integration.php
+        run: |
+          php tests/application/cvolton-migration-integration.php
+          php tests/application/migration-demonlist-integration.php
 
       - name: Verify PHP 8 registration race responses, GJP2 and transaction rollback
         env:
@@ -779,7 +791,9 @@ jobs:
           TEST_DB_HOST: 127.0.0.1
           TEST_DB_PORT: 3306
           TEST_DB_ROOT_PASSWORD: ci-migration-root
-        run: php tests/application/core-storage-integration.php
+        run: |
+          php tests/application/core-storage-integration.php
+          php tests/security/muchoprotect-storage-mysql.php
 
       - name: Verify bounded search index rebuild
         env:
@@ -973,6 +987,10 @@ jobs:
               php -l compat/php7/cloudsave.php
               php -l compat/php7/profile.php
               php -l compat/php7/schema.php
+              php -l compat/php7/admin-mail-recovery.php
+              php -l compat/php7/admin-ui/email-recovery.php
+              php -l compat/php7/admin-ui/admins.php
+              php -l public/php7-admin.php
               php -l public/php7-setup.php
               php -l compat/php7/config.example.php
               php -l public/php7.php

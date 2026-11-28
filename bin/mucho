@@ -476,7 +476,59 @@ doctor() {
 }
 
 
+admin_account_cli() {
+    local action="$1" username="" second_factor=keep-2fa password confirmation
+    shift
+    if [[ "$action" == recover && "${1:-}" == --reset-2fa ]]; then
+        second_factor=reset-2fa
+        shift
+    fi
+    if [[ $# -gt 1 || "${1:-}" == -* ]]; then
+        echo "Usage: sudo mucho admin create [USERNAME] or sudo mucho admin recover [--reset-2fa] [USERNAME]" >&2
+        return 2
+    fi
+    username="${1:-}"
+    if ! [[ -t 0 && -t 1 ]]; then
+        echo "Run this command in your private VPS terminal to enter the password." >&2
+        return 1
+    fi
+    if [[ "$action" == create && -z "$username" ]]; then
+        read -r -p 'Owner username [admin]: ' username || return 1
+        username="${username:-admin}"
+    fi
+    if [[ -n "$username" && ! "$username" =~ ^[A-Za-z_][A-Za-z0-9_-]{0,31}$ ]]; then
+        echo "Enter a valid administrator username." >&2
+        return 2
+    fi
+    if [[ "$second_factor" == reset-2fa ]]; then
+        echo "This resets the owner's authenticator, backup codes, and passkeys."
+    fi
+
+    IFS= read -r -s -p 'New owner password (12–72 bytes): ' password || return 1
+    printf '\n'
+    IFS= read -r -s -p 'Confirm owner password: ' confirmation || return 1
+    printf '\n'
+    if [[ "$password" != "$confirmation" ]]; then
+        echo "Passwords do not match. No changes were made." >&2
+        return 1
+    fi
+    printf '%s' "$password" | compose exec -T app php bin/mucho-owner-account.php "$action" "$username" "$second_factor"
+}
+
 admin_cli() {
+    case "${1:-}" in
+        create|recover)
+            admin_account_cli "$@"
+            return
+            ;;
+        "")
+            ;;
+        *)
+            echo "Usage: sudo mucho admin [create|recover]" >&2
+            return 2
+            ;;
+    esac
+
     cd "$ROOT"
     local state domain
     domain="$(env_get DOMAIN)"
@@ -491,20 +543,20 @@ admin_cli() {
             if [[ -n "$domain" ]] && validate_domain "$domain"; then
                 echo "Open: https://$domain/admin/"
             fi
-            echo "Lost password? Use verified email recovery or sudo mucho owner-recovery-link where permitted."
+            echo "Lost password? Use verified email recovery or run: sudo mucho admin recover"
+            echo "Lost your authenticator too? Run: sudo mucho admin recover --reset-2fa"
             ;;
         *MUCHO_ADMIN_STATE=pending*)
             if [[ -t 0 && -t 1 ]]; then
-                echo "Create the first administrator in your browser:"
-                compose exec -T app php bin/mucho-owner-link.php
+                echo "Create the first administrator in this terminal: sudo mucho admin create"
+                echo "For browser setup, generate a private link: sudo mucho owner-link"
             else
                 echo "For security, the private setup link is shown only in an interactive terminal."
-                echo "Run: sudo mucho admin"
+                echo "Run: sudo mucho admin create"
             fi
             ;;
         *MUCHO_ADMIN_STATE=sealed_no_owner*|*MUCHO_ADMIN_STATE=owner_missing*)
-            echo "Owner recovery is required. Existing installation will not be reset automatically." >&2
-            echo "Use a verified recovery method or server-console reset after checking your backup." >&2
+            echo "No active owner was found. Restore the owner from a database backup before running sudo mucho admin recover." >&2
             return 1
             ;;
         *)
@@ -623,7 +675,9 @@ Usage:
   sudo mucho logs [--follow]     Show production logs
   sudo mucho restart             Restart production services
   sudo mucho doctor              Check runtime, public reachability and owner state
-  sudo mucho admin               Open simplified owner setup or show admin URL
+  sudo mucho admin               Show owner setup or recovery options
+  sudo mucho admin create [USERNAME]  Create the first owner on an unfinished installation
+  sudo mucho admin recover [--reset-2fa] [USERNAME]  Reset an existing owner's password
   sudo mucho repair              Restart, migrate and health-check
   sudo mucho update              Apply the latest stable release
   sudo mucho backup              Create a database backup
@@ -718,7 +772,7 @@ case "${1:-}" in
         ;;
     admin)
         require_root
-        admin_cli
+        admin_cli "${@:2}"
         ;;
     repair)
         require_root

@@ -81,11 +81,10 @@ try {
     $verify(str_starts_with($encodedRewards, 'SaKuJ'),
         'native Rewards handler must return non-error encoded payload');
 
-    $request = new Request('POST', '/getGJDailyLevel', [], [], []);
+    $daily = static fn(array $post): Request => new Request('POST', '/getGJDailyLevel', [], $post, []);
     $controller = new DiscoveryController($db);
     foreach (['daily', 'weekly', 'event'] as $type => $kind) {
-        $_POST['type'] = (string)$type;
-        $verify($controller->daily($request)->body === '-1',
+        $verify($controller->daily($daily(['type' => (string)$type]))->body === '-1',
             'empty ' . $kind . ' rotation must fail honestly');
     }
     $db->exec("INSERT INTO levels
@@ -101,14 +100,31 @@ try {
         $insert->execute([$kind]);
     }
     foreach (['daily', 'weekly', 'event'] as $type => $kind) {
-        $_POST['type'] = (string)$type;
-        $response = $controller->daily($request)->body;
+        $response = $controller->daily($daily(['type' => (string)$type]))->body;
         $verify(preg_match('/^[0-9]+\|[0-9]+$/D', $response) === 1,
             $kind . ' must produce native index and seconds remaining');
         $values = explode('|', $response);
+        $verify((int)$values[0] === ($type + 1) + ([0, 100001, 200001][$type]),
+            $kind . ' uses the requested rotation and native index namespace');
         $verify((int)$values[1] > 0, $kind . ' requires positive remaining time');
     }
-    unset($_POST['type']);
+    $verify(str_starts_with($controller->daily($daily(['weekly' => '1']))->body, '100003|'),
+        'legacy weekly flag selects the weekly rotation');
+    $verify(str_starts_with($controller->daily($daily(['type' => '0', 'weekly' => '1']))->body, '1|'),
+        'explicit daily type takes precedence over the legacy weekly flag');
+    foreach ([['type' => ['1']], ['type' => '2junk'], ['weekly' => '2']] as $invalid) {
+        $verify($controller->daily($daily($invalid))->body === '-1',
+            'malformed rotation selector must not select a real rotation');
+    }
+    $mapPacks = static fn(array $post): Request => new Request('POST', '/getGJMapPacks21', [], $post, []);
+    (require dirname(__DIR__, 2) . '/database/migrations/20260929_001_content_packs.php')($db);
+    $db->exec("INSERT INTO mucho_map_packs (id,name,levels,enabled) VALUES (1,'Fixture pack','101',1)");
+    $verify(str_contains($controller->mapPacks($mapPacks([]))->body, '2:Fixture pack:'),
+        'the first page is used when page is absent');
+    foreach ([['1'], '0junk', '-1', '9223372036854775808'] as $invalidPage) {
+        $verify($controller->mapPacks($mapPacks(['page' => $invalidPage]))->body === '-1',
+            'malformed map pack page must not select a real page');
+    }
     echo "MUCHOCORE_GD_2209_GAMEPLAY_SCHEMA_OK\n";
 } finally {
     $admin->exec('DROP DATABASE IF EXISTS ' . $name);

@@ -65,6 +65,24 @@ class VpsInputTests(unittest.TestCase):
             self.assertIn('Keep it intact', result.stderr)
             self.assertEqual(path.read_text(), 'existing private settings')
 
+    def test_native_news_survives_reinstall_unless_explicitly_overridden(self):
+        script = function('resolve_native_news_setting') + '''
+fail() { printf "%s" "$*" >&2; exit 1; }
+INSTALL_DIR=$1
+NATIVE_NEWS=$2
+resolve_native_news_setting
+printf '%s' "$NATIVE_NEWS"
+'''
+        with tempfile.TemporaryDirectory() as folder:
+            self.assertEqual(self.shell(script, folder, '').stdout, '0')
+            self.assertEqual(self.shell(script, folder, '1').stdout, '1')
+            for saved in ('MUCHO_NATIVE_NEWS=1', "export MUCHO_NATIVE_NEWS = '1' # enabled",
+                          'MUCHO_NATIVE_NEWS="1"'):
+                (Path(folder) / '.env').write_text(saved + '\n')
+                self.assertEqual(self.shell(script, folder, '').stdout, '1')
+                self.assertEqual(self.shell(script, folder, '0').stdout, '0')
+            self.assertNotEqual(self.shell(script, folder, 'unexpected').returncode, 0)
+
 
 if __name__ == '__main__':
     unittest.main()

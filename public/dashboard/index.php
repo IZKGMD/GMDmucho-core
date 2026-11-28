@@ -1611,6 +1611,7 @@ body.dashboard-page .topbar{
   <div class="mc-community-discovery">
     <div class="mc-community-overline"><span>PLAYER PORTAL</span><span><?=pdH($serverName)?></span></div>
     <h1>Explore your<br><span>community.</span></h1>
+    <p><a href="/demonlist.php">Demonlist</a></p>
     <p>Search real player profiles, follow the leaderboard and discover music uploaded by the community.</p>
     <form class="search mc-community-search" method="get" action="/dashboard" role="search">
       <label for="mcPlayerSearch">Find a player</label>

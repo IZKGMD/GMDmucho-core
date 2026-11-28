@@ -26,18 +26,48 @@ final class RecoveryRepository
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row === false ? null : $row;
     }
-    public function createToken(int $accountId, string $tokenHash, string $expiresAt, string $ipHash)
+    public function createToken(int $accountId, string $tokenHash, int $ttlSeconds, string $ipHash)
     {
-        $cleanup = $this->pdo->prepare('DELETE FROM account_recovery_tokens
-             WHERE account_id = :account_id
-                OR expires_at <= NOW()
-                OR used_at IS NOT NULL');
-        $cleanup->execute(['account_id' => $accountId]);
-        $stmt = $this->pdo->prepare('INSERT INTO account_recovery_tokens
+        // Bound housekeeping and keep unrelated accounts out of the transaction.
+        $this->pdo->exec('DELETE FROM account_recovery_tokens
+             WHERE expires_at <= NOW()
+             ORDER BY expires_at LIMIT 100');
+        $this->pdo->beginTransaction();
+        try {
+            if (!$this->lockActiveAccount($accountId)) {
+                throw new \RuntimeException('Recovery account is unavailable.');
+            }
+            // A range DELETE can gap-lock adjacent accounts with no tokens.
+            // Read the IDs under the account lock and delete by primary key.
+            $previous = $this->pdo->prepare('SELECT id FROM account_recovery_tokens WHERE account_id = :account_id');
+            $previous->execute(['account_id' => $accountId]);
+            $previousIds = $previous->fetchAll(PDO::FETCH_COLUMN);
+            if ($previousIds !== []) {
+                $remove = $this->pdo->prepare('DELETE FROM account_recovery_tokens WHERE id = :id');
+                foreach ($previousIds as $id) {
+                    $remove->execute(['id' => $id]);
+                }
+            }
+            $stmt = $this->pdo->prepare('INSERT INTO account_recovery_tokens
                 (account_id, token_hash, expires_at, created_ip_hash)
              VALUES
-                (:account_id, :token_hash, :expires_at, :created_ip_hash)');
-        $stmt->execute(['account_id' => $accountId, 'token_hash' => $tokenHash, 'expires_at' => $expiresAt, 'created_ip_hash' => $ipHash]);
+                (:account_id, :token_hash, TIMESTAMPADD(SECOND, :ttl_seconds, NOW()), :created_ip_hash)');
+            $stmt->execute(['account_id' => $accountId, 'token_hash' => $tokenHash, 'ttl_seconds' => $ttlSeconds, 'created_ip_hash' => $ipHash]);
+            $this->pdo->commit();
+        } catch (\Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $e;
+        }
+    }
+    private function lockActiveAccount(int $accountId): bool
+    {
+        $stmt = $this->pdo->prepare('SELECT account_id FROM accounts
+             WHERE account_id = :account_id AND is_active = 1 AND is_banned = 0
+             FOR UPDATE');
+        $stmt->execute(['account_id' => $accountId]);
+        return $stmt->fetchColumn() !== false;
     }
     public function tokenIsValid(string $tokenHash): bool
     {
@@ -52,23 +82,30 @@ final class RecoveryRepository
     }
     public function resetPassword(string $tokenHash, string $passwordHash, string $gjp2Hash)
     {
+        // Read the token owner before locking anything. All password changes
+        // lock the account before touching its recovery tokens.
+        $lookup = $this->pdo->prepare('SELECT account_id FROM account_recovery_tokens
+             WHERE token_hash = :token_hash AND used_at IS NULL AND expires_at > NOW()');
+        $lookup->execute(['token_hash' => $tokenHash]);
+        $accountId = $lookup->fetchColumn();
+        if ($accountId === false) {
+            return null;
+        }
+        $accountId = (int) $accountId;
         $this->pdo->beginTransaction();
         try {
-            $stmt = $this->pdo->prepare('SELECT
-                    art.account_id
-                 FROM account_recovery_tokens art
-                 INNER JOIN accounts a
-                    ON a.account_id = art.account_id
-                 WHERE art.token_hash = :token_hash
-                   AND art.used_at IS NULL
-                   AND art.expires_at > NOW()
-                   AND a.is_active = 1
-                   AND a.is_banned = 0
-                 LIMIT 1
+            if (!$this->lockActiveAccount($accountId)) {
+                $this->pdo->rollBack();
+                return null;
+            }
+            $stmt = $this->pdo->prepare('SELECT 1 FROM account_recovery_tokens
+                 WHERE token_hash = :token_hash
+                   AND account_id = :account_id
+                   AND used_at IS NULL
+                   AND expires_at > NOW()
                  FOR UPDATE');
-            $stmt->execute(['token_hash' => $tokenHash]);
-            $accountId = $stmt->fetchColumn();
-            if ($accountId === false) {
+            $stmt->execute(['token_hash' => $tokenHash, 'account_id' => $accountId]);
+            if ($stmt->fetchColumn() === false) {
                 $this->pdo->rollBack();
                 return null;
             }
@@ -77,7 +114,7 @@ final class RecoveryRepository
                     gjp2_hash = :gjp2_hash
                  WHERE account_id = :account_id
                  LIMIT 1');
-            $updateAccount->execute(['account_id' => (int) $accountId, 'password_hash' => $passwordHash, 'gjp2_hash' => $gjp2Hash]);
+            $updateAccount->execute(['account_id' => $accountId, 'password_hash' => $passwordHash, 'gjp2_hash' => $gjp2Hash]);
             if ($updateAccount->rowCount() !== 1) {
                 throw new \RuntimeException('Unable to update password.');
             }
@@ -85,7 +122,7 @@ final class RecoveryRepository
             // old authenticated device cannot keep using the previous session.
             $revokeSessions = $this->pdo->prepare('DELETE FROM mucho_legacy_19_sessions
                  WHERE account_id = :account_id');
-            $revokeSessions->execute(['account_id' => (int) $accountId]);
+            $revokeSessions->execute(['account_id' => $accountId]);
             $markUsed = $this->pdo->prepare('UPDATE account_recovery_tokens
                  SET used_at = NOW()
                  WHERE token_hash = :token_hash
@@ -96,7 +133,7 @@ final class RecoveryRepository
                 throw new \RuntimeException('Unable to consume recovery token.');
             }
             $this->pdo->commit();
-            return (int) $accountId;
+            return $accountId;
         } catch (\Throwable $e) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();

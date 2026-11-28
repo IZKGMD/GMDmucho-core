@@ -52,7 +52,7 @@
 <input
  id="globalSearchInput"
  name="q"
- value="<?=h((string)($_GET['q'] ?? ''))?>"
+ value="<?=h(adminListState($_GET)['q'])?>"
  placeholder="Quick search…"
  autocomplete="off"
 >

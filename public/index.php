@@ -12,6 +12,7 @@ use MuchoCore\Routing\Router;
 use MuchoCore\Security\MuchoProtect;
 
 $__muchoEntryStartedAt = hrtime(true);
+require_once dirname(__DIR__) . '/src/Http/Response.php';
 ob_start();
 
 /*
@@ -45,9 +46,7 @@ register_shutdown_function(static function (): void {
         $line
     ));
 
-    while (ob_get_level() > 0) {
-        ob_end_clean();
-    }
+    Response::clearOutputBuffers();
 
     if (!headers_sent()) {
         http_response_code(200);
@@ -75,9 +74,7 @@ if (
     $__muchoLivenessPath === '/health' ||
     $__muchoLivenessPath === '/checkifserveronline'
 ) {
-    while (ob_get_level() > 0) {
-        ob_end_clean();
-    }
+    Response::clearOutputBuffers();
 
     http_response_code(200);
     header('Content-Type: text/plain; charset=utf-8');
@@ -102,9 +99,7 @@ try {
         $e->getLine()
     ));
 
-    while (ob_get_level() > 0) {
-        ob_end_clean();
-    }
+    Response::clearOutputBuffers();
 
     http_response_code(200);
     header('Content-Type: text/plain; charset=utf-8');
@@ -113,10 +108,15 @@ try {
     exit;
 }
 
+$newsPath = (string)parse_url((string)($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH);
+if (preg_match('~^/(?:gd-content/)?news/(?:news\.dat|news_version\.txt)$~iD', $newsPath)) {
+    header('Cache-Control: no-store');
+}
+
 // Native news images also work when Apache/Caddy sends non-PHP paths through
 // this front controller. These bytes must never become a GD "-1" response.
 if (preg_match('~^/(?:gd-content/)?news/(mcnews_[a-f0-9]{64}\.jpg)$~D',
-    (string)parse_url((string)($_SERVER['REQUEST_URI'] ?? ''),PHP_URL_PATH),$newsImageMatch)) {
+    $newsPath,$newsImageMatch)) {
     $_GET['file']=$newsImageMatch[1];
     require __DIR__.'/news/image.php';
     exit;
@@ -131,9 +131,7 @@ if (!is_dir($__muchoControl)) {
 }
 
 if (is_file($__muchoControl . '/maintenance.flag')) {
-    while (ob_get_level() > 0) {
-        ob_end_clean();
-    }
+    Response::clearOutputBuffers();
     echo '-1';
     exit;
 }
@@ -142,9 +140,7 @@ if (
     is_file($__muchoControl . '/registrations-disabled.flag') &&
     str_contains($__muchoUri, 'registergjaccount')
 ) {
-    while (ob_get_level() > 0) {
-        ob_end_clean();
-    }
+    Response::clearOutputBuffers();
     echo '-1';
     exit;
 }
@@ -205,9 +201,7 @@ try {
         $e->getLine()
     ));
 
-    while (ob_get_level() > 0) {
-        ob_end_clean();
-    }
+    Response::clearOutputBuffers();
     http_response_code(200);
     header('Content-Type: text/plain; charset=utf-8');
     header('Cache-Control: no-store');

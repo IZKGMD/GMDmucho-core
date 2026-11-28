@@ -45,6 +45,7 @@ final readonly class AccountService
 
         if (
             strlen($password) > 256 ||
+            str_contains($password, "\0") ||
             strlen($email) > 254
         ) {
             return '-1';
@@ -138,6 +139,7 @@ final readonly class AccountService
         if (
             $username === '' ||
             strlen($username) > 20 ||
+            ($password === '' && $gjp2 === '') ||
             strlen($password) > 512 ||
             strlen($gjp2) > 512
         ) {
@@ -169,7 +171,7 @@ final readonly class AccountService
 
         if ($password !== '') {
             // Обычный пароль.
-            $plainPasswordValid = password_verify($password, $storedPass);
+            $plainPasswordValid = VerifiedCredentialCache::verify($password, $storedPass);
             $valid = $plainPasswordValid;
 
             // Совместимость с хранимым GJP2.
@@ -188,7 +190,7 @@ final readonly class AccountService
                 preg_match('/^[a-f0-9]{40}$/i', $password) === 1 &&
                 $storedGjp2 !== ''
             ) {
-                $valid = password_verify($password, $storedGjp2);
+                $valid = VerifiedCredentialCache::verify($password, $storedGjp2);
             }
         }
 
@@ -197,7 +199,7 @@ final readonly class AccountService
             $gjp2 !== '' &&
             $storedGjp2 !== ''
         ) {
-            $valid = password_verify($gjp2, $storedGjp2);
+            $valid = VerifiedCredentialCache::verify($gjp2, $storedGjp2);
         }
 
         if (!$valid) {
@@ -243,7 +245,10 @@ final readonly class AccountService
             }
         }
 
-        $userId = $this->accounts->ensureProfile($accountId);
+        $userId = (int)($account['user_id'] ?? 0);
+        if ($userId <= 0) {
+            $userId = $this->accounts->ensureProfile($accountId);
+        }
 
         /*
          * Everything below this point is post-login bookkeeping.

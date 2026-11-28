@@ -8,6 +8,7 @@ use MuchoCore\Admin\GameAccountPrivilegePolicy;
 use MuchoCore\Branding\BrandingService;
 use MuchoCore\Core\Environment;
 use MuchoCore\Database\Database;
+use MuchoCore\Http\Response;
 
 require_once __DIR__.'/core/PlainAdmin.php';
 require_once __DIR__.'/core/AdminChrome.php';
@@ -60,9 +61,7 @@ function muchoAdminHandleException(Throwable $e): void
         $e->getLine()
     ));
 
-    while (ob_get_level() > 0) {
-        ob_end_clean();
-    }
+    Response::clearOutputBuffers();
 
     if (adminIsPlain()) adminPlainStartOutput();
 
@@ -2797,6 +2796,10 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             require __DIR__.'/actions/contentpacks.php';
         }
 
+        if (in_array($action,['demonlist-level','demonlist-review'],true)) {
+            require __DIR__.'/actions/demonlist.php';
+        }
+
         if (str_starts_with($action,'client-patcher-')) {
             handleClientPatcherAction($db,$rootDir,$action);
         }
@@ -4228,34 +4231,39 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         elseif ($action==='relation-delete') {
             requireRank(20);
 
-            $table=(string)$_POST['table'];
-            $id=(int)$_POST['id'];
-
-            if (!in_array(
-                $table,
-                [
-                    'friends',
-                    'blocks',
-                    'friend_requests'
-                ],
-                true
-            )) {
+            $table=$_POST['table'] ?? '';
+            if (!in_array($table,['friends','blocks','friend_requests'],true)) {
                 throw new RuntimeException('Invalid relation');
             }
 
-            $q=$db->prepare(
-                "DELETE FROM `$table` WHERE id=:id"
-            );
+            $relations=new \MuchoCore\Social\RelationshipRepository($db);
+            if ($table==='friend_requests') {
+                $id=adminRecordId($_POST['id'] ?? null);
+                if ($id===null) {
+                    throw new RuntimeException('Invalid friend request ID.');
+                }
+                $q=$db->prepare('DELETE FROM friend_requests WHERE id=:id');
+                $q->execute(['id'=>$id]);
+                $removed=$q->rowCount()>0;
+                $target=(string)$id;
+            } else {
+                $accountId=adminRecordId($_POST['account_id'] ?? null);
+                $peerId=adminRecordId($_POST['peer_id'] ?? null);
+                if ($accountId===null || $peerId===null) {
+                    throw new RuntimeException('Invalid account pair.');
+                }
+                $removed=$table==='friends'
+                    ? $relations->removeFriend($accountId,$peerId)
+                    : $relations->unblock($accountId,$peerId);
+                $target="$accountId:$peerId";
+            }
 
-            $q->execute(['id'=>$id]);
-
-            audit(
-                $db,
-                'relation.delete',
-                "$table:$id"
-            );
-
-            flash('Relation deleted.');
+            if ($removed) {
+                audit($db,'relation.delete',"$table:$target");
+                flash('Relationship removed.');
+            } else {
+                flash('This relationship no longer exists.','error');
+            }
         }
 
         /* SETTINGS */
@@ -4678,6 +4686,17 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             'p'=>$_POST['return_p'] ?? 1,
         ]);
         $returnQuery+=$returnState;
+    }
+    if (
+        ($return==='players' && in_array($action,['account-save','profile-save','password-reset'],true)) ||
+        (in_array($return,['levels','moderation'],true) && $action==='level-details-save')
+    ) {
+        $id=adminRecordId($_POST['id'] ?? null);
+        if ($id!==null) {
+            $returnQuery['id']=$id;
+            if ($action==='profile-save') $returnQuery['tab']='statistics';
+            if ($action==='password-reset') $returnQuery['tab']='password';
+        }
     }
     if ($return==='clans' && $action!=='clan-delete') $returnQuery['id']=max(0,(int)($_POST['id'] ?? 0));
     if ($return==='news' && $action==='news-save' && isset($_SESSION['news_editor_draft'])) {
@@ -5292,7 +5311,7 @@ $adminPageDescriptions = [
 <input
  id="globalSearchInput"
  name="q"
- value="<?=h((string)($_GET['q'] ?? ''))?>"
+ value="<?=h(adminListState($_GET)['q'])?>"
  placeholder="Quick search…"
  autocomplete="off"
 >
@@ -5463,58 +5482,7 @@ foreach($rows as $r):
 ========================================================= */
 
 elseif($page==='social') {
-
-foreach(
-    [
-        'friend_requests',
-        'friends',
-        'blocks'
-    ] as $table
-) {
-    if (!tableExists($db,$table)) continue;
-
-    echo '<h2>'.h($table).'</h2>';
-
-    $rows=$db->query(
-        "SELECT * FROM `$table`
-         ORDER BY id DESC LIMIT 120"
-    )->fetchAll(PDO::FETCH_ASSOC);
-
-    echo '<div class="table"><table>';
-
-    if($rows) {
-        echo '<tr>';
-
-        foreach(array_keys($rows[0]) as $k) {
-            echo '<th>'.h($k).'</th>';
-        }
-
-        echo '<th></th></tr>';
-
-        foreach($rows as $r) {
-            echo '<tr>';
-
-            foreach($r as $v) {
-                echo '<td>'.h($v).'</td>';
-            }
-
-            echo '<td>
-            <form method="post">
-            <input type="hidden" name="csrf" value="'.csrf().'">
-            <input type="hidden" name="action" value="relation-delete">
-            <input type="hidden" name="return" value="social">
-            <input type="hidden" name="table" value="'.h($table).'">
-            <input type="hidden" name="id" value="'.h($r['id']).'">
-            <button class="red">Delete</button>
-            </form>
-            </td>';
-
-            echo '</tr>';
-        }
-    }
-
-    echo '</table></div>';
-}
+    require __DIR__.'/pages/social.php';
 }
 
 /* =========================================================

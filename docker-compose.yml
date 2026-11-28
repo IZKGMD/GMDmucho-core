@@ -43,6 +43,7 @@ services:
       MUCHO_CONTROL_DIR: ${MUCHO_CONTROL_DIR:-/var/lib/muchocore-control}
       MUCHO_BACKUP_DIR: ${MUCHO_BACKUP_DIR:-/var/lib/muchocore-backups}
       MUCHO_CLIENT_TRACE: ${MUCHO_CLIENT_TRACE:-0}
+      MUCHO_AUTH_CACHE: ${MUCHO_AUTH_CACHE:-1}
       # Temporary, opt-in level-search timings; off in all normal deployments.
       MUCHO_PERF_PROFILE: ${MUCHO_PERF_PROFILE:-0}
       # Experimental, reversible fast path for the already-protected GD search route.

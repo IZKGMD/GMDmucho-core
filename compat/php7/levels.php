@@ -5,11 +5,13 @@ declare(strict_types=1);
 function mucho7_song(PDO $pdo, $data)
 {
     $id=mucho7_number(isset($data['songID'])?$data['songID']:0,0,2147483647);
+    if($id<=0)return '-1';
     $query=$pdo->prepare('SELECT * FROM songs WHERE id=? AND is_verified=1');$query->execute(array($id));
     $song=$query->fetch(PDO::FETCH_ASSOC);if(!$song){return '-1';}
-    return implode('~|~',array(1,(int)$song['id'],2,mucho7_field($song['name'],128),
-        3,(int)$song['author_id'],4,mucho7_field($song['author_name'],128),5,round((float)$song['size'],2),
-        6,$song['youtube_video_id'],10,$song['download_url'],7,$song['youtube_channel_id'],8,0));
+    return implode('~|~',array(1,(int)$song['id'],2,mucho7_song_label($song['name']),
+        3,(int)$song['author_id'],4,mucho7_song_label($song['author_name']),5,round((float)$song['size'],2),
+        6,$song['youtube_video_id'],10,mucho7_song_download_url($song['download_url']),
+        7,$song['youtube_channel_id'],8,isset($song['is_disabled'])?(int)$song['is_disabled']:0));
 }
 
 function mucho7_level_action(PDO $pdo, $data, $delete)

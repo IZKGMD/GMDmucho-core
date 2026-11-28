@@ -189,12 +189,17 @@ final class LevelListService
             return '-1';
         }
 
+        $rawListId = $_POST['listID'] ?? '';
+        $listId = $rawListId === '' ? 0 : Request::int('listID', -1);
+        if ($listId < 0) {
+            return '-1';
+        }
+
         $listLevels = Request::idList(Request::string('listLevels'), 1000);
         if (!$listLevels || !$this->repo->allLevelsExist($listLevels)) {
             return '-6';
         }
 
-        $listId = max(0, Request::int('listID'));
         $name = Request::protocolText(Request::string('listName', 'Unnamed list'), 64);
         $desc = Request::protocolText(Request::string('listDesc'), 500);
         $version = max(1, Request::int('listVersion', 1));

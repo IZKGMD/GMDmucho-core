@@ -11,7 +11,7 @@ Use **PHP 8.2+** for a new server. Choose the row that matches your hosting:
 | What you have | Where to start |
 | --- | --- |
 | Hosting with PHP 8.2+ and MySQL | Download the **shared-hosting ZIP** from [Releases](https://github.com/IZKGMD/GMDmucho-core/releases), upload its contents and open `/install.php`. [Step-by-step guide](docs/SHARED_HOSTING.md) |
-| A Linux VPS and a domain | Point the domain to the VPS IP, then run the command below. PHP and the database are installed automatically. [VPS guide](docs/VPS_INSTALL_QUICK_RU.md) |
+| A Linux VPS and a domain | Point the domain to the VPS IP, then run the command below. PHP and the database are installed automatically. [VPS guide](docs/VPS_INSTALL_QUICK.md) |
 | A 5v.pl site with PHP 7 | Use the separate **PHP7 native preview**. The PHP 8 archive will not run there. [5v.pl guide](docs/PHP7_NATIVE_PHASE1.md) |
 
 VPS installation:
@@ -34,6 +34,8 @@ For shared hosting, download `MuchoCore-vX.Y.Z-shared-hosting.zip`, **not GitHub
 4. Set up player downloads under **More tools → Clients & extensions → Client Downloads** before inviting friends. Publish only files you have permission to distribute.
 
 Use the admin panel for players, levels, music and server settings. Additional technical tools are under **More tools**.
+
+To publish a **Demonlist**, open **More tools → Content & moderation → Demonlist** and assign public Demon levels to numbered positions. Players can open Demonlist from the dashboard and submit a YouTube recording of a 100% run. A moderator reviews each submission before it appears publicly. Moderators can also find approved records by level and revoke an approval. A rejection or revocation can include a note visible to the player who submitted the record.
 
 ## Update an existing server
 

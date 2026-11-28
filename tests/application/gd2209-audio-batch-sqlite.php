@@ -8,6 +8,8 @@ declare(strict_types=1);
  * NitroCore's batch music-provider design is a reference concept only.
  * This implementation and test use MuchoCore's own PDO/schema/contracts.
  */
+require_once dirname(__DIR__, 2) . '/src/Core/Environment.php';
+require_once dirname(__DIR__, 2) . '/src/Account/VerifiedCredentialCache.php';
 require_once dirname(__DIR__, 2) . '/src/Account/AccountAuthenticator.php';
 require_once dirname(__DIR__, 2) . '/src/Compatibility/Gd2209UtilityService.php';
 
