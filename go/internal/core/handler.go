@@ -64,6 +64,8 @@ type request struct {
 }
 type endpoint func(request) (string, error)
 
+var cloudSaveSuffix = regexp.MustCompile(`;[0-9]{1,3};[0-9]{1,3};a;a$`)
+
 var strictInt = regexp.MustCompile(`^-?[0-9]+\n?$`)
 
 func (r request) str(key string) string {
@@ -382,7 +384,7 @@ func (h *Handler) cloudAccount(r request) (int64, error) {
 	}
 	credential := ""
 	for _, key := range []string{"password", "gjp2", "gjp"} {
-		if v := strings.TrimSpace(r.str(key)); v != "" {
+		if v := r.str(key); v != "" {
 			credential = v
 			break
 		}
@@ -395,7 +397,21 @@ func (h *Handler) backup(r request) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	_, err = h.cloud.Save(r.ctx, id, r.str("saveData"))
+	data := r.str("saveData")
+	game := scoreValue(r.str("gameVersion"), 21, 3)
+	binary := scoreValue(r.str("binaryVersion"), 30, 3)
+	for _, field := range []string{"gameVersion", "binaryVersion"} {
+		if v := r.str(field); v != "" && (!scoreInteger.MatchString(v) || v[0] == '-' || len(v) > 3) {
+			return "-1", nil
+		}
+	}
+	if len(data) > 32*1024*1024 || data == "" {
+		return "-1", nil
+	}
+	if (game != 21 || binary != 30) && !cloudSaveSuffix.MatchString(data[max(0, len(data)-12):]) {
+		data += fmt.Sprintf(";%d;%d;a;a", game, binary)
+	}
+	_, err = h.cloud.Save(r.ctx, id, data)
 	return "1", err
 }
 func (h *Handler) sync(r request) (string, error) {
@@ -410,7 +426,7 @@ func (h *Handler) sync(r request) (string, error) {
 	if data == "" {
 		return "-1", nil
 	}
-	if !strings.Contains(data, ";21;30;a;a") {
+	if !cloudSaveSuffix.MatchString(data[max(0, len(data)-12):]) {
 		data += ";21;30;a;a"
 	}
 	return data, nil

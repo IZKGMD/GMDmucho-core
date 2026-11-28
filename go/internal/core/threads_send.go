@@ -15,9 +15,6 @@ func (h *Handler) sendThreadMessage(r request, actor int64) (string, error) {
 	}
 	id := r.threadID()
 	start := id == 0
-	if !start {
-		body = strings.Trim(body, " \t\r\n\x00\x0b")
-	}
 	if strings.Trim(body, " \t\r\n\x00\x0b") == "" || len(body) > 16000 || utf8.RuneCountInString(body) > 4000 {
 		return "-1", nil
 	}
