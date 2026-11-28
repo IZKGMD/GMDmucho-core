@@ -648,14 +648,14 @@ function renderAndroidPatcherSection(PDO $db): void
             <input type="checkbox" id="mcAndroidPatcherAlongside" checked
                 aria-describedby="mcAndroidPatcherAlongsideHelp"
                 style="width:18px;height:18px;flex-shrink:0">
-            Install alongside the original Geometry Dash (verified GD 2.209 ARM64 APK only)
+            Install alongside the original Geometry Dash (supported ARM64 layouts)
         </label>
         <div id="mcAndroidPatcherAlongsideHelp" class="muted small" style="line-height:1.6">
-            Side-by-side requires the exact verified, original GD 2.209 ARM64 APK
-            (versionName 2.2.145; 174,568,364 bytes). Other GD 2.209 APK builds are
-            <b>not interchangeable</b> and must be verified before patching. Recognized
-            legacy builds keep the original application ID. Android cannot install them
-            over a copy signed with another key.
+            Side-by-side supports the verified original GD 2.209 ARM64 APK
+            (versionName 2.2.145; 174,568,364 bytes), compatible 113-route 2.209 ARM
+            variants, and one experimental GD 2.2.144 ARM64 APK identified by its
+            exact fingerprint. Recognized GD 1.0–1.81 APKs keep the original app ID.
+            Android requires the same signing key to update an installed copy.
         </div>
 
         <label for="mcAndroidPatcherFile" class="mc-drop" id="mcAndroidPatcherDrop">
