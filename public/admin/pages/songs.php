@@ -47,7 +47,7 @@ $manage=canPermission('music.manage');
 <?php foreach($rows as $r): ?><tr>
 <td>#<?=(int)$r['id']?></td><td><?=h($r['name'])?>
 <?php if (!empty($r['newgrounds_id'])): ?>
-<a href="<?=h(\MuchoCore\Music\NewgroundsSource::url((int)$r['newgrounds_id']))?>" target="_blank" rel="noopener noreferrer">Newgrounds #<?=(int)$r['newgrounds_id']?></a>
+<a href="https://www.newgrounds.com/audio/listen/<?=(int)$r['newgrounds_id']?>" target="_blank" rel="noopener noreferrer">Newgrounds #<?=(int)$r['newgrounds_id']?></a>
 <?php endif ?>
 </td><td><?=h($r['author_name'])?></td><td><?=h($r['size'])?> MB</td>
 <td><span class="badge <?=$r['is_verified']?'green':''?>"><?=$r['is_verified']?'Verified':'Pending'?></span></td>

@@ -178,7 +178,7 @@ API v2 standalone scripts, browser admin, recovery/passkeys, plugins, deployment
 
 ## Standalone services
 
-API v2: **10 / 10** endpoint scripts have native handlers. This excludes its bootstrap/security include files, whose protection and metrics run as middleware.
+API v2: **10 / 11** endpoint scripts have native handlers. This excludes its bootstrap/security include files, whose protection and metrics run as middleware.
 
 | PHP endpoint | Native handler |
 | --- | --- |
@@ -189,6 +189,7 @@ API v2: **10 / 10** endpoint scripts have native handlers. This excludes its boo
 | `/api/v2/health.php` | Present |
 | `/api/v2/heartbeat.php` | Present |
 | `/api/v2/index.php` | Present |
+| `/api/v2/music-library.php` | **Pending** |
 | `/api/v2/music-upload.php` | Present |
 | `/api/v2/music.php` | Present |
 | `/api/v2/profile.php` | Present |
