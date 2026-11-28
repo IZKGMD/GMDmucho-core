@@ -1882,6 +1882,7 @@ if ($profile) {
 <section class="section" id="players">
     <div class="section-head">
         <h2>Community leaderboard</h2>
+        <a href="/demonlist.php">Demonlist</a>
         <span class="muted small">Top players by stars</span>
     </div>
 

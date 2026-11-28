@@ -19,16 +19,18 @@ final class Gd2209Binary
     public const SHA256 = '524265b3781596fcc7c9e4d60dc5ac2d0a4cd9530ee3ea637e123f9ac1f9b6a8';
     public const SHA256_OCT19 = '4eee06d5c2e2213b4ba2b1f6233dd426bbdd0e9b29d7c375e499516b6f8f69d5';
 
+    private const GAUNTLET_LIST_URL = 'http://www.boomlings.com/database/getGJLevels21.php';
+
     private const BUILDS = [
         self::SHA256 => [
             'label' => 'Geometry Dash 2.209 (13 Oct 2026)',
             'size' => 13158400,
-            'url_count' => 111,
+            'url_count' => 112,
         ],
         self::SHA256_OCT19 => [
             'label' => 'Geometry Dash 2.209 (19 Oct 2026)',
             'size' => 13178880,
-            'url_count' => 113,
+            'url_count' => 114,
         ],
     ];
 
@@ -249,7 +251,7 @@ final class Gd2209Binary
             'route_modes' => $modes,
             'requires_short_alias' => $modes['short_alias'] > 0,
             'requires_root_alias' => $modes['root_alias'] > 0,
-            'patch_engine' => 'gd2209-exact-rdata-v3',
+            'patch_engine' => 'gd2209-exact-rdata-v4',
             'verified' => 'static-binary-only',
         ]];
     }
@@ -267,7 +269,9 @@ final class Gd2209Binary
         }
         [$rdataOffset, $rdataSize] = self::rdataRange($input);
         $section = substr($input, $rdataOffset, $rdataSize);
-        $regex = '~https?://(?:www\.boomlings\.com|boomlings\.com|www\.geometrydash\.com)/(?:database|databas)/[A-Za-z0-9._/-]+\.php(?=\x00)~';
+        $encodedGauntletUrl = base64_encode(self::GAUNTLET_LIST_URL);
+        $regex = '~(?:https?://(?:www\.boomlings\.com|boomlings\.com|www\.geometrydash\.com)/(?:database|databas)/[A-Za-z0-9._/-]+\.php|'
+            . '(?<![^\x00])' . preg_quote($encodedGauntletUrl, '~') . ')(?=\x00)~';
         $matches = [];
         preg_match_all($regex, $section, $matches, PREG_OFFSET_CAPTURE);
         $count = 0;
@@ -277,13 +281,15 @@ final class Gd2209Binary
             if ($position > 0 && !in_array($section[$position - 1], ["\0", "\n", "\r", ' ', '"', "'"], true)) {
                 continue;
             }
-            $oldPath = substr($url, strpos($url, '/', strpos($url, '://') + 3));
+            $encoded = $url === $encodedGauntletUrl;
+            $originalUrl = $encoded ? self::GAUNTLET_LIST_URL : $url;
+            $oldPath = substr($originalUrl, strpos($originalUrl, '/', strpos($originalUrl, '://') + 3));
             if (str_starts_with($oldPath, '/databas/')) {
                 $oldPath = '/database/' . substr($oldPath, strlen('/databas/'));
             }
             $patched = 'https://' . $targetHost . $oldPath;
             $mode = 'database';
-            $oldLength = strlen($url);
+            $oldLength = strlen($originalUrl);
             if (strlen($patched) > $oldLength && str_starts_with($oldPath, '/database/')) {
                 $patched = 'https://' . $targetHost . '/a/' . substr($oldPath, strlen('/database/'));
                 $mode = 'short_alias';
@@ -295,7 +301,14 @@ final class Gd2209Binary
             if (strlen($patched) > $oldLength) {
                 throw new RuntimeException('GD 2.209 hostname too long for in-place patch; use a shorter HTTPS domain or alias.');
             }
-            $section = substr_replace($section, $patched . str_repeat("\0", $oldLength - strlen($patched)), $position, $oldLength);
+            $replacement = $encoded ? base64_encode($patched) : $patched;
+            $slotLength = strlen($url);
+            $section = substr_replace(
+                $section,
+                str_pad($replacement, $slotLength, "\0"),
+                $position,
+                $slotLength
+            );
             $count++;
             $paths[] = $oldPath;
             $routes[] = ['source_path' => $oldPath, 'target_path' => substr($patched, strlen('https://' . $targetHost)), 'mode' => $mode];
@@ -335,7 +348,26 @@ final class Gd2209Binary
             $cursor = $at + $length;
         }
         $parts[] = substr($section, $cursor);
-        return substr_replace($input, implode('', $parts), $offset, $size);
+        $section = implode('', $parts);
+        $original = base64_encode(self::GAUNTLET_LIST_URL);
+        $length = strlen($original);
+        preg_match_all('~(?<![^\x00])aHR0cHM6Ly[A-Za-z0-9+/=]+(?=\x00)~', $section, $encodedUrls, PREG_OFFSET_CAPTURE);
+        foreach ($encodedUrls[0] as [$encoded, $at]) {
+            $url = base64_decode($encoded, true);
+            if ($url === false || !preg_match(
+                '~^https://[A-Za-z0-9.-]+/(?:database/|a/)?getGJLevels21\.php$~D',
+                $url
+            )) {
+                continue;
+            }
+            if ($encoded !== base64_encode($url) || strlen($encoded) > $length ||
+                substr($section, $at + strlen($encoded), $length - strlen($encoded) + 1) !==
+                    str_repeat("\0", $length - strlen($encoded) + 1)) {
+                throw new RuntimeException('Modified Gauntlet URL exceeds its original fixed slot.');
+            }
+            $section = substr_replace($section, $original, $at, $length);
+        }
+        return substr_replace($input, $section, $offset, $size);
     }
 
     /** @return array{int,int} */

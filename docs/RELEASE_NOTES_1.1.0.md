@@ -1,6 +1,6 @@
 # MuchoCore 1.1.0 — Release notes
 
-> **Status: release preparation, not a published stable version.** The `main` branch identifies itself as 1.1.0, but the last published stable GitHub release is 1.0.9. Do not announce 1.1.0 as stable until its endpoint-certification gate passes and both release archives are published successfully.
+The [published v1.1.0 release](https://github.com/IZKGMD/GMDmucho-core/releases/tag/v1.1.0) contains the release announcement and downloads. These notes summarize the changes originally prepared for that version.
 
 ## What has changed?
 
@@ -38,15 +38,13 @@ MuchoCore 1.1.0 is a major update focused on making a Geometry Dash private serv
 ## Before installing
 
 1. **Back up your database and deployment configuration.** Test migrations on staging before applying them to a server with active players.
-2. The stable installation/update channel still points to **v1.0.9** until a new official release is published. The current `main` branch is development source, not a stable release.
+2. The stable installer and updater select the latest published stable release on GitHub.
 3. Check the [1.1.0 readiness guide](V110_RELEASE.md), [2.209 validation status](GD_2209_VERIFICATION_GATES.md) and [full changelog](../CHANGELOG.md).
 4. Do not assume pending pull requests (including launcher, client and migration proposals) are already included in `main`.
 
 ### Release gate
 
-The project intentionally prevents a stable 1.1.0 publication until the endpoint quality registry has complete protocol, security, database, performance and real-client evidence. At the last documented checkpoint, the registry contained **132 routes**, **126 inventory-only** entries, and **zero fully release-gated** endpoints. Those are certification gaps, **not a claim that 126 routes are broken**.
-
-The publishing workflow must also build and upload both the standard and shared-hosting archives before marking the GitHub release public.
+Future stable releases require protocol, security, database, performance and real-client evidence. The [release readiness guide](V110_RELEASE.md) describes the current gate and required distributions.
 
 ---
 
@@ -60,4 +58,4 @@ The publishing workflow must also build and upload both the standard and shared-
 - **Развёртывание:** понятнее установка на VPS, обновлён Auto Patch 2.0, появились единые клиентские архивы и контрольные суммы.
 - **Надёжность:** улучшены обновления, резервные копии, миграция, фоновые задачи и кеширование.
 
-**Важно:** исходники 1.1.0 уже в `main`, но официальный стабильный релиз ещё не опубликован. Сначала необходимо пройти проверки совместимости и собрать оба релизных ZIP-архива. Не обновляйте работающий GDPS из `main` без резервной копии и тестового стенда.
+**Скачать 1.1.0** можно со страницы [релиза на GitHub](https://github.com/IZKGMD/GMDmucho-core/releases/tag/v1.1.0). Перед обновлением сделайте резервную копию и проверьте миграции на тестовом стенде.

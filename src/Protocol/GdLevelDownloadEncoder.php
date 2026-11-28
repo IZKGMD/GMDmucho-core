@@ -160,9 +160,19 @@ final class GdLevelDownloadEncoder
          * while Geometry Dash expects 10..60 on the wire. Accept both
          * representations so legacy data remains compatible.
          */
-        return ($difficulty >= 1 && $difficulty <= 6)
-            ? $difficulty * 10
-            : max(0, $difficulty);
+        // Database compact codes are 1=Auto, 2=Easy, 3=Normal,
+        // 4=Hard, 5=Harder, 6=Insane/Demon. GD wire key 9 instead
+        // expects 10..50 for Easy..Insane; Auto and Demon are selected
+        // by their separate keys 25 and 17 while keeping key 9 at 50.
+        // Preserve existing uncompressed wire values 10..50.
+        return match ($difficulty) {
+            1, 6 => 50,
+            2 => 10,
+            3 => 20,
+            4 => 30,
+            5 => 40,
+            default => max(0, $difficulty),
+        };
     }
 
 }

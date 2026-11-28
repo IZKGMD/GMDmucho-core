@@ -131,9 +131,9 @@ final class SourceDetector
                 'key' => 'comments',
                 'label' => 'Comments',
                 'tables' => ['comments', 'acccomments'],
-                'status' => 'detected_only',
+                'status' => 'imported_now',
                 'where' => 'comments are level comments; acccomments are profile/account comments.',
-                'notes' => 'Detected and counted by Migration Center, but not yet written into MuchoCore automatically.',
+                'notes' => 'Registered authors and levels must resolve through the migration maps. Incompatible rows are counted as skipped.',
             ],
             [
                 'key' => 'social',
@@ -147,9 +147,9 @@ final class SourceDetector
                 'key' => 'collections',
                 'label' => 'Lists, Map Packs, Gauntlets & Daily',
                 'tables' => ['lists', 'mappacks', 'gauntlets', 'dailyfeatures'],
-                'status' => 'detected_only',
+                'status' => 'imported_now',
                 'where' => 'lists, mappacks, gauntlets and dailyfeatures contain curated level collections and daily selections.',
-                'notes' => 'Detected and counted, but not yet automatically mapped to MuchoCore structures.',
+                'notes' => 'References are remapped to imported levels. Incomplete collections and incompatible schemas are counted as skipped.',
             ],
             [
                 'key' => 'moderation',

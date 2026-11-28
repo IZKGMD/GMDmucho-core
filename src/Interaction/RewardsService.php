@@ -129,7 +129,7 @@ final readonly class RewardsService
             $now
         );
 
-        $decodedChk=$this->decodeChk(
+        $decodedChk=self::decodeChk(
             $chk,
             '59182'
         );
@@ -148,11 +148,28 @@ final readonly class RewardsService
             (int)$state['big_count'].':'.
             $rewardType;
 
-        return $this->pack(
+        return self::pack(
             $plain,
             '59182',
             'pC26fpYaQCtg'
         );
+    }
+
+    public static function eventReward(int $rotationIndex, string $chk): string
+    {
+        if (strlen($chk) > 32) {
+            return '-1';
+        }
+
+        $challenge = self::decodeChk($chk, '59182');
+        if ($challenge === '' || !ctype_digit($challenge)) {
+            return '-1';
+        }
+
+        // Event chests use type 9 and a list of item type / quantity pairs.
+        $plain = '1:' . $challenge . ':' . $rotationIndex . ':9:7,100,8,10';
+
+        return self::pack($plain, '59182', 'pC26fpYaQCtg');
     }
 
     public function secretReward(
@@ -183,7 +200,7 @@ final readonly class RewardsService
             }
         }
 
-        $decodedChk = $this->decodeChk($chk, '59182');
+        $decodedChk = self::decodeChk($chk, '59182');
 
         if ($decodedChk === '') {
             return '-1';
@@ -226,7 +243,7 @@ final readonly class RewardsService
             (string)$claimed['rewards'];
 
         $encoded = base64_encode(
-            $this->xorCipher($plain, '59182')
+            self::xorCipher($plain, '59182')
         );
 
         $encoded = strtr($encoded, '/+', '_-');
@@ -312,7 +329,7 @@ final readonly class RewardsService
                 );
         }
 
-        $decodedChk=$this->decodeChk(
+        $decodedChk=self::decodeChk(
             $chk,
             '19847'
         );
@@ -326,7 +343,7 @@ final readonly class RewardsService
             $timeLeft.':'.
             implode(':',$quests);
 
-        return $this->pack(
+        return self::pack(
             $plain,
             '19847',
             'oC36fpYaPtdg'
@@ -431,7 +448,7 @@ final readonly class RewardsService
         );
     }
 
-    private function decodeChk(
+    private static function decodeChk(
         string $chk,
         string $key
     ): string {
@@ -465,19 +482,19 @@ final readonly class RewardsService
             return '';
         }
 
-        return $this->xorCipher(
+        return self::xorCipher(
             $raw,
             $key
         );
     }
 
-    private function pack(
+    private static function pack(
         string $plain,
         string $key,
         string $salt
     ): string {
         $encoded=base64_encode(
-            $this->xorCipher(
+            self::xorCipher(
                 $plain,
                 $key
             )
@@ -496,7 +513,7 @@ final readonly class RewardsService
         return 'SaKuJ'.$encoded.'|'.$hash;
     }
 
-    private function xorCipher(
+    private static function xorCipher(
         string $value,
         string $key
     ): string {

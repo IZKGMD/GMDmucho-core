@@ -3,6 +3,7 @@ declare(strict_types=1);
 require_once __DIR__.'/../core/AdminUi.php';
 $state=adminListState($_GET);
 $q=$state['q'];
+$openId=adminRecordId($_GET['id'] ?? null);
 $filter=in_array($state['filter'],['pending','rated','deleted'],true) ? $state['filter'] : '';
 if ($page==='moderation') $filter='pending';
 $state['filter']=$filter;
@@ -44,7 +45,7 @@ $rate=canPermission('levels.rate');
 <?php if(!$rows): ?><div class="card empty-state">No levels found. Change the search or filters.</div><?php endif ?>
 <div class="admin-records">
 <?php foreach($rows as $r): $id=(int)$r['level_id']; $profile=adminDifficultyProfile($r); ?>
-<details class="card admin-record" id="level-<?=$id?>">
+<details class="card admin-record" id="level-<?=$id?>"<?=$openId===$id?' open':''?>>
 <summary><?=adminGdIcon($profile,'gd-face')?>
 <span class="record-name"><b><?=h($r['name'])?></b><small>#<?=$id?> · <?=h($r['creator_name'])?></small></span>
 <span class="record-stat"><?=adminGdIcon('stars')?><?=(int)$r['stars']?></span>

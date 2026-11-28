@@ -2,7 +2,7 @@
   "schema_version": 1,
   "policy": {
     "name": "MuchoCore Endpoint Perfection",
-    "target_release": "1.1.0",
+    "target_release": "1.1.1",
     "required_dimensions": [
       "request_contract",
       "wire_contract",

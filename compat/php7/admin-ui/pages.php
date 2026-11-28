@@ -19,6 +19,7 @@ return [
     'news'=>'News Board',
     'moderation'=>'Moderation',
     'rating'=>'Rating Studio',
+    'demonlist'=>'Demonlist',
 
     'comments'=>'Comments',
     'messages'=>'Messages',

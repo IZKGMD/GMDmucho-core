@@ -262,8 +262,8 @@ final class MuchoPhp70Lowering extends PhpParser\NodeVisitorAbstract
             $node->name = new Node\Name\FullyQualified('mucho7_'.$node->name->toString());
         }
         if(str_starts_with($this->relativeFile,'public/admin/') && $node instanceof Expr\FuncCall && $node->name instanceof Node\Name && strtolower($node->name->toString())==='header')$node->name=new Node\Name\FullyQualified('mucho7_admin_header');
-        if(str_starts_with($this->relativeFile,'public/dashboard/') && $node instanceof Expr\FuncCall && $node->name instanceof Node\Name && strtolower($node->name->toString())==='header')$node->name=new Node\Name\FullyQualified('mucho7_player_header');
-        if(str_starts_with($this->relativeFile,'public/dashboard/') && $node instanceof Expr\FuncCall && $node->name instanceof Node\Name && strtolower($node->name->toString())==='session_start')$node->name=new Node\Name\FullyQualified('mucho7_player_session_start');
+        if((str_starts_with($this->relativeFile,'public/dashboard/') || $this->relativeFile==='public/demonlist.php') && $node instanceof Expr\FuncCall && $node->name instanceof Node\Name && strtolower($node->name->toString())==='header')$node->name=new Node\Name\FullyQualified('mucho7_player_header');
+        if((str_starts_with($this->relativeFile,'public/dashboard/') || $this->relativeFile==='public/demonlist.php') && $node instanceof Expr\FuncCall && $node->name instanceof Node\Name && strtolower($node->name->toString())==='session_start')$node->name=new Node\Name\FullyQualified('mucho7_player_session_start');
         if ($node instanceof Expr\Include_ && !str_starts_with($this->relativeFile,'tools/compat/passkeys-source/')) {
             $node->expr = new Expr\FuncCall(new Node\Name\FullyQualified('mucho7_compiled_include'), [new Node\Arg($node->expr)]);
         }
@@ -288,10 +288,10 @@ foreach (['src','database/migrations','tools/compat/passkeys-source/src'] as $so
 }
 sort($files);
 $files[]=$root.'/config/mucho_v71.php';
-foreach(['public/dashboard/index.php','public/dashboard/clans.php','public/profile-image.php','public/clients.php'] as $page)$files[]=$root.'/'.$page;
-foreach(['clans','contentpacks','plugins','muchoprofiles','intelligence','migration'] as $page)$files[]=$root.'/public/admin/pages/'.$page.'.php';
+foreach(['public/dashboard/index.php','public/dashboard/clans.php','public/profile-image.php','public/clients.php','public/demonlist.php'] as $page)$files[]=$root.'/'.$page;
+foreach(['clans','contentpacks','plugins','muchoprofiles','intelligence','migration','demonlist'] as $page)$files[]=$root.'/public/admin/pages/'.$page.'.php';
 foreach(['advanced-module','advanced-actions','advanced-lib'] as $module)$files[]=$root.'/public/admin/'.$module.'.php';
-foreach(['clans','contentpacks','profiles','social'] as $action)$files[]=$root.'/public/admin/actions/'.$action.'.php';
+foreach(['clans','contentpacks','profiles','social','demonlist'] as $action)$files[]=$root.'/public/admin/actions/'.$action.'.php';
 foreach(['client-features-module','security-monitoring-module'] as $module)$files[]=$root.'/public/admin/'.$module.'.php';
 $integrationTests=['creator-events-integration','admin-clans-integration','clan-client-integration','gd2209-gameplay-schema-integration',
     'gd2209-social-integration','gd2209-thread-integration','gd2209-level-integration',

@@ -1,19 +1,24 @@
 """Offline regression tests for the first-run 5v.pl archive installer."""
+from dataclasses import replace
+import ftplib
 import importlib.util
 import os
+import posixpath
 import zipfile
 from pathlib import Path
 import re
+import socket
+import ssl
 import subprocess
 import sys
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, call, patch
 
 ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / "tools/release/5v-installer"
 sys.path.insert(0, str(SRC))
-from mucho5v import (InstallError, site_origin, valid_ftp_host, php_quote,
+from mucho5v import (FtpSite, FtpTlsUnavailable, InstallError, PassiveFtp, VerifiedFtpFolder, site_origin, valid_ftp_host, php_quote,
                      private_config, merge_rules, safe_relative, FormFields)
 import INSTALL_5V
 import RECOVER_ADMIN_5V
@@ -38,6 +43,211 @@ class DomainTests(unittest.TestCase):
                         "ftp.5v.pl/path", "ftp.5v.pl\nx", ""):
             with self.subTest(host=invalid), self.assertRaises(InstallError):
                 valid_ftp_host(invalid)
+
+
+class FtpConnectionTests(unittest.TestCase):
+    def test_timed_out_upload_reconnects_and_restarts_with_all_bytes(self):
+        first, second = Mock(), Mock()
+        for conn in first, second:
+            conn.sock.getpeername.return_value = ("192.0.2.10", 21)
+            conn.af = socket.AF_INET
+            conn.data_mode = "EPSV"
+        chunks = []
+
+        def partial_upload(command, stream, **_):
+            chunks.append((command, stream.read(3)))
+            raise TimeoutError()
+
+        def complete_upload(command, stream, **_):
+            chunks.append((command, stream.read()))
+
+        first.storbinary.side_effect = partial_upload
+        second.storbinary.side_effect = complete_upload
+        with patch("mucho5v.PassiveFtp", side_effect=[first, second]):
+            with FtpSite("ftp.5v.pl", "test-user", "test-secret", secure=False) as ftp:
+                ftp.put("/website", "probe.php", b"entire file")
+        self.assertEqual(chunks, [("STOR probe.php", b"ent"), ("STOR probe.php", b"entire file")])
+        first.close.assert_called_once()
+        second.login.assert_called_once_with("test-user", "test-secret")
+        self.assertEqual(second.data_mode, "PASV")
+
+    def test_verified_folder_is_bound_to_site_ftp_account_and_server(self):
+        origin = "https://example.5v.pl"
+        proof = VerifiedFtpFolder(origin, "ftp.5v.pl", "test-user", False, 21,
+                                  "", "192.0.2.10", "/account", "/account/public", "PASV")
+        with patch("mucho5v.PassiveFtp") as plain:
+            conn = plain.return_value
+            conn.pwd.return_value = "/account"
+            conn.sock.getpeername.return_value = ("192.0.2.10", 21)
+            conn.af = socket.AF_INET
+            with FtpSite("ftp.5v.pl", "test-user", "test-secret", secure=False) as ftp:
+                for mismatch in (replace(proof, origin="https://other.5v.pl"),
+                                 replace(proof, user="another-user"), replace(proof, hint="site"),
+                                 replace(proof, secure=True), replace(proof, peer="192.0.2.11"),
+                                 replace(proof, home="/other-account")):
+                    self.assertFalse(ftp.use_verified_folder(origin, "", mismatch))
+                conn.cwd.assert_not_called()
+                self.assertTrue(ftp.use_verified_folder(origin, "", proof))
+                self.assertEqual(ftp.root, "/account/public")
+                self.assertEqual(conn.data_mode, "PASV")
+                conn.cwd.assert_called_once_with("/account/public")
+                conn.storbinary.assert_not_called()
+
+    def test_unsupported_ftps_stops_before_credentials(self):
+        with patch("mucho5v.PassiveFtps") as tls, patch("mucho5v.PassiveFtp") as plain:
+            tls.return_value.auth.side_effect = ftplib.error_perm("500 AUTH not understood")
+            with self.assertRaisesRegex(FtpTlsUnavailable, "FTP 500"):
+                with FtpSite("ftp.5v.pl", "test-user", "test-secret"):
+                    self.fail("FTPS unexpectedly succeeded")
+            tls.return_value.login.assert_not_called()
+            tls.return_value.close.assert_called_once()
+            plain.assert_not_called()
+
+    def test_authentication_and_tls_failures_do_not_offer_downgrade(self):
+        cases = (
+            ("auth", ssl.SSLCertVerificationError("bad certificate"), "certificate"),
+            ("login", ftplib.error_perm("530 echoed-test-secret"), "FTP login failed"),
+            ("prot_p", ftplib.error_perm("500 unsupported"), "encrypted file transfers"),
+        )
+        for phase, failure, expected in cases:
+            with self.subTest(phase=phase), patch("mucho5v.PassiveFtps") as tls, \
+                    patch("mucho5v.PassiveFtp") as plain:
+                getattr(tls.return_value, phase).side_effect = failure
+                with self.assertRaisesRegex(InstallError, expected) as error:
+                    with FtpSite("ftp.5v.pl", "test-user", "echoed-test-secret"):
+                        self.fail("FTPS unexpectedly succeeded")
+                self.assertNotIsInstance(error.exception, FtpTlsUnavailable)
+                self.assertNotIn("echoed-test-secret", str(error.exception))
+                plain.assert_not_called()
+
+    def test_plain_ftp_runs_only_when_requested_and_diagnoses_https_separately(self):
+        with patch("mucho5v.PassiveFtps") as tls, patch("mucho5v.PassiveFtp") as plain, \
+                patch("mucho5v.HttpsSite") as https:
+            plain.return_value.pwd.return_value = "/"
+            https.return_value.origin = "https://example.5v.pl"
+            https.return_value.request.return_value = (503, b"unavailable")
+            with FtpSite("ftp.5v.pl", "test-user", "test-secret", secure=False) as ftp:
+                with self.assertRaisesRegex(InstallError, "website returned HTTP 503"):
+                    ftp.find_root("https://example.5v.pl", ".")
+            tls.assert_not_called()
+            plain.return_value.login.assert_called_once_with("test-user", "test-secret")
+            plain.return_value.set_pasv.assert_called_once_with(True)
+            plain.return_value.delete.assert_called_once()
+
+    def test_upload_error_retains_the_command_when_probe_cleanup_also_fails(self):
+        with patch("mucho5v.PassiveFtp") as plain, patch("mucho5v.HttpsSite") as https:
+            plain.return_value.pwd.return_value = "/"
+            plain.return_value.storbinary.side_effect = ftplib.error_temp("451 private server text")
+            plain.return_value.delete.side_effect = EOFError()
+            https.return_value.origin = "https://example.5v.pl"
+            with FtpSite("ftp.5v.pl", "test-user", "test-secret", secure=False) as ftp:
+                with self.assertRaisesRegex(InstallError, r"uploading the temporary PHP check \(FTP 451\)"):
+                    ftp.find_root("https://example.5v.pl", ".")
+            https.return_value.request.assert_not_called()
+
+
+class PassiveTransferTests(unittest.TestCase):
+    def setUp(self):
+        self.ftp = PassiveFtp(timeout=25)
+        self.ftp.af = socket.AF_INET
+        self.ftp.sock = Mock()
+        self.ftp.sock.getpeername.return_value = ("192.0.2.10", 21)
+        self.ftp.sendcmd = Mock()
+        self.channel = Mock()
+
+    def test_epsv_supports_the_first_transfer_without_pasv(self):
+        self.ftp.sendcmd.side_effect = ["229 Entering Extended Passive Mode (|||8123|)",
+                                        "150 Opening connection"]
+        with patch("mucho5v.socket.create_connection", return_value=self.channel) as connect:
+            self.assertEqual(self.ftp.ntransfercmd("STOR probe.php"), (self.channel, None))
+        connect.assert_called_once_with(("192.0.2.10", 8123), 8, source_address=None)
+        self.assertEqual(self.ftp.sendcmd.call_args_list, [call("EPSV"), call("STOR probe.php")])
+
+    def test_closed_epsv_port_retries_pasv_on_the_control_peer(self):
+        self.ftp.sendcmd.side_effect = ["229 Entering Extended Passive Mode (|||8123|)",
+                                        "227 Entering Passive Mode (203,0,113,7,32,1)",
+                                        "150 Opening connection"]
+        with patch("mucho5v.socket.create_connection", side_effect=[TimeoutError(), self.channel]) as connect:
+            self.assertEqual(self.ftp.ntransfercmd("STOR probe.php"), (self.channel, None))
+        self.assertEqual(connect.call_args_list, [
+            call(("192.0.2.10", 8123), 8, source_address=None),
+            call(("192.0.2.10", 8193), 8, source_address=None),
+        ])
+        self.assertEqual(self.ftp.data_mode, "PASV")
+
+    def test_permission_failure_does_not_retry_the_upload(self):
+        self.ftp.sendcmd.side_effect = ["229 Entering Extended Passive Mode (|||8123|)",
+                                        ftplib.error_perm("550 Permission denied")]
+        with patch("mucho5v.socket.create_connection", return_value=self.channel) as connect:
+            with self.assertRaises(ftplib.error_perm):
+                self.ftp.ntransfercmd("STOR probe.php")
+        self.assertEqual(connect.call_count, 1)
+        self.channel.close.assert_called_once()
+        self.assertEqual(self.ftp.sendcmd.call_args_list, [call("EPSV"), call("STOR probe.php")])
+
+    def test_diagnostic_reports_both_modes_without_raw_server_text(self):
+        self.ftp.sendcmd.side_effect = [ftplib.error_perm("502 hidden server response"),
+                                        "227 Entering Passive Mode (192,0,2,10,32,1)"]
+        with patch("mucho5v.socket.create_connection", side_effect=TimeoutError()):
+            with self.assertRaisesRegex(InstallError, r"STOR.*EPSV: FTP 502; PASV: timed out") as error:
+                self.ftp.ntransfercmd("STOR private-filename.php")
+        self.assertNotIn("hidden server response", str(error.exception))
+        self.assertNotIn("private-filename.php", str(error.exception))
+
+
+class FtpSiteFolderTests(unittest.TestCase):
+    def test_fresh_site_root_is_found_without_a_folder_hint(self):
+        for target in ("/newgdps", "/newgdps.5v.pl", "/hosting/site-010/web"):
+            with self.subTest(target=target):
+                self.check_document_root(target)
+
+    def check_document_root(self, target):
+        cwd = "/"
+        layouts = {"/": ["hosting", "newgdps.5v.pl", "newgdps", "index.html"],
+                   "/hosting": ["site-010"], "/hosting/site-010": ["web"],
+                   "/hosting/site-010/web": ["index.html"], "/newgdps.5v.pl": [],
+                   "/newgdps": []}
+        default_page = b"<html>Welcome to your new 5v.pl website</html>"
+        files = {(target, "index.html"): default_page}
+        uploaded = []
+
+        def change_directory(path):
+            nonlocal cwd
+            destination = posixpath.normpath(posixpath.join(cwd, path))
+            if destination not in layouts:
+                raise ftplib.error_perm("550 Directory unavailable")
+            cwd = destination
+
+        def upload(command, stream, *, blocksize):
+            name = command.removeprefix("STOR ")
+            files[cwd, name] = stream.read()
+            uploaded.append(name)
+
+        def request(path):
+            name = path.removeprefix("/")
+            if (target, name) in files:
+                source = files[target, name]
+                match = re.search(rb"echo '([a-f0-9]+)' \. '([a-f0-9]+)';", source)
+                self.assertIsNotNone(match, source)
+                return 200, match[1] + match[2]
+            if ("/", name) in files:
+                return 200, files["/", name]  # Raw PHP source is not verification.
+            return 200, default_page
+
+        with patch("mucho5v.PassiveFtp") as plain, patch("mucho5v.HttpsSite") as https:
+            socket = plain.return_value
+            socket.pwd.side_effect = lambda: cwd
+            socket.cwd.side_effect = change_directory
+            socket.nlst.side_effect = lambda: layouts[cwd]
+            socket.storbinary.side_effect = upload
+            socket.delete.side_effect = lambda name: files.pop((cwd, name))
+            https.return_value.origin = "https://newgdps.5v.pl"
+            https.return_value.request.side_effect = request
+            with FtpSite("ftp.5v.pl", "test-user", "test-secret", secure=False) as ftp:
+                self.assertEqual(ftp.find_root("https://newgdps.5v.pl"), target)
+                self.assertEqual(ftp.root, target)
+            self.assertEqual(files, {(target, "index.html"): default_page})
+            self.assertEqual(len(uploaded), len(set(uploaded)))
 
 
 class EasyInstallerTests(unittest.TestCase):
@@ -136,6 +346,19 @@ class ApacheTests(unittest.TestCase):
         self.assertIn(b"# BEGIN MUCHOCORE 5V.PL ROUTES", result)
         with self.assertRaises(InstallError):
             merge_rules(result, self.rules)
+        self.assertEqual(merge_rules(result, self.rules, resume=True), result)
+    def test_routes_cover_the_native_client_root_fallbacks(self):
+        inventory = (ROOT / "tests/compat/php7-gd2209-client-route-inventory.php").read_text()
+        names = re.findall(r"'([A-Za-z0-9]+\.php)',", inventory.split("$names = array(", 1)[1].split(");", 1)[0])
+        self.assertEqual(len(names), 114)
+        rules = merge_rules(b"", self.rules).decode().splitlines()
+        patterns = [re.compile(line.split()[1], re.I) for line in rules if line.startswith("RewriteRule ")]
+        for name in names:
+            with self.subTest(name=name):
+                self.assertTrue(any(pattern.fullmatch(name) for pattern in patterns))
+        self.assertFalse(any(pattern.fullmatch("index.php") for pattern in patterns))
+        fallback = next(index for index, line in enumerate(rules) if "accountManagement" in line)
+        self.assertEqual(rules[fallback - 1], "RewriteCond %{REQUEST_FILENAME} !-f")
     def test_reject_malformed_package_rules(self):
         with self.assertRaises(InstallError):
             merge_rules(b"", b"RewriteRule ^wrong$ bad.php [L]")

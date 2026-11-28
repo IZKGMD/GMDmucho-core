@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace MuchoCore\Core;
 
+use Closure;
 use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Account\AccountController;
 use MuchoCore\Account\AccountManagementController;
@@ -127,7 +128,6 @@ final readonly class Application
     {
         $this->pdo = $requestDatabase ?? (new Database())->connection();
         $this->router = new Router();
-        $cache = CacheManager::fromEnvironment($this->pdo);
         $this->plugins = PluginManager::fromEnvironment(
             $this->pdo,
             $this->router,
@@ -149,7 +149,7 @@ final readonly class Application
                 new LevelService(
                     new LevelRepository($this->pdo),
                     new GdLevelListEncoder(),
-                    $cache
+                    CacheManager::fromEnvironment($this->pdo)
                 ),
                 new AccountAuthenticator($this->pdo),
                 new ModerationRepository($this->pdo)
@@ -183,221 +183,227 @@ final readonly class Application
             return;
         }
 
-        $jobs = new JobQueue($this->pdo);
-        $accountRepo = new AccountRepository($this->pdo);
-        $accountService = new AccountService(
+        // Instantiate only the controller graph selected by the router.
+        $cache = fn() => CacheManager::fromEnvironment($this->pdo);
+        $jobs = fn() => new JobQueue($this->pdo);
+        $accountRepo = fn() => new AccountRepository($this->pdo);
+        $accountService = fn() => new AccountService(
             $this->pdo,
-            $accountRepo,
-            $jobs
+            $accountRepo(),
+            $jobs()
         );
-        $accountController = new AccountController($accountService);
-        $auth = new AccountAuthenticator($this->pdo);
+        $accountController = fn() => new AccountController($accountService());
+        $auth = fn() => new AccountAuthenticator($this->pdo);
 
-        $userInfoController = new UserInfoController(
-            new UserInfoSubmissionService($this->pdo, $auth)
+        $userInfoController = fn() => new UserInfoController(
+            new UserInfoSubmissionService($this->pdo, $auth())
         );
 
-        $v71Auth = new AuthService($this->pdo);
-        $topArtistController = new TopArtistController(
+        $v71Auth = fn() => new AuthService($this->pdo);
+        $topArtistController = fn() => new TopArtistController(
             new TopArtistService(
                 new TopArtistRepository($this->pdo)
             )
         );
-        $levelListController = new LevelListController(
+        $levelListController = fn() => new LevelListController(
             new LevelListService(
                 new LevelListRepository($this->pdo),
-                $v71Auth
+                $v71Auth()
             )
         );
-        $commentHistoryController = new CommentHistoryController(
+        $commentHistoryController = fn() => new CommentHistoryController(
             new CommentHistoryService(
                 new CommentHistoryRepository($this->pdo)
             )
         );
-        $urlController = new UrlController();
+        $urlController = fn() => new UrlController();
 
-        $cloudSaveController = new CloudSaveController(
+        $cloudSaveController = fn() => new CloudSaveController(
             new CloudSaveService(
                 $this->pdo,
-                $auth,
+                $auth(),
                 new CloudSaveRepository($this->pdo)
             )
         );
 
-        $legacy10Identity = new Legacy10IdentityService($this->pdo);
+        $legacy10Identity = fn() => new Legacy10IdentityService($this->pdo);
 
-        $levelRepo = new LevelRepository($this->pdo);
-        $levelService = new LevelService(
-            $levelRepo,
+        $levelRepo = fn() => new LevelRepository($this->pdo);
+        $levelService = fn() => new LevelService(
+            $levelRepo(),
             new GdLevelListEncoder(),
-            $cache
+            $cache()
         );
-        $modRepo = new ModerationRepository($this->pdo);
-        $levelController = new LevelController($levelService, $auth, $modRepo);
+        $modRepo = fn() => new ModerationRepository($this->pdo);
+        $levelController = fn() => new LevelController($levelService(), $auth(), $modRepo());
 
-        $transferRepo = new LevelTransferRepository($this->pdo);
-        $transferService = new LevelTransferService(
+        $transferRepo = fn() => new LevelTransferRepository($this->pdo);
+        $transferService = fn() => new LevelTransferService(
             $this->pdo,
-            $auth,
-            $legacy10Identity,
-            $transferRepo,
+            $auth(),
+            $legacy10Identity(),
+            $transferRepo(),
             new LevelDownloadTracker($this->pdo),
             new GdLevelDownloadEncoder(),
             new LevelValidator(),
             new LevelRevisionService($this->pdo),
             new LevelSearchIndexer($this->pdo),
-            $cache,
-            $jobs
+            $cache(),
+            $jobs()
         );
         $transferController =
-            new LevelTransferController($transferService);
+            fn() => new LevelTransferController($transferService());
 
-        $levelTelemetry = new LevelTelemetryController(
-            new LevelTelemetryService($this->pdo, $auth)
+        $levelTelemetry = fn() => new LevelTelemetryController(
+            new LevelTelemetryService($this->pdo, $auth())
         );
 
         $legacy10IdentityController =
-            new Legacy10IdentityController($legacy10Identity);
+            fn() => new Legacy10IdentityController($legacy10Identity());
 
-        $editorSounds = new EditorSoundController(
-            new EditorSoundService($this->pdo, $auth)
+        $editorSounds = fn() => new EditorSoundController(
+            new EditorSoundService($this->pdo, $auth())
         );
 
-        $songRepo = new SongRepository($this->pdo);
-        $songController = new SongController(
-            new SongService($songRepo, new GdSongEncoder())
+        $songRepo = fn() => new SongRepository($this->pdo);
+        $songController = fn() => new SongController(
+            new SongService($songRepo(), new GdSongEncoder())
         );
-        $songUsageController = new SongUsageController(new SongUsageService($this->pdo));
+        $songUsageController = fn() => new SongUsageController(new SongUsageService($this->pdo));
 
-        $modController = new ModerationController(
-            new ModerationService($auth, $modRepo, $cache)
+        $modController = fn() => new ModerationController(
+            new ModerationService($auth(), $modRepo(), $cache())
         );
-        $reportQueueController = new ReportQueueController(
-            new ReportQueueService($auth, $modRepo,
+        $reportQueueController = fn() => new ReportQueueController(
+            new ReportQueueService($auth(), $modRepo(),
                 new ReportQueueRepository($this->pdo))
         );
 
-        $gd2209Cases = new Gd2209CaseController(
-            new Gd2209CaseService($this->pdo, $auth, $modRepo,
+        $gd2209Cases = fn() => new Gd2209CaseController(
+            new Gd2209CaseService($this->pdo, $auth(), $modRepo(),
                 new ReportQueueRepository($this->pdo))
         );
 
-        $gd2209ContentActions = new Gd2209ContentActionController(
-            new Gd2209ContentActionService($this->pdo, $auth, $modRepo)
+        $gd2209ContentActions = fn() => new Gd2209ContentActionController(
+            new Gd2209ContentActionService($this->pdo, $auth(), $modRepo())
         );
 
-        $gd2209Sanctions = new Gd2209SanctionController(
-            new Gd2209SanctionService($this->pdo, $auth, $modRepo)
+        $gd2209Sanctions = fn() => new Gd2209SanctionController(
+            new Gd2209SanctionService($this->pdo, $auth(), $modRepo())
         );
 
-        $gd2209Utilities = new Gd2209UtilityController(
-            new Gd2209UtilityService($this->pdo, $auth)
+        $gd2209Utilities = fn() => new Gd2209UtilityController(
+            new Gd2209UtilityService($this->pdo, $auth())
         );
 
-        $userRepo = new UserRepository($this->pdo);
-        $userController = new UserController(
+        $userRepo = fn() => new UserRepository($this->pdo);
+        $userController = fn() => new UserController(
             new UserService(
                 $this->pdo,
-                $auth,
-                $accountRepo,
-                $userRepo,
+                $auth(),
+                $accountRepo(),
+                $userRepo(),
                 new GdUserEncoder(),
-                $legacy10Identity,
+                $legacy10Identity(),
                 new \MuchoCore\Clan\ClanQuestRepository($this->pdo)
             )
         );
 
-        $commentRepo = new CommentRepository($this->pdo);
-        $commentController = new CommentController(
+        $commentRepo = fn() => new CommentRepository($this->pdo);
+        $commentController = fn() => new CommentController(
             new CommentService(
-                $commentRepo,
-                $auth,
+                $commentRepo(),
+                $auth(),
                 new GdCommentEncoder(),
                 $this->pdo,
-                $legacy10Identity
+                $legacy10Identity()
             )
         );
 
-        $likeController = new LikeController(
+        $likeController = fn() => new LikeController(
             new LikeService(
                 new LikeRepository($this->pdo),
-                $auth
+                $auth()
             )
         );
 
         $relationshipRepo =
-            new RelationshipRepository($this->pdo);
+            fn() => new RelationshipRepository($this->pdo);
 
-        $relationshipController = new RelationshipController(
+        $relationshipController = fn() => new RelationshipController(
             new RelationshipService(
-                $relationshipRepo,
-                $auth,
+                $relationshipRepo(),
+                $auth(),
                 new GdRelationshipEncoder()
             )
         );
 
-        $threadController = new ThreadController(
-            new ThreadService($this->pdo, $auth),
+        $threadController = fn() => new ThreadController(
+            new ThreadService($this->pdo, $auth()),
             new GdRelationshipEncoder(),
-            new Gd2209NativeThreadOperations($this->pdo, $auth, $relationshipRepo),
-            new Gd2209ThreadActionService($this->pdo, $auth)
+            new Gd2209NativeThreadOperations($this->pdo, $auth(), $relationshipRepo()),
+            new Gd2209ThreadActionService($this->pdo, $auth())
         );
 
-        $notificationController = new NotificationController(
-            new NotificationService($this->pdo, $auth)
+        $notificationController = fn() => new NotificationController(
+            new NotificationService($this->pdo, $auth())
         );
 
-        $followingController = new FollowingController(
+        $followingController = fn() => new FollowingController(
             new FollowingService(
                 $this->pdo,
-                $auth,
+                $auth(),
                 new GdRelationshipEncoder()
             )
         );
 
-        $messageController = new MessageController(
+        $messageController = fn() => new MessageController(
             new MessageService(
                 new MessageRepository($this->pdo),
-                $auth,
+                $auth(),
                 new GdMessageEncoder(),
-                $relationshipRepo
+                $relationshipRepo()
             )
         );
 
         $rewardsController =
-            new RewardsController(
+            fn() => new RewardsController(
                 new \MuchoCore\Interaction\RewardsService(
                     new \MuchoCore\Interaction\RewardsRepository(
                         $this->pdo
                     ),
-                    $auth
+                    $auth()
                 )
             );
 
-        $clanController = new ClanController(
+        $clanController = fn() => new ClanController(
             new ClanService(
                 $this->pdo,
-                $auth,
+                $auth(),
                 new ClanRepository($this->pdo)
             )
         );
 
-        $appearanceController = new AppearanceController(new AppearanceService($this->pdo,$auth));
-        $profileMediaController = new \MuchoCore\Appearance\ProfileMediaController(new \MuchoCore\Appearance\ProfileMediaService($this->pdo,$auth));
-        $questController = new \MuchoCore\Clan\ClanQuestController($this->pdo,$auth,new \MuchoCore\Clan\ClanQuestRepository($this->pdo));
-        $discoveryController = new DiscoveryController($this->pdo);
+        $appearanceController = fn() => new AppearanceController(new AppearanceService($this->pdo,$auth()));
+        $profileMediaController = fn() => new \MuchoCore\Appearance\ProfileMediaController(new \MuchoCore\Appearance\ProfileMediaService($this->pdo,$auth()));
+        $questController = fn() => new \MuchoCore\Clan\ClanQuestController($this->pdo,$auth(),new \MuchoCore\Clan\ClanQuestRepository($this->pdo));
+        $discoveryController = fn() => new DiscoveryController($this->pdo);
 
-        $levelScoreController = new LevelScoreController($this->pdo, $auth);
-        $platformerScoreController = new PlatformerScoreController($this->pdo, $auth);
+        $levelScoreController = fn() => new LevelScoreController($this->pdo, $auth());
+        $platformerScoreController = fn() => new PlatformerScoreController($this->pdo, $auth());
 
         $route = function (
             string $path,
-            mixed $handler
+            Closure|array $handler
         ): void {
+            if (is_array($handler)) {
+                [$factory, $method] = $handler;
+                $handler = static fn(Request $r): Response => $factory()->$method($r);
+            }
             $this->router->add('ANY', $path, $handler);
         };
 
-        $bridge = new ClientBridgeController(
+        $bridge = fn() => new ClientBridgeController(
             $this->plugins->clientFeatures(),
             trim((string)@file_get_contents(dirname(__DIR__, 2) . '/VERSION'))
         );
@@ -459,33 +465,35 @@ final readonly class Application
 
         $route('/getAccountURL',
             fn(Request $r): Response =>
-                Response::text($urlController->accountUrl()));
+                Response::text($urlController()->accountUrl()));
         $route('/getCustomContentURL',
             fn(Request $r): Response =>
-                Response::text($urlController->customContentUrl()));
+                Response::text($urlController()->customContentUrl()));
         $route('/getGJCommentHistory',
             fn(Request $r): Response =>
-                Response::text($commentHistoryController->get()));
+                Response::text($commentHistoryController()->get()));
         $route('/getGJLevelLists',
             fn(Request $r): Response =>
-                Response::text($levelListController->get()));
+                Response::text($levelListController()->get()));
         $route('/uploadGJLevelList',
             fn(Request $r): Response =>
-                Response::text($levelListController->upload()));
+                Response::text($levelListController()->upload()));
         $route('/deleteGJLevelList',
             fn(Request $r): Response =>
-                Response::text($levelListController->delete()));
+                Response::text($levelListController()->delete()));
         $route('/getGJTopArtists',
             fn(Request $r): Response =>
-                Response::text($topArtistController->get()));
+                Response::text($topArtistController()->get()));
 
         $route('/loginGJAccount',
             [$accountController,'login']);
         $route('/registerGJAccount',
             [$accountController,'register']);
-        $route('/accountManagement',
-            [new AccountManagementController(new AccountManagementService($this->pdo,
-                new RateLimiter(Environment::get('MUCHO_ACCOUNT_RATE_DIR', dirname(__DIR__, 2) . '/storage/control/account-rate')))), 'handle']);
+        $accountManagement = fn() => new AccountManagementController(
+            new AccountManagementService($this->pdo,
+                new RateLimiter(Environment::get('MUCHO_ACCOUNT_RATE_DIR', dirname(__DIR__, 2) . '/storage/control/account-rate')))
+        );
+        $route('/accountManagement', [$accountManagement, 'handle']);
 
         /*
          * MuchoCore Secure Cloud Save v7
@@ -544,9 +552,9 @@ final readonly class Application
         // GD 2.209 moderator abuse report queue. Native reply framing TBD.
         $route('/adminGetReportQueue', [$reportQueueController, 'queue']);
         $route('/adminQueueMute', fn(Request $r): Response =>
-            $gd2209Sanctions->apply($r, 'queue', true));
+            $gd2209Sanctions()->apply($r, 'queue', true));
         $route('/adminQueueUnmute', fn(Request $r): Response =>
-            $gd2209Sanctions->apply($r, 'queue', false));
+            $gd2209Sanctions()->apply($r, 'queue', false));
         $route('/getLevelRateInfo', [$gd2209Utilities, 'levelRateInfo']);
         $route('/getSaveData', [$gd2209Utilities, 'savedLevelRatings']);
         // GD 2.209 staged account-abuse service: authenticated and persisted;
@@ -564,18 +572,18 @@ final readonly class Application
 
         // 2.209 account restrictions: only roles from the database authorize
         // actions. The enforcement is shared with legacy upload/send endpoints.
-        $route('/adminCommentBan', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'comment', true));
-        $route('/adminCommentUnban', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'comment', false));
-        $route('/adminUploadBan', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'upload', true));
-        $route('/adminUploadUnban', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'upload', false));
-        $route('/adminMessageBan', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'message', true));
-        $route('/adminMessageUnban', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'message', false));
-        $route('/adminFreezeAccount', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'freeze', true));
-        $route('/adminUnfreezeAccount', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'freeze', false));
-        $route('/adminTrendingBan', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'trending', true));
-        $route('/adminTrendingUnban', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'trending', false));
-        $route('/adminNameLock', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'name', true));
-        $route('/adminNameUnlock', fn(Request $r): Response => $gd2209Sanctions->apply($r, 'name', false));
+        $route('/adminCommentBan', fn(Request $r): Response => $gd2209Sanctions()->apply($r, 'comment', true));
+        $route('/adminCommentUnban', fn(Request $r): Response => $gd2209Sanctions()->apply($r, 'comment', false));
+        $route('/adminUploadBan', fn(Request $r): Response => $gd2209Sanctions()->apply($r, 'upload', true));
+        $route('/adminUploadUnban', fn(Request $r): Response => $gd2209Sanctions()->apply($r, 'upload', false));
+        $route('/adminMessageBan', fn(Request $r): Response => $gd2209Sanctions()->apply($r, 'message', true));
+        $route('/adminMessageUnban', fn(Request $r): Response => $gd2209Sanctions()->apply($r, 'message', false));
+        $route('/adminFreezeAccount', fn(Request $r): Response => $gd2209Sanctions()->apply($r, 'freeze', true));
+        $route('/adminUnfreezeAccount', fn(Request $r): Response => $gd2209Sanctions()->apply($r, 'freeze', false));
+        $route('/adminTrendingBan', fn(Request $r): Response => $gd2209Sanctions()->apply($r, 'trending', true));
+        $route('/adminTrendingUnban', fn(Request $r): Response => $gd2209Sanctions()->apply($r, 'trending', false));
+        $route('/adminNameLock', fn(Request $r): Response => $gd2209Sanctions()->apply($r, 'name', true));
+        $route('/adminNameUnlock', fn(Request $r): Response => $gd2209Sanctions()->apply($r, 'name', false));
         // Remaining native 2.209 URLs; payload parsers are provisional.
         $route('/getGJAudioFilesize', [$gd2209Utilities, 'audioSize']);
         $route('/getGJContentStatus', [$gd2209Utilities, 'contentStatus']);

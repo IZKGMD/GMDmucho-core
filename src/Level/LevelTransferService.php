@@ -9,6 +9,7 @@ use MuchoCore\Cache\CacheInterface;
 use MuchoCore\Job\JobQueue;
 use MuchoCore\Compatibility\ClientVersion;
 use MuchoCore\Compatibility\Legacy10IdentityService;
+use MuchoCore\Protocol\GdHash;
 use MuchoCore\Protocol\GdLegacyText;
 use MuchoCore\Search\LevelSearchIndexer;
 use MuchoCore\Protocol\GdLevelDownloadEncoder;
@@ -88,17 +89,8 @@ final readonly class LevelTransferService
         );
 
         /* Never allow a client to update another user's level by ID alone. */
-        $existing = null;
-
-        if ($levelId > 0) {
-            $existing = $this->repository->findLevel($levelId);
-
-            if (
-                !$existing ||
-                (int)($existing['account_id'] ?? 0) !== $accountId
-            ) {
-                throw new RuntimeException('Level ownership mismatch.');
-            }
+        if ($levelId > 0 && !$this->repository->ownsLevel($levelId, $accountId)) {
+            throw new RuntimeException('Level ownership mismatch.');
         }
 
         $name = trim(
@@ -334,7 +326,7 @@ final readonly class LevelTransferService
             $this->revisions->record(
                 $saved,
                 $accountId,
-                $existing === null ? 'upload' : 'update'
+                $levelId === 0 ? 'upload' : 'update'
             );
             $this->searchIndexer->upsert($savedId);
             $this->invalidateLevelCache();
@@ -347,7 +339,7 @@ final readonly class LevelTransferService
                 $this->jobs->enqueue(
                     'webhook.dispatch',
                     [
-                        'event' => $existing === null ? 'level.uploaded' : 'level.updated',
+                        'event' => $levelId === 0 ? 'level.uploaded' : 'level.updated',
                         'request_id' => (string)($_SERVER['MUCHO_REQUEST_ID'] ?? ''),
                         'data' => [
                             'level_id' => $savedId,
@@ -373,16 +365,10 @@ final readonly class LevelTransferService
             return '-1';
         }
 
-        $level = $this->repository->findLevel($levelId);
-
-        if ($level === null) {
+        $serverLevelVersion = $this->repository->findLevelVersion($levelId);
+        if ($serverLevelVersion === null) {
             return '-1';
         }
-
-        $serverLevelVersion = max(
-            1,
-            (int)($level['level_version'] ?? 1)
-        );
 
         return $clientLevelVersion >= $serverLevelVersion
             ? '1'
@@ -618,20 +604,16 @@ final readonly class LevelTransferService
                 ? (int)$password
                 : 0;
 
-        $hashInput=
-            $userId.
-            $stars.
-            $demon.
-            $levelId.
-            $verifiedCoins.
-            $featured.
-            $passwordInt.
-            $timelyId;
-
-        $parts[2]=sha1(
-            $hashInput.
-            'xI25fpAapCQg'
-        );
+        $parts[2] = GdHash::metadata(implode(',', [
+            $userId,
+            $stars,
+            $demon,
+            $levelId,
+            $verifiedCoins,
+            $featured,
+            $passwordInt,
+            $timelyId,
+        ]));
 
 
         /*

@@ -484,3 +484,72 @@ database/
 ~~~
 
 For a provider that cannot supply PHP ZIP support or outbound HTTPS access, use the manually uploaded shared-hosting package instead of the one-file bootstrap.
+
+### Emergency owner recovery through a private FTP code (PHP 7 on 5v.pl)
+
+After an active owner has been established, MuchoCore automatically creates
+`mc/config/php7-emergency-code.php` if missing. This contains a randomly
+generated **96-character hexadecimal code** on the second line. The first
+line is PHP that returns HTTP 404; Apache additionally denies all requests
+to `mc/config/`. The secret is never included in release archives and must
+be retrieved only through your own authenticated FTP/file manager.
+
+If you lose both your admin password and email access:
+1. Open `https://YOUR-SITE.5v.pl/mc/admin.php?emergency_recovery=1`.
+2. Read the code from the private FTP file and enter it with your **new**
+   password (10–72 bytes). Never submit the code in a GET URL or support chat.
+3. On success, the code rotates and the existing single active owner password
+   changes; old browser sessions, lost 2FA, passkeys and unused recovery codes
+   are revoked. Linked GD owner credentials change as well.
+4. Sign in, register new 2FA and safely store fresh recovery codes.
+
+The form is HTTPS-only, CSRF-protected, uses constant-time comparison and
+database-backed rate limits, and refuses ambiguous/multiple active owners.
+If the private file cannot be created due to hosting permissions, fix access
+to `mc/config/`; do not place a recovery secret in the public site root.
+For a one-time FTP-proof recovery without relying on the persistent secret,
+the bundled `START_RECOVERY_WINDOWS.cmd` remains available.
+
+### Automatic recovery email on 5v.pl (PHP 7 native)
+
+The official 5v.pl installer already collects the owner's email and password.
+After an authenticated first installation it now asks the native admin to queue
+a **verification** email through the hosting provider's PHP `mail()` relay;
+the user does **not** enter SMTP credentials. This is best-effort and must not
+abort an otherwise successful installation.
+
+1. Check the address supplied during installation for a MuchoCore verification
+   link (and the spam folder). It expires after 30 minutes.
+2. Confirm the link using the secure HTTPS browser form. Only then does the
+   email become usable to reset a password.
+3. When needed, open `/mc/admin.php?email_recovery=1` or choose **Forgot
+   administrator password?** on the sign-in page. Reset links expire after 20
+   minutes and work once.
+4. Owners can resend or change their recovery address in **Administrators →
+   Password recovery email**, after entering the current password and, if
+   enabled, a 2FA/recovery code.
+
+The address in an email link comes from the private configured HTTPS
+`site_url`, never the HTTP Host header. Only SHA-256 hashes of token secrets
+are stored. Requests have per-IP and per-identity rate limits, show generic
+responses for unknown addresses, and preserve the existing administrator and
+GDPS. Password resets revoke old admin sessions via `auth_version`. For a
+linked GD owner the password of both the game and administrator is updated;
+the two-factor requirement is never disabled.
+
+**Delivery limitations:** PHP `mail()` returning `true` only means that the
+hosting relay accepted the message. It is not proof of delivery or verified
+ownership. By default MuchoCore uses a valid `sendmail_from` address provided
+by the host's PHP configuration. If none exists it constructs
+`no-reply@<your-site-host>`; the provider can rewrite that header. An owner
+may set `'admin_mail_from' => 'approved@your-domain.example'` in the **private**
+`config/php7-local.php` only if the hosting/mail provider explicitly approves
+that sender. Never force `noreply@5v.pl` for all tenants: a successful inbox
+test on one instance does not grant every site permission to use it.
+If a message is rejected, check the PHP error log for the relay-rejection
+message and inspect the received message's From and authentication headers.
+A queued message must never be counted as delivered until the owner confirms
+the one-time link. If delivery fails, recovery stays unverified and the
+existing FTP-verified `START_RECOVERY_WINDOWS.cmd` flow remains available.
+This auto-mail mode is only for the native 5v.pl PHP 7 installer, not for the
+PHP 8 VPS admin's authenticated TLS SMTP transport.

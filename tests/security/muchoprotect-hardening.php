@@ -51,6 +51,8 @@ try {
         file_put_contents($bucket, $invalid);
         protectHardeningCheck(!$limiter->allowStrict($key, 2, 60),
             'malformed counter fails closed instead of resetting its quota');
+        protectHardeningCheck($limiter->allow($key, 2, 60),
+            'fail-open accepts a storage error without rewriting the counter');
         protectHardeningCheck(file_get_contents($bucket) === $invalid,
             'corrupt counter remains untouched for investigation');
     }
@@ -61,6 +63,8 @@ try {
         'valid second request is allowed');
     protectHardeningCheck(!$limiter->allowStrict($key, 2, 60),
         'valid quota is enforced on the next request');
+    protectHardeningCheck(!$limiter->allow($key, 2, 60),
+        'fail-open enforces a valid exhausted quota');
 
     // Several supported legacy front controllers can compose their route
     // prefixes. All aliases should consume the exact same endpoint budget.

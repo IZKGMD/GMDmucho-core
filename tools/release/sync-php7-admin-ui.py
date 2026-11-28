@@ -14,6 +14,7 @@ def record(src,out,content=None):
     target.write_text((content if content is not None else source.read_text()).rstrip()+'\n')
 def lower(source):
     source=re.sub(r':\s*(?:void|\?int)\b','',source)
+    source=source.replace('function adminRecordId(mixed $value)', 'function adminRecordId($value)')
     source=re.sub(r'catch\s*\(Throwable\)',r'catch (Throwable $error)',source)
     source=re.sub(r'\bas\s*\[([^\]]+)\]\s*\)',r'as list(\1))',source)
     source=source.replace("static fn(array $action): bool => canAdminPage($action[0])", "static function(array $action): bool { return canAdminPage($action[0]); }")
@@ -59,7 +60,7 @@ record('public/admin/index.php','comments.php',"<?php\nif(is_file($root.'/config
 messages=original_table_page('messages','SOCIAL')
 legacy_messages=messages.replace("tableExists($db,'messages')", "tableExists($db,'php7_messages')").replace('FROM messages m','FROM php7_messages m')
 record('public/admin/index.php','messages.php',"<?php\nif(is_file($root.'/config/php7-complete.on')){\n"+lower(messages)+"\n}else{\n"+lower(legacy_messages)+"\n}\n")
-record('public/admin/index.php','social.php','<?php\n'+lower(original_table_page('social','SONGS')))
+# PHP 7 uses its own Social forms and action dispatcher.
 analytics=index[index.index("elseif($page==='analytics') {")+len("elseif($page==='analytics') {"):index.index("elseif($page==='advanced') {")].rstrip()
 record('public/admin/index.php','analytics.php','<?php\n'+lower(analytics[:analytics.rfind('}')]))
 for page,next_marker in [('database','ENDPOINT TESTER'),('endpoints','BACKUPS')]:

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace MuchoCore\Release;
 
 /**
- * Prevent publication of a 1.1.0 stable tag while endpoint certification
+ * Prevent publication of a stable tag while endpoint certification
  * remains a partial/draft exercise. Checks metadata only; CI validates the
  * referenced evidence and real-client fixtures separately.
  */
@@ -21,7 +21,7 @@ final class V110EndpointGate
     ];
 
     /** @return list<string> */
-    public static function issues(array $registry): array
+    public static function issues(array $registry, string $releaseVersion): array
     {
         $issues = [];
         $policy = $registry['policy'] ?? null;
@@ -36,8 +36,10 @@ final class V110EndpointGate
             return ['Endpoint registry schema is invalid.'];
         }
 
-        if (($policy['target_release'] ?? '') !== '1.1.0') {
-            $issues[] = 'Endpoint registry target_release must be 1.1.0.';
+        if (preg_match('/^[0-9]+\.[0-9]+\.[0-9]+$/D', $releaseVersion) !== 1) {
+            $issues[] = 'The release VERSION is missing or invalid.';
+        } elseif (($policy['target_release'] ?? '') !== $releaseVersion) {
+            $issues[] = 'Endpoint registry target_release must be ' . $releaseVersion . '.';
         }
 
         // Explicit attestation must be made only after the entire route

@@ -96,6 +96,8 @@ try {
     }
 
     $service = new AccountService($db, new AccountRepository($db), new JobQueue($db));
+    $check($service->register('BadPassword', "invalid\0password", 'bad@example.test', '192.0.2.8') === '-1',
+        'a null byte in the password is rejected before hashing or writing');
     $check($service->register('Alpha', 'secure pass 1', 'alpha@example.test', '192.0.2.8') === '1',
         'valid account registration succeeds');
     $check($service->register('Alpha', 'other pass', 'other@example.test', '192.0.2.8') === '-2',
@@ -132,6 +134,8 @@ try {
     $check($service->login('Alpha', '', $gjp2, '192.0.2.9') !== '-1',
         'GD-compatible GJP2 logs in');
     $db->exec("UPDATE accounts SET is_banned=1 WHERE username='Alpha'");
+    $check($service->login('Alpha', '', '', '192.0.2.9') === '-1',
+        'login requires a password or GJP2 before checking account state');
     $check($service->login('Alpha', 'secure pass 1', '', '192.0.2.9') === '-12',
         'banned account uses Geometry Dash ban response -12');
     $db->exec("UPDATE accounts SET is_banned=0,is_active=0 WHERE username='Alpha'");

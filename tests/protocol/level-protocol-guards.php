@@ -215,7 +215,7 @@ $checks = [
     ],
     [
         __DIR__ . '/../../src/User/UserRepository.php',
-        "COALESCE(p.game_version, 0) > 0 AND COALESCE(p.game_version, 0) < 20",
+        "ranked.game_version > 0 AND ranked.game_version < 20",
         '1.9 leaderboard keeps legacy-generation users',
     ],
     [
@@ -291,7 +291,7 @@ $checks = [
     ],
     [
         __DIR__ . '/../../src/Score/PlatformerScoreController.php',
-        "':42:'.\\MuchoCore\\Protocol\\GdRelativeTime::fromEpoch(",
+        "':42:'.\$age;",
         '2.2 platformer timestamp field',
     ],
     [

@@ -235,22 +235,26 @@ final readonly class RelationshipRepository
     public function deleteRequest(
         int $accountId,
         int $target,
-        bool $sent
+        bool $sent,
+        int $requestId = 0
     ): bool {
-        if ($sent) {
-            $sql =
-                'DELETE FROM friend_requests
-                 WHERE account_id=:me
-                   AND to_account_id=:target';
-        } else {
-            $sql =
-                'DELETE FROM friend_requests
-                 WHERE to_account_id=:me
-                   AND account_id=:target';
+        if ($target <= 0 && $requestId <= 0) {
+            return false;
         }
 
-        $q = $this->pdo->prepare($sql);
-        $q->execute(['me'=>$accountId,'target'=>$target]);
+        $where = $sent ? 'account_id=:me' : 'to_account_id=:me';
+        $params = ['me' => $accountId];
+        if ($target > 0) {
+            $where .= $sent ? ' AND to_account_id=:target' : ' AND account_id=:target';
+            $params['target'] = $target;
+        }
+        if ($requestId > 0) {
+            $where .= ' AND id=:id';
+            $params['id'] = $requestId;
+        }
+
+        $q = $this->pdo->prepare('DELETE FROM friend_requests WHERE ' . $where);
+        $q->execute($params);
         return $q->rowCount() > 0;
     }
 

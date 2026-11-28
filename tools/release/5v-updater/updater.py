@@ -25,6 +25,8 @@ ROOT_RULES = (
     'RewriteRule ^(?:api|a)/(?:api/)?(?:profile|clans|muchocore)/ mc/public/php7.php [QSA,L,NC]',
     'RewriteRule ^(?:a|database|accounts|api)/(?:accounts/)?[A-Za-z0-9_-]+\\.php$ mc/public/php7.php [QSA,L,NC]',
     'RewriteRule ^(?:getAccountURL|getCustomContentURL|checkIfServerOnline)\\.php$ mc/public/php7.php [QSA,L,NC]',
+    'RewriteCond %{REQUEST_FILENAME} !-f\n'
+    'RewriteRule ^(?:[A-Za-z][A-Za-z0-9_-]*GJ[A-Za-z0-9_-]*|accountManagement|getLevelRateInfo|getSaveData|lostpassword|lostusername|openedRegister|requestUserAccess|uploadFriendRequest20|admin(?:ClearReportedContent|CloseCase|CommentBan|CommentUnban|DeleteUserComments|FreezeAccount|GetAbuseInfo|GetAccountReview|GetReportQueue|GetReportedContent|GetUserHistory|MessageBan|MessageUnban|NameLock|NameUnlock|QueueMute|QueueUnmute|ThreadAction|TrendingBan|TrendingUnban|UnfreezeAccount|Upload(?:Ban|Unban)))\\.php$ mc/public/php7.php [QSA,L,NC]',
     'RewriteRule ^gd-content/news/news_version\\.txt$ mc/public/php7.php [QSA,L,NC]',
     'RewriteRule ^gd-content/news/news\\.dat$ mc/public/php7.php [QSA,L,NC]',
     'RewriteRule ^news/news_version\\.txt$ mc/public/php7.php [QSA,L,NC]',
@@ -59,7 +61,7 @@ def is_shipped_path(name):
     private_names = {'php7-local.php', 'cloudsave.key', 'php7-apk-signer.json'}
     if any(part in private_names for part in name.split('/')):
         return False
-    if name in REQUIRED or name in {'public/php7-setup.php','public/.htaccess',
+    if name in REQUIRED or name in {'VERSION','public/php7-setup.php','public/.htaccess',
                                      'public/muchocore-theme.css','public/muchocore-theme.js'}:
         return True
     if name.startswith('compat/php7/'):
@@ -448,7 +450,8 @@ def plan_root_rewrites(remote):
         raise RuntimeError('Site root .htaccess is not UTF-8; refusing automatic rewrite.') from ex
     if not re.search(r'^\s*RewriteEngine\s+On\s*$', text, re.I | re.M):
         raise RuntimeError('Site root .htaccess has no RewriteEngine On; refusing automatic rewrite.')
-    missing = [rule for rule in ROOT_RULES if rule not in text]
+    normalized = text.replace('\r\n', '\n')
+    missing = [rule for rule in ROOT_RULES if rule not in normalized]
     if not missing:
         return current, current
     newline = '\r\n' if b'\r\n' in current else '\n'
@@ -618,7 +621,14 @@ def restore_backup(remote, backup):
     say('[ROLLBACK] Code files restored and verified. Database state was not changed.')
 
 
-def promote_core(remote, https, expected_sha):
+def require_automation_secret(name):
+    value = os.environ.get(name, '')
+    if not value:
+        raise RuntimeError('Required GitHub Actions secret is missing: ' + name)
+    return value
+
+
+def promote_core(remote, https, expected_sha, non_interactive=False):
     path = '/mc/public/php7-admin.php?page=system'
     built = remote.get('mc/config/php7-core-build.json', max_size=100_000)
     active = remote.get('mc/config/php7-complete.on', max_size=100_000)
@@ -637,11 +647,17 @@ def promote_core(remote, https, expected_sha):
     if code != 200:
         raise RuntimeError('Could not open admin login page.')
     csrf = csrf_from(start)
-    owner = input('Admin owner username: ').strip()
-    password = getpass.getpass('Admin owner password (hidden): ')
-    SECRETS.append(password)
-    otp = getpass.getpass('2FA/recovery code (hidden; Enter if disabled): ').strip()
-    SECRETS.append(otp)
+    if non_interactive:
+        owner = require_automation_secret('MUCHO_5V_OWNER_USER').strip()
+        password = require_automation_secret('MUCHO_5V_OWNER_PASSWORD')
+        otp = os.environ.get('MUCHO_5V_OWNER_OTP', '').strip()
+        if os.environ.get('MUCHO_5V_CONFIRM_INSTALL', '') != 'INSTALL':
+            raise RuntimeError('Explicit INSTALL confirmation required for automated migration.')
+    else:
+        owner = input('Admin owner username: ').strip()
+        password = getpass.getpass('Admin owner password (hidden): ')
+        otp = getpass.getpass('2FA/recovery code (hidden; Enter if disabled): ').strip()
+    SECRETS.extend((password, otp))
     if not owner or not password:
         raise RuntimeError('Owner username/password is required to promote the pinned build.')
     code, body = https.request(path, {'csrf':csrf,'action':'login',
@@ -655,7 +671,9 @@ def promote_core(remote, https, expected_sha):
     if 'Full core migration' not in body.decode('utf-8', errors='replace') and 'Full core enabled' not in body.decode('utf-8', errors='replace'):
         raise RuntimeError('Signed-in Server view was not shown. Verify owner login and 2FA.')
     csrf = csrf_from(body)
-    confirmation = input('Core installation may migrate the database. Type INSTALL to continue: ').strip()
+    confirmation = 'INSTALL' if non_interactive else input(
+        'Core installation may migrate the database. Type INSTALL to continue: '
+    ).strip()
     if confirmation != 'INSTALL':
         raise RuntimeError('Core installation was not confirmed; uploaded files and backup remain.')
     if active is not None:
@@ -709,6 +727,8 @@ def main():
     cli.add_argument('--restore-backup', default='')
     cli.add_argument('--activate-only', action='store_true')
     cli.add_argument('--diagnostic-file', default='')
+    cli.add_argument('--non-interactive', action='store_true',
+                     help='Read FTP and optional owner credentials from environment variables')
     args=cli.parse_args()
     global DIAGNOSTIC_FILE
     DIAGNOSTIC_FILE = args.diagnostic_file or None
@@ -726,10 +746,12 @@ def main():
     code, _ = HttpsClient(site).request('/mc/public/php7-admin.php', limit=100_000)
     if code != 200:
         raise RuntimeError('Admin URL is unavailable over verified HTTPS: HTTP ' + str(code))
-    username=input('FTP username: ').strip()
+    username=(require_automation_secret('MUCHO_5V_FTP_USER')
+              if args.non_interactive else input('FTP username: ')).strip()
     if not username or len(username) > 128:
         raise RuntimeError('Invalid FTP username.')
-    password=getpass.getpass('FTP password (hidden): ')
+    password=(require_automation_secret('MUCHO_5V_FTP_PASSWORD')
+              if args.non_interactive else getpass.getpass('FTP password (hidden): '))
     SECRETS.append(password)
     if not password:
         raise RuntimeError('FTP password cannot be empty.')
@@ -760,7 +782,7 @@ def main():
         if args.upload_only:
             say('[NEXT] Uploaded code only. Sign in as owner and run "Install uploaded build" in Server.')
         else:
-            promote_core(remote,https,pack_sha)
+            promote_core(remote,https,pack_sha,args.non_interactive)
             if mode_missing:
                 remote.put('mc/public/php7-mode.on', b'')
                 say('[CORE] Enabled the PHP7 game runtime after owner activation.')

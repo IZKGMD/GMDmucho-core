@@ -170,7 +170,7 @@ func (h *Handler) comments(r request) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	selectSQL := `SELECT c.*,a.username,a.role,COALESCE(p.user_id,a.account_id) AS user_id,COALESCE(p.cube,1) AS cube,COALESCE(p.color1,0) AS color1,COALESCE(p.color2,3) AS color2,COALESCE(p.special,0) AS special,COALESCE(p.icon_type,0) AS icon_type,` + clanTagSQL
+	selectSQL := `SELECT c.*,UNIX_TIMESTAMP(c.created_at) AS created_epoch,a.username,a.role,COALESCE(p.user_id,a.account_id) AS user_id,COALESCE(p.cube,1) AS cube,COALESCE(p.color1,0) AS color1,COALESCE(p.color2,3) AS color2,COALESCE(p.special,0) AS special,COALESCE(p.icon_type,0) AS icon_type,` + clanTagSQL
 	rows, err := dbutil.Query(r.ctx, h.db, selectSQL+from+" WHERE "+filter+" ORDER BY "+order+" LIMIT ? OFFSET ?", id, limit, offset)
 	if err != nil {
 		return "", err
@@ -184,7 +184,7 @@ func (h *Handler) comments(r request) (string, error) {
 	items, users := make([]string, 0, len(rows)), []string{}
 	seen := map[string]bool{}
 	for _, row := range rows {
-		encoded := protocol.Comment(row, r.version.Effective(), r.version.Binary, accountComment)
+		encoded := protocol.Comment(row, r.version.Effective(), r.version.Binary, accountComment, h.now().Unix())
 		if userHistory {
 			encoded = "1~" + row["level_id"] + "~" + encoded
 		}

@@ -2,13 +2,18 @@ package protocol
 
 import "github.com/IZKGMD/GMDmucho-core/go/internal/dbutil"
 
-func Comment(r dbutil.Row, game, binary int, account bool) string {
-	fields := []any{"2", CommentResponse(r["content"], game), "3", r.Value("user_id", r.Value("account_id", "0")), "4", r.Value("likes", "0"), "5", "0", "7", r.Value("is_spam", "0"), "9", Date(r["created_at"]), "6", r["id"]}
+func Comment(r dbutil.Row, game, binary int, account bool, now int64) string {
+	stamp := r.Int("created_epoch")
+	date := Date(r["created_at"])
+	if game >= 22 && binary >= 51 {
+		date = RelativeTime(stamp, now)
+	}
+	fields := []any{"2", CommentResponse(r["content"], game), "3", r.Value("user_id", r.Value("account_id", "0")), "4", r.Value("likes", "0"), "5", "0", "7", r.Value("is_spam", "0"), "9", date, "6", r["id"]}
 	if !account {
 		fields = append(fields, "10", r.Value("percent", "0"))
 	}
 	if game >= 22 && binary >= 51 {
-		fields = append(fields, "15", Epoch(r["created_at"]))
+		fields = append(fields, "15", stamp)
 	}
 	if !account && (binary > 31 || game >= 22) {
 		badge := 0

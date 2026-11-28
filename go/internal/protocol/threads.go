@@ -10,6 +10,13 @@ import (
 )
 
 func ThreadAge(timestamp, now int64) string {
+	if timestamp > 0 && now-timestamp < 60 {
+		return "just now"
+	}
+	return RelativeTime(timestamp, now)
+}
+
+func RelativeTime(timestamp, now int64) string {
 	if timestamp <= 0 {
 		return ""
 	}
@@ -17,7 +24,7 @@ func ThreadAge(timestamp, now int64) string {
 	for _, unit := range []struct {
 		seconds int64
 		name    string
-	}{{31536000, "year"}, {2592000, "month"}, {604800, "week"}, {86400, "day"}, {3600, "hour"}, {60, "minute"}} {
+	}{{31536000, "year"}, {2592000, "month"}, {604800, "week"}, {86400, "day"}, {3600, "hour"}, {60, "minute"}, {1, "second"}} {
 		if elapsed >= unit.seconds {
 			amount := elapsed / unit.seconds
 			suffix := ""
@@ -27,7 +34,7 @@ func ThreadAge(timestamp, now int64) string {
 			return fmt.Sprintf("%d %s%s", amount, unit.name, suffix)
 		}
 	}
-	return "just now"
+	return "0 seconds"
 }
 func ThreadMessages(rows []dbutil.Row) string {
 	if len(rows) == 0 {
@@ -35,7 +42,7 @@ func ThreadMessages(rows []dbutil.Row) string {
 	}
 	items := make([]string, 0, len(rows))
 	for _, row := range rows {
-		items = append(items, joined(":", row.Int("id"), row.Int("sender_account_id"), base64.StdEncoding.EncodeToString([]byte(row["body"])), Epoch(row["created_at"]), min(1, max(0, row.Int("is_deleted")))))
+		items = append(items, joined(":", row.Int("id"), row.Int("sender_account_id"), base64.StdEncoding.EncodeToString([]byte(row["body"])), row.Int("created_epoch"), min(1, max(0, row.Int("is_deleted")))))
 	}
 	return strings.Join(items, "|")
 }
@@ -52,7 +59,7 @@ func ThreadInbox(rows []dbutil.Row, now time.Time) string {
 	}
 	items := make([]string, 0, len(rows))
 	for _, row := range rows {
-		stamp := Epoch(row["created_at"])
+		stamp := row.Int("created_epoch")
 		age := ThreadAge(stamp, now.Unix())
 		group := 1
 		if row.Int("is_dm") == 1 {

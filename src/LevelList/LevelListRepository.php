@@ -153,13 +153,13 @@ final class LevelListRepository
             'SELECT COUNT(*) FROM mucho_level_lists l ' . $suggestedJoin . $whereSql
         );
         foreach ($params as $key => $value) {
-            $count->bindValue($key, $value, PDO::PARAM_INT);
-        }
-        if (isset($params[':name'])) {
-            $count->bindValue(':name', (string)$params[':name'], PDO::PARAM_STR);
+            $count->bindValue($key, $value, $key === ':name' ? PDO::PARAM_STR : PDO::PARAM_INT);
         }
         $count->execute();
         $total = (int)$count->fetchColumn();
+        if ($offset >= $total) {
+            return ['rows' => [], 'total' => $total];
+        }
 
         $sql = "SELECT l.*, {$userSelect}
                 FROM mucho_level_lists l

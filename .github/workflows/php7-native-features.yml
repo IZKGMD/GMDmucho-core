@@ -96,6 +96,8 @@ jobs:
           done
           php -d memory_limit=128M tests/compat/php7-native-level-score-leaderboard-mysql.php
           php -d memory_limit=128M tests/compat/php7-native-cloudsave-history-mysql.php
+          php -d memory_limit=128M tests/security/muchoprotect-storage-mysql.php --compiled
+          php tests/application/migration-demonlist-integration.php --compiled
           MUCHO_SCORE_TEST_COMPILED=1 php -d memory_limit=128M tests/compat/php7-native-levelscore-readonly-mysql.php
       - name: Verify real shared HTTP P0 workflows and concurrent download counters
         env:

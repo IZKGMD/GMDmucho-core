@@ -48,13 +48,19 @@ final readonly class Response
         );
     }
 
-    public function send(): never
+    public static function clearOutputBuffers(): void
     {
-        // Clear output buffers, BOMs and accidental whitespace.
-        while (ob_get_level() > 0) {
+        while (ob_get_level() > 0 && (ob_get_status()['flags'] & PHP_OUTPUT_HANDLER_REMOVABLE)) {
             ob_end_clean();
         }
+        if (ob_get_level() > 0 && (ob_get_status()['flags'] & PHP_OUTPUT_HANDLER_CLEANABLE)) {
+            ob_clean();
+        }
+    }
 
+    public function send(): never
+    {
+        self::clearOutputBuffers();
         http_response_code($this->status);
         header('Content-Type: ' . $this->contentType);
 

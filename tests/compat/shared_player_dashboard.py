@@ -12,6 +12,38 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
+def check_music_delivery(origin, fixture):
+    fixture("music-seed")
+    path = origin + "/mc/music/" + "a" * 40 + ".mp3"
+    expected = b"ID3" + b"0123456789" * 100
+
+    def download(status, body, headers=None, method="GET"):
+        request = urllib.request.Request(path, headers=headers or {}, method=method)
+        try:
+            result = urllib.request.urlopen(request, timeout=15)
+        except urllib.error.HTTPError as error:
+            result = error
+        with result:
+            assert result.status == status, (method, headers, result.status)
+            assert result.read() == body, (method, headers, status)
+            return result.headers
+
+    headers = download(200, b"", method="HEAD")
+    assert headers["Accept-Ranges"] == "bytes" and int(headers["Content-Length"]) == len(expected)
+    assert headers.get_content_type() == "audio/mpeg"
+    etag = headers["ETag"]
+    headers = download(206, expected[3:10], {"Range": "bytes=3-9", "If-Range": etag})
+    assert headers["Content-Range"] == "bytes 3-9/1003" and headers["Content-Length"] == "7"
+    download(206, expected[-8:], {"Range": "bytes=-8"})
+    download(206, expected[-3:], {"Range": "bytes=1000-"})
+    download(200, expected, {"Range": "bytes=3-9", "If-Range": '"old-version"'})
+    for invalid in ("bytes=1003-", "bytes=9-3", "bytes=-0", "bytes=1-3,5-6"):
+        headers = download(416, b"", {"Range": invalid})
+        assert headers["Content-Range"] == "bytes */1003"
+    fixture("music-unverify")
+    download(404, b"")
+
+
 def check_player_dashboard(origin, fixture):
     opener = urllib.request.build_opener(NoRedirect())
     cookies = {}
@@ -60,6 +92,29 @@ def check_player_dashboard(origin, fixture):
     assert "P0Other" in search and 'href="/mc/dashboard?u=P0Other"' in search
     clans, _ = request("/mc/dashboard/clans.php")
     assert "Create clan" in clans and 'href="/mc/dashboard"' in clans
+    fixture("demonlist-seed")
+    try:
+        demon_path = "/mc/demonlist.php?level=951"
+        demon, _ = request(demon_path)
+        assert "Shared Demon" in demon and 'href="/mc/public/assets/demonlist.css"' in demon
+        proof = {"level_id": 951, "proof": "https://youtu.be/abcdefghijk", "csrf": token(demon, "csrf")}
+        request(demon_path, dict(proof, csrf="wrong"), 403)
+        _, headers = request(demon_path, proof, 303)
+        assert headers["Location"] == demon_path
+        pending, _ = request(demon_path)
+        assert "awaiting review" in pending and "Watch run" not in pending
+        fixture("demonlist-approve")
+        approved, _ = request(demon_path)
+        assert "Watch run" in approved and "Your record was approved" in approved
+        fixture("demonlist-revoke")
+        removed, _ = request(demon_path)
+        assert "Watch run" not in removed and "Review &lt;the recording&gt;." in removed
+        _, headers = request(demon_path, dict(proof, csrf=token(removed, "csrf")), 303)
+        assert headers["Location"] == demon_path
+        resent, _ = request(demon_path)
+        assert "awaiting review" in resent and "the recording" not in resent
+    finally:
+        fixture("demonlist-clear")
     fixture("read-only")
     try:
         request("/mc/dashboard/clans.php", {"action": "create", "csrf": token(clans, "csrf"),

@@ -174,6 +174,10 @@ function buildMuchoAdminRouter(): MuchoAdminRouter
     );
 
 
+    $router->register('demonlist', static function (PDO $db): void {
+        require __DIR__.'/../pages/demonlist.php';
+    });
+
     /*
      * Moderation
      */

@@ -2,6 +2,17 @@
 /** Shared native configuration, connection and private atomic writes. PHP 7.0. */
 declare(strict_types=1);
 
+/** Remove application buffers without spinning on a buffer owned by the host. */
+function mucho7_clear_output_buffers()
+{
+    while (ob_get_level() > 0 && (ob_get_status()['flags'] & PHP_OUTPUT_HANDLER_REMOVABLE)) {
+        ob_end_clean();
+    }
+    if (ob_get_level() > 0 && (ob_get_status()['flags'] & PHP_OUTPUT_HANDLER_CLEANABLE)) {
+        ob_clean();
+    }
+}
+
 /** Settings changes must take effect even with long OPcache revalidation intervals. */
 function mucho7_load_settings($path)
 {

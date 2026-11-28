@@ -8,9 +8,11 @@ use MuchoCore\Release\V110EndpointGate;
 
 $path = dirname(__DIR__, 2) . '/tests/protocol/endpoint-contracts.json';
 $registry = json_decode((string)file_get_contents($path), true, 32, JSON_THROW_ON_ERROR);
+$releaseVersion = trim((string)file_get_contents(dirname(__DIR__, 2) . '/VERSION'));
+$issues = static fn (array $candidate): array => V110EndpointGate::issues($candidate, $releaseVersion);
 
-if (V110EndpointGate::issues($registry) === []) {
-    throw new RuntimeException('Incomplete 1.1 protocol registry must not pass release.');
+if ($issues($registry) === []) {
+    throw new RuntimeException('Incomplete endpoint registry must fail stable certification.');
 }
 
 $certified = $registry;
@@ -32,25 +34,33 @@ foreach ($certified['contracts'] as &$contract) {
 }
 unset($contract);
 
-if (V110EndpointGate::issues($certified) !== []) {
+if ($issues($certified) !== []) {
     throw new RuntimeException('Fully certified fixture rejected.');
+}
+
+if (V110EndpointGate::issues($certified, $releaseVersion . '9') === []) {
+    throw new RuntimeException('Certification for a different release version was accepted.');
+}
+
+if (V110EndpointGate::issues($certified, $releaseVersion . '-rc1') === []) {
+    throw new RuntimeException('A prerelease version was accepted by the stable gate.');
 }
 
 $unverified = $certified;
 $unverified['contracts'][0]['inventory_only'] = true;
-if (V110EndpointGate::issues($unverified) === []) {
+if ($issues($unverified) === []) {
     throw new RuntimeException('Inventory-only endpoint passed stable release.');
 }
 
 $evidenceFree = $certified;
 $evidenceFree['contracts'][0]['real_client']['evidence'] = [];
-if (V110EndpointGate::issues($evidenceFree) === []) {
+if ($issues($evidenceFree) === []) {
     throw new RuntimeException('Evidence-free real-client claim passed release.');
 }
 
 $unspecified = $certified;
 $unspecified['contracts'][0]['families'] = ['unverified'];
-if (V110EndpointGate::issues($unspecified) === []) {
+if ($issues($unspecified) === []) {
     throw new RuntimeException('Unverified client families passed release.');
 }
 
@@ -59,19 +69,19 @@ $missing['contracts'] = array_values(array_filter(
     $missing['contracts'],
     static fn(array $entry): bool => $entry['id'] !== 'account.login'
 ));
-if (V110EndpointGate::issues($missing) === []) {
+if ($issues($missing) === []) {
     throw new RuntimeException('Missing P0 account.login was not rejected.');
 }
 
 $pending = $certified;
 $pending['contracts'][0]['performance_budget']['status'] = 'pending';
-if (V110EndpointGate::issues($pending) === []) {
+if ($issues($pending) === []) {
     throw new RuntimeException('Pending performance certification passed release.');
 }
 
 $noSignoff = $certified;
 $noSignoff['policy']['certification_complete'] = false;
-if (V110EndpointGate::issues($noSignoff) === []) {
+if ($issues($noSignoff) === []) {
     throw new RuntimeException('Missing full endpoint signoff passed release.');
 }
 
@@ -82,15 +92,14 @@ $validateWorkflow = (string)file_get_contents(
     dirname(__DIR__, 2) . '/.github/workflows/validate.yml'
 );
 if (
-    !str_contains(
-        $workflow,
-        "      - name: Verify endpoint certification before every stable publication\n"
-        . "        if: steps.marker.outputs.ready == 'true'\n"
-        . "        run: php tests/release/v110-endpoint-gate.php\n"
-    ) ||!str_contains($validateWorkflow, 'if [[ -f ".release/v${VERSION}.ready" ]]; then') ||
-    str_contains($workflow, "steps.marker.outputs.version == '1.1.0'")
+    !str_contains($workflow, 'php tests/release/v110-endpoint-gate.php')
+    || !str_contains($workflow, 'php tests/protocol/endpoint-perfection.php')
+    || !str_contains($workflow, '--sha "$RELEASE_SHA" --php8')
+    || !str_contains($validateWorkflow, 'if [[ -f ".release/v${VERSION}.ready" ]]; then')
+    || !str_contains($validateWorkflow, "'') php tests/release/v110-endpoint-gate.php ;;")
+    || str_contains($workflow, "steps.marker.outputs.version == '1.1.0'")
 ) {
-    throw new RuntimeException('A new stable version must not bypass endpoint certification.');
+    throw new RuntimeException('Stable gates must enforce the declared release profile.');
 }
 
 echo "MUCHOCORE_V110_ENDPOINT_GATE_CONTRACT_OK\n";

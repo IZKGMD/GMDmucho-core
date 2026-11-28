@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
-	"sort"
+	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -73,7 +73,7 @@ func (h *Handler) threads(r request) (string, error) {
 	case "/getgjthreads":
 		return h.threadList(r, me.ID)
 	case "/getgjthreadinvites":
-		rows, err := dbutil.Query(r.ctx, h.db, `SELECT i.id,i.thread_id,i.inviter_account_id,t.title,t.description,t.emote,t.is_dm,i.created_at,a.username AS inviter_username,p.cube AS inviter_cube,p.color1 AS inviter_color1,p.color2 AS inviter_color2,p.special AS inviter_special FROM mucho_thread_invites i JOIN mucho_threads t ON t.id=i.thread_id JOIN accounts a ON a.account_id=i.inviter_account_id JOIN profiles p ON p.account_id=i.inviter_account_id WHERE i.invitee_account_id=? AND i.status='pending' AND t.is_closed=0 ORDER BY i.id DESC LIMIT 50`, me.ID)
+		rows, err := dbutil.Query(r.ctx, h.db, `SELECT i.id,i.thread_id,i.inviter_account_id,t.title,t.description,t.emote,t.is_dm,i.created_at,UNIX_TIMESTAMP(i.created_at) AS created_epoch,a.username AS inviter_username,p.cube AS inviter_cube,p.color1 AS inviter_color1,p.color2 AS inviter_color2,p.special AS inviter_special FROM mucho_thread_invites i JOIN mucho_threads t ON t.id=i.thread_id JOIN accounts a ON a.account_id=i.inviter_account_id JOIN profiles p ON p.account_id=i.inviter_account_id WHERE i.invitee_account_id=? AND i.status='pending' AND t.is_closed=0 ORDER BY i.id DESC LIMIT 50`, me.ID)
 		return protocol.ThreadInbox(rows, h.now()), err
 	case "/sendgjthreadmessage":
 		return h.sendThreadMessage(r, me.ID)
@@ -125,7 +125,7 @@ func (h *Handler) threads(r request) (string, error) {
 		if err = h.db.QueryRowContext(r.ctx, `SELECT COUNT(*) FROM mucho_thread_messages m WHERE `+filter, args...).Scan(&total); err != nil {
 			return "", err
 		}
-		rows, err := dbutil.Query(r.ctx, h.db, `SELECT m.* FROM mucho_thread_messages m JOIN accounts a ON a.account_id=m.sender_account_id WHERE `+filter+` ORDER BY m.id DESC LIMIT 20`, args...)
+		rows, err := dbutil.Query(r.ctx, h.db, `SELECT m.*,UNIX_TIMESTAMP(m.created_at) AS created_epoch FROM mucho_thread_messages m JOIN accounts a ON a.account_id=m.sender_account_id WHERE `+filter+` ORDER BY m.id DESC LIMIT 20`, args...)
 		return fmt.Sprintf("%s#%d", protocol.ThreadMessages(rows), max(0, (total+19)/20-1)), err
 	}
 	before, after, around := r.int("beforeID"), r.int("afterID"), r.int("aroundID")
@@ -141,7 +141,7 @@ func (h *Handler) threads(r request) (string, error) {
 	if active > 1 {
 		return "-1", nil
 	}
-	const query = `SELECT m.* FROM mucho_thread_messages m JOIN accounts a ON a.account_id=m.sender_account_id WHERE m.thread_id=? AND m.id>?`
+	const query = `SELECT m.*,UNIX_TIMESTAMP(m.created_at) AS created_epoch FROM mucho_thread_messages m JOIN accounts a ON a.account_id=m.sender_account_id WHERE m.thread_id=? AND m.id>?`
 	args := []any{id, state.Int("last_cleared_message_id")}
 	var messages []dbutil.Row
 	if around > 0 {
@@ -153,24 +153,28 @@ func (h *Handler) threads(r request) (string, error) {
 		if e != nil {
 			return "", e
 		}
+		slices.Reverse(older)
 		messages = append(older, newer...)
-		sort.Slice(messages, func(i, j int) bool { return messages[i].Int("id") > messages[j].Int("id") })
 	} else {
-		filter := ""
+		filter, order := "", "DESC"
 		if before > 0 {
 			filter = ` AND m.id<?`
 			args = append(args, before)
 		} else if after > 0 {
 			filter = ` AND m.id>?`
 			args = append(args, after)
+			order = "ASC"
 		}
-		messages, err = dbutil.Query(r.ctx, h.db, query+filter+` ORDER BY m.id DESC LIMIT 50`, args...)
+		messages, err = dbutil.Query(r.ctx, h.db, query+filter+" ORDER BY m.id "+order+" LIMIT 50", args...)
 		if err != nil {
 			return "", err
 		}
+		if order == "DESC" {
+			slices.Reverse(messages)
+		}
 	}
 	if len(messages) > 0 {
-		lowest := messages[len(messages)-1].Int("id")
+		lowest := messages[0].Int("id")
 		var older int
 		if err = h.db.QueryRowContext(r.ctx, `SELECT COUNT(*) FROM mucho_thread_messages WHERE thread_id=? AND id>? AND id<?`, id, state.Int("last_cleared_message_id"), lowest).Scan(&older); err != nil {
 			return "", err
@@ -212,7 +216,7 @@ func (h *Handler) threadList(r request, actor int64) (string, error) {
 	if err := h.db.QueryRowContext(r.ctx, `SELECT COUNT(*) FROM mucho_thread_invites i JOIN mucho_threads t ON t.id=i.thread_id WHERE i.invitee_account_id=? AND i.status='pending' AND t.is_closed=0`, actor).Scan(&invites); err != nil {
 		return "", err
 	}
-	query := `SELECT t.*,m.is_muted,m.is_pinned,(SELECT COUNT(*) FROM mucho_thread_members mt WHERE mt.thread_id=t.id) AS member_count,(SELECT COUNT(*) FROM mucho_thread_messages un WHERE un.thread_id=t.id AND un.id>m.last_read_message_id) AS unread_count,(SELECT lm.sender_account_id FROM mucho_thread_messages lm WHERE lm.thread_id=t.id ORDER BY lm.id DESC LIMIT 1) AS last_sender,(SELECT UNIX_TIMESTAMP(lm.created_at) FROM mucho_thread_messages lm WHERE lm.thread_id=t.id ORDER BY lm.id DESC LIMIT 1) AS last_timestamp,(SELECT sa.username FROM mucho_thread_messages lm JOIN accounts sa ON sa.account_id=lm.sender_account_id WHERE lm.thread_id=t.id ORDER BY lm.id DESC LIMIT 1) AS last_username,peer.account_id AS peer_account_id,peer.username AS peer_username,pp.cube AS peer_cube,pp.color1 AS peer_color1,pp.color2 AS peer_color2,pp.special AS peer_special FROM mucho_threads t JOIN mucho_thread_members m ON m.thread_id=t.id LEFT JOIN accounts peer ON peer.account_id=(CASE WHEN t.dm_low=? THEN t.dm_high ELSE t.dm_low END) AND t.is_dm=1 LEFT JOIN profiles pp ON pp.account_id=peer.account_id WHERE ` + where + ` ORDER BY m.is_pinned DESC,t.updated_at DESC,t.id DESC LIMIT 10 OFFSET ?`
-	rows, err := dbutil.Query(r.ctx, h.db, query, append(append([]any{actor}, args...), page*10)...)
+	query := `SELECT t.*,m.is_muted,m.is_pinned,(SELECT COUNT(*) FROM mucho_thread_members mt WHERE mt.thread_id=t.id) AS member_count,(SELECT COUNT(*) FROM mucho_thread_messages un WHERE un.thread_id=t.id AND un.id>GREATEST(m.last_read_message_id,m.last_cleared_message_id) AND un.sender_account_id<>?) AS unread_count,(SELECT lm.sender_account_id FROM mucho_thread_messages lm WHERE lm.thread_id=t.id ORDER BY lm.id DESC LIMIT 1) AS last_sender,(SELECT UNIX_TIMESTAMP(lm.created_at) FROM mucho_thread_messages lm WHERE lm.thread_id=t.id ORDER BY lm.id DESC LIMIT 1) AS last_timestamp,(SELECT sa.username FROM mucho_thread_messages lm JOIN accounts sa ON sa.account_id=lm.sender_account_id WHERE lm.thread_id=t.id ORDER BY lm.id DESC LIMIT 1) AS last_username,peer.account_id AS peer_account_id,peer.username AS peer_username,pp.cube AS peer_cube,pp.color1 AS peer_color1,pp.color2 AS peer_color2,pp.special AS peer_special FROM mucho_threads t JOIN mucho_thread_members m ON m.thread_id=t.id LEFT JOIN accounts peer ON peer.account_id=(CASE WHEN t.dm_low=? THEN t.dm_high ELSE t.dm_low END) AND t.is_dm=1 LEFT JOIN profiles pp ON pp.account_id=peer.account_id WHERE ` + where + ` ORDER BY m.is_pinned DESC,t.updated_at DESC,t.id DESC LIMIT 10 OFFSET ?`
+	rows, err := dbutil.Query(r.ctx, h.db, query, append(append([]any{actor, actor}, args...), page*10)...)
 	return protocol.ThreadList(rows, total, page*10, invites, h.now()), err
 }
