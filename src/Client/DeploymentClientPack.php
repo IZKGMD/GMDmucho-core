@@ -171,11 +171,6 @@ final class DeploymentClientPack
                 'created_at' => $createdAt,
                 'files' => [
                     [
-                        'name' => 'windows/GeometryDash-MuchoGDPS.exe',
-                        'size' => (int)$windows['output_size'],
-                        'sha256' => (string)$windows['output_sha256'],
-                    ],
-                    [
                         'name' => 'android/GeometryDash-MuchoGDPS.apk',
                         'size' => (int)$android['output_size'],
                         'sha256' => (string)$android['output_sha256'],
@@ -190,9 +185,20 @@ final class DeploymentClientPack
 
             try {
                 if ($requirements !== null) {
-                    DeploymentClientFiles::addWindows($zip, $rootDir, $windowsPath, $requirements, $server);
-                } elseif (!$zip->addFile($windowsPath, 'windows/GeometryDash-MuchoGDPS.exe')) {
-                    throw new RuntimeException('Cannot add the Windows client to the client pack ZIP.');
+                    foreach (DeploymentClientFiles::addWindows($zip, $rootDir, $windowsPath, $requirements, $server) as $file) {
+                        $file['name'] = 'windows/' . $file['name'];
+                        $publicManifest['files'][] = $file;
+                    }
+                } else {
+                    $windowsEntry = 'windows/GeometryDash-MuchoGDPS.exe';
+                    if (!$zip->addFile($windowsPath, $windowsEntry)) {
+                        throw new RuntimeException('Cannot add the Windows client to the client pack ZIP.');
+                    }
+                    array_unshift($publicManifest['files'], [
+                        'name' => $windowsEntry,
+                        'size' => (int)$windows['output_size'],
+                        'sha256' => (string)$windows['output_sha256'],
+                    ]);
                 }
                 if (!$zip->addFile($androidPath, 'android/GeometryDash-MuchoGDPS.apk')) {
                     throw new RuntimeException('Cannot add the Android client to the client pack ZIP.');

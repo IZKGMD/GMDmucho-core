@@ -190,6 +190,9 @@ function upload_tenant_clients(
         $sshPrefix . $sshOptions . ' ' . shell_quote($remote) . ' ' .
         shell_quote(
             'cd /opt/mucho-core/storage/clients && ' .
+            // The bind-mounted app reads these files as Debian www-data (GID 33).
+            'chgrp 33 . GeometryDash-MuchoGDPS.exe GeometryDash-MuchoGDPS.apk ' .
+            'MuchoGDPS-Client-Pack.zip tenant-client-manifest.json && ' .
             'chmod 640 GeometryDash-MuchoGDPS.exe GeometryDash-MuchoGDPS.apk ' .
             'MuchoGDPS-Client-Pack.zip tenant-client-manifest.json && ' .
             'mv -f tenant-client-manifest.json manifest.json'

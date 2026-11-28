@@ -34,7 +34,7 @@ $php8OnlyDiagnosticHashes=array(
     'src/Moderation/ReportQueueService.php'=>'699f44e17d3c4b5c64a17e0e10525ade9460e3cb2d04347fe7b330416bac747c',
     // Verified client bundles and legacy Cocos2d builds use the PHP 8 installer.
     'public/clients.php'=>'9f697de34c0fe32f0d3d3dac43288f0066e7ac5d4841543697d1ef824d40bc8e',
-    'src/Client/DeploymentClientPack.php'=>'b548fd8cf786b8ae8620d3772514a3382de456385e61b7e2a5161078c14f9bb5',
+    'src/Client/DeploymentClientPack.php'=>'e414d19b6c5dec25fa1feccca0517fbd137d7a5e04b9370376c6999e25047227',
     'src/Plugin/PluginManager.php'=>'89fd73c95f5476e4e3f56ee0c22c91941e7937e05cfbc5a2a6ae91e8d4eca0cf',
     'src/Client/AndroidGd2209Binary.php'=>'8c0dcb95a744fba6dbb7a59222c3ae12cc25f6ff7ad35ee83ed85c9b9ea601f7',
     'src/Client/AndroidClientPatcher.php'=>'d7a7d4b922a4274a992c31d126dc21b399d0182c6a3f16da3461763b37a0be34',

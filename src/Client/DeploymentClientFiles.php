@@ -167,7 +167,7 @@ final class DeploymentClientFiles
 
     public static function addWindows(
         ZipArchive $zip, string $root, string $exe, array $requirements, string $server
-    ): void {
+    ): array {
         $files = [
             'GeometryDash.exe' => ['path' => $exe, 'name' => 'GeometryDash.exe'] + self::fingerprint($exe),
         ] + $requirements['windows'];
@@ -187,6 +187,7 @@ final class DeploymentClientFiles
         ], JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR))) {
             throw new RuntimeException('Cannot add the Windows launch manifest.');
         }
+        return $manifest;
     }
 
     private static function add(ZipArchive $zip, string $source, string $target): void

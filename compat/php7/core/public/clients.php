@@ -37,10 +37,11 @@ function client_file(array $entry, string $clientDir): string
     }
     return $realPath;
 }
+$verifiedLaunch = !empty($manifest['verified_launch']);
 $kind = strtolower(trim((string) ($_GET['download'] ?? '')));
 if ($kind !== '') {
     $entries = ['windows' => $manifest['windows'] ?? null, 'android' => $manifest['android'] ?? null, 'zip' => $manifest['archive'] ?? null];
-    if (!isset($entries[$kind]) || !is_array($entries[$kind])) {
+    if (($kind === 'windows' && $verifiedLaunch) || !isset($entries[$kind]) || !is_array($entries[$kind])) {
         http_response_code(404);
         exit('Unknown client download.');
     }
@@ -74,6 +75,11 @@ if ($kind !== '') {
 $serverName = trim((string) ($manifest['server_name'] ?? 'Mucho GDPS'));
 $serverUrl = trim((string) ($manifest['server_url'] ?? ''));
 $files = ['windows' => ['label' => 'Windows Client', 'description' => 'Ready-to-play patched Geometry Dash client for Windows.', 'entry' => is_array($manifest['windows'] ?? null) ? $manifest['windows'] : []], 'android' => ['label' => 'Android APK', 'description' => 'Ready-to-install patched Geometry Dash APK for Android.', 'entry' => is_array($manifest['android'] ?? null) ? $manifest['android'] : []], 'zip' => ['label' => 'Client Pack', 'description' => 'ZIP with the Windows client, Android APK and checksum manifest.', 'entry' => is_array($manifest['archive'] ?? null) ? $manifest['archive'] : []]];
+if ($verifiedLaunch) {
+    unset($files['windows']);
+    $files['zip']['label'] = 'Windows Client Pack';
+    $files['zip']['description'] = 'Extract the ZIP and run START-MuchoCore.cmd to verify and start the game.';
+}
 foreach ($files as $kind => &$file) {
     try {
         $path = client_file($file['entry'], $clientDir);
