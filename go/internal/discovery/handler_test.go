@@ -76,7 +76,7 @@ func TestInputBoundaries(t *testing.T) {
 	}{
 		{"songID=1&songID=42", 42}, {"songID=%2B42", 0}, {"songID=42junk", 0},
 		{"songID=42%0A", 42}, {"songID[]=42", 0}, {"songID=-1", 0},
-		{"songID=9223372036854775808", 9223372036854775807},
+		{"songID=9223372036854775808", 0},
 	} {
 		s := &fakeStore{}
 		request(Handler{Store: s}, "POST", "/getGJSongInfo.php", tc.body)
@@ -88,9 +88,10 @@ func TestInputBoundaries(t *testing.T) {
 		body   string
 		offset int
 	}{
-		{"page=-1", 0}, {"page=1001", 10000}, {"page=2junk", 20}, {"page=9223372036854775808", 10000},
+		{"page=-1", -1}, {"page=1001", 10000}, {"page=2junk", -1},
+		{"page=9223372036854775808", -1}, {"page=", -1}, {"page=2", 20},
 	} {
-		s := &fakeStore{}
+		s := &fakeStore{offset: -1}
 		request(Handler{Store: s}, "POST", "/getGJMapPacks20.php", tc.body)
 		if s.offset != tc.offset {
 			t.Errorf("%q: offset=%d, want %d", tc.body, s.offset, tc.offset)
