@@ -54,7 +54,7 @@ $php8OnlyDiagnosticHashes=array(
     'src/Score/LevelScoreController.php'=>'22e26c358f19ed939671ffcfa184898bb1b8e5479143ba45b82fb67b7f1163b0',
     'src/Social/ThreadService.php'=>'736d728e9905b96f59036b7090a0d637167a86357a5ae9382fb2af094560a81e',
     'tests/application/gd2209-thread-integration.php'=>'40b72d2aeba970da2d1325c5d47f830bd2295fb3b27c9a03e25df92e524cc3a0',
-    'src/Level/LevelRepository.php'=>'86e673b56e97e09767a4b54f2bba968e0f07467adcd453d72f9e779dac879f4e',
+    'src/Level/LevelRepository.php'=>'fde92e0730b2d00064c1054a6de4c8ed25858eeb468a78635e5d4ea9f3238359',
     'src/Protocol/GdLevelListEncoder.php'=>'92dcc92c8f1bd0f93a9c280b8bdc0760931ef6e6f48dc75cb2e4a4b54603efe1',
 );
 $count=0;

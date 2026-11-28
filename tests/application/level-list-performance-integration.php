@@ -141,6 +141,19 @@ try {
         $repo->search(0, '', 22, 0, 10, 0, ['gauntlet' => '999'])['total'] !== 0) {
         throw new RuntimeException('Regular and unknown Gauntlet searches must stay separate.');
     }
+    // Insane and Demon share a stored difficulty. Only the ordinary level is returned.
+    $db->exec('UPDATE levels SET difficulty=6,epic=2 WHERE level_id=1');
+    $db->exec('UPDATE levels SET difficulty=6,demon=1,epic=3 WHERE level_id=2');
+    foreach ([['diff' => '5'], ['diff' => '50'], ['legendary' => '1']] as $filter) {
+        $matches = $repo->search(0, '', 22, 0, 10, 0, $filter);
+        if (array_map('intval', array_column($matches['levels'], 'level_id')) !== [1]) {
+            throw new RuntimeException('Insane or Legendary search returned the wrong levels.');
+        }
+    }
+    $mythic = $repo->search(0, '', 22, 0, 10, 0, ['mythic' => '1']);
+    if (array_map('intval', array_column($mythic['levels'], 'level_id')) !== [2]) {
+        throw new RuntimeException('Mythic search returned the wrong levels.');
+    }
     echo "MUCHOCORE_LEVEL_LIST_PERF_OK\n";
 } finally {
     $root->exec('DROP DATABASE IF EXISTS ' . $name);

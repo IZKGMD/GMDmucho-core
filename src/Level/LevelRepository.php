@@ -109,8 +109,12 @@ final readonly class LevelRepository
                 $normalized = [];
 
                 foreach ($difficultyIds as $value) {
-                    if ($value >= 10 && $value % 10 === 0) {
+                    if ($value >= 10 && $value <= 50 && $value % 10 === 0) {
                         $value = intdiv($value, 10);
+                    }
+                    // Client filter 1..5 means Easy..Insane. Internal 2..6.
+                    if ($value >= 1 && $value <= 5) {
+                        ++$value;
                     }
                     $normalized[] = $value;
                 }
@@ -125,6 +129,7 @@ final readonly class LevelRepository
 
                 if ($marks) {
                     $where[] = 'l.difficulty IN (' . implode(',', $marks) . ')';
+                    $where[] = 'l.demon = 0';
                 }
             }
         }
@@ -158,11 +163,11 @@ final readonly class LevelRepository
         }
 
         if ((string)($input['mythic'] ?? '0') === '1') {
-            $where[] = 'l.epic = 2';
+            $where[] = 'l.epic = 3';
         }
 
         if ((string)($input['legendary'] ?? '0') === '1') {
-            $where[] = 'l.epic = 3';
+            $where[] = 'l.epic = 2';
         }
 
         if (isset($input['len']) && (string)$input['len'] !== '-') {
