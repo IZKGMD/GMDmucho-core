@@ -21,7 +21,6 @@ const MaxBodyBytes = 1 << 20
 
 var slashes = regexp.MustCompile(`/+`)
 var strictInteger = regexp.MustCompile(`^-?[0-9]+\n?$`)
-var castInteger = regexp.MustCompile(`^[\t\n\r\v\f ]*[+-]?[0-9]+`)
 
 // NormalizePath follows the PHP Router without redirecting GD POST requests.
 func NormalizePath(path string) string {
@@ -139,24 +138,25 @@ func last(form url.Values, key string) string {
 	return values[len(values)-1]
 }
 
-func integer(form url.Values, key string, strict bool) int64 {
+func integer(form url.Values, key string, fallback int64) int64 {
 	value := last(form, key)
-	if strict {
-		if !strictInteger.MatchString(value) {
-			return 0
-		}
-		value = strings.TrimSuffix(value, "\n")
-	} else {
-		value = strings.TrimSpace(castInteger.FindString(value))
+	if _, present := form[key]; !present {
+		return fallback
 	}
-	n, _ := strconv.ParseInt(value, 10, 64) // overflow saturates, as PHP does
+	if !strictInteger.MatchString(value) {
+		return -1
+	}
+	n, err := strconv.ParseInt(strings.TrimSuffix(value, "\n"), 10, 64)
+	if err != nil {
+		return -1
+	}
 	return n
 }
 
 func (h Handler) dispatch(ctx context.Context, path string, form url.Values) (string, error) {
 	switch path {
 	case "/getgjsonginfo":
-		id := integer(form, "songID", true)
+		id := integer(form, "songID", 0)
 		if id <= 0 {
 			return "-1", nil
 		}
@@ -169,16 +169,21 @@ func (h Handler) dispatch(ctx context.Context, path string, form url.Values) (st
 		rows, err := h.Store.Gauntlets(ctx)
 		return protocol.EncodeGauntlets(rows), err
 	case "/getgjmappacks", "/getgjmappacks21":
-		page := max(0, min(1000, integer(form, "page", false)))
+		page := integer(form, "page", 0)
+		if page < 0 {
+			return "-1", nil
+		}
+		page = min(1000, page)
 		offset := int(page) * 10
 		rows, total, err := h.Store.MapPacks(ctx, offset)
 		return protocol.EncodeMapPacks(rows, total, offset), err
 	case "/getgjdailylevel":
-		typ := integer(form, "type", false)
-		if _, ok := form["type"]; !ok && integer(form, "weekly", false) == 1 {
-			typ = 1
+		field, maximum := "weekly", int64(1)
+		if _, ok := form["type"]; ok {
+			field, maximum = "type", 2
 		}
-		if typ < 0 || typ > 2 {
+		typ := integer(form, field, 0)
+		if typ < 0 || typ > maximum {
 			return "-1", nil
 		}
 		kind := []string{"daily", "weekly", "event"}[typ]
