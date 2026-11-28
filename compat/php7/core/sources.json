@@ -80,6 +80,7 @@
   "database/migrations/20261124_001_cvolton_content_map.php": "2d1129a0408c3b7f5707596eaba4a9fd1d6827516622d1104e957642a81632c9",
   "database/migrations/20261124_002_demonlist.php": "98364b8f2531d3713602fdb990916579dedd68c0bd521d2d8515f1a8771fd5e8",
   "database/migrations/20261124_003_demonlist_review.php": "a25f040d72328a18f677312ec06be7448db5a64a4bfaa7cc5f7920ffcbdbb8c6",
+  "database/migrations/20261128_001_music_newgrounds_source.php": "0aeeb6729d9c946e51a23cd499de8367a98fe67a594e6932d3fb97dd8ca7c7c3",
   "public/admin/actions/clans.php": "a73eaede2bdc75f7f257f050bd62c3123e9f2498f628d6b62573121cfb226f5b",
   "public/admin/actions/contentpacks.php": "172ffad60f5344a3c574e679b1195914628543056d62ec6f2d25fa6811146cb4",
   "public/admin/actions/demonlist.php": "b168489acb1b6244594defdb94a46327560a4f21802fc9586ff99b8c054311d3",

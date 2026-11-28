@@ -14,7 +14,7 @@ if ($state['q']!=='') {
     $args=['name'=>'%'.$state['q'].'%','author'=>'%'.$state['q'].'%','id'=>ctype_digit($state['q'])?(int)$state['q']:0];
 }
 if ($filter!=='') $where[]='is_verified='.($filter==='verified'?'1':'0');
-$sql='SELECT id,name,author_name,size,is_verified,newgrounds_id FROM songs';
+$sql='SELECT * FROM songs';
 if ($where) $sql.=' WHERE '.implode(' AND ',$where);
 $st=$db->prepare($sql.' ORDER BY id DESC LIMIT 26 OFFSET '.(($state['p']-1)*25));
 $st->execute($args);$rows=$st->fetchAll(PDO::FETCH_ASSOC);
@@ -46,7 +46,7 @@ $manage=canPermission('music.manage');
 <div class="table"><table data-no-filter><thead><tr><th scope="col">ID</th><th scope="col">Name</th><th scope="col">Author</th><th scope="col">Size</th><th scope="col">Status</th><th scope="col">Actions</th></tr></thead><tbody>
 <?php foreach($rows as $r): ?><tr>
 <td>#<?=(int)$r['id']?></td><td><?=h($r['name'])?>
-<?php if ($r['newgrounds_id'] !== null): ?>
+<?php if (!empty($r['newgrounds_id'])): ?>
 <a href="<?=h(\MuchoCore\Music\NewgroundsSource::url((int)$r['newgrounds_id']))?>" target="_blank" rel="noopener noreferrer">Newgrounds #<?=(int)$r['newgrounds_id']?></a>
 <?php endif ?>
 </td><td><?=h($r['author_name'])?></td><td><?=h($r['size'])?> MB</td>

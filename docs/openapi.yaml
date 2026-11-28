@@ -85,7 +85,7 @@ paths:
         "503":
           description: Catalog unavailable
 
-  /api/v2/music-upload:
+  /api/v2/music-upload.php:
     post:
       summary: Upload MP3 for moderation
       requestBody:
