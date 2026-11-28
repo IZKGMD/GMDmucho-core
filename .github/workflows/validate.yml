@@ -108,6 +108,7 @@ jobs:
           php tests/client/parallel-apk-upload.php
           php tests/application/client-patcher-cleanup.php
           php tests/client/android-gd2209-synthetic.php
+          php tests/client/android-gd22144-synthetic.php
           php tests/client/android-gd2209-unknown-hint.php
           php tests/client/client-pack-cache.php
           php tests/client/client-ip.php
