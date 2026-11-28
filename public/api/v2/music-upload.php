@@ -38,6 +38,12 @@ try {
         muchoV2Fail('invalid_artist',400);
     }
 
+    try {
+        $newgroundsId = \MuchoCore\Music\NewgroundsSource::parse($_POST['newgrounds_source'] ?? null);
+    } catch (InvalidArgumentException) {
+        muchoV2Fail('invalid_newgrounds_source',400);
+    }
+
     if (!isset($_FILES['file'])) {
         muchoV2Fail('file_required',400);
     }
@@ -165,7 +171,8 @@ try {
                 author_name,
                 size,
                 download_url,
-                is_verified
+                is_verified,
+                newgrounds_id
             )
             VALUES
             (
@@ -174,7 +181,8 @@ try {
                 :author,
                 :size,
                 :url,
-                0
+                0,
+                :newgrounds_id
             )
         ");
 
@@ -183,7 +191,8 @@ try {
             'author_id'=>$accountId,
             'author'=>$artist,
             'size'=>round($size/1024/1024,2),
-            'url'=>$download
+            'url'=>$download,
+            'newgrounds_id'=>$newgroundsId
         ]);
 
         $songId=(int)$db->lastInsertId();

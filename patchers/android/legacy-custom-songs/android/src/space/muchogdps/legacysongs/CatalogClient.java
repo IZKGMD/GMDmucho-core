@@ -7,6 +7,7 @@ import org.json.JSONObject;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,7 +20,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 final class CatalogClient {
-    private static final String API = "/api/plugin/legacy-songs/v1";
+    private static final String API = "/api/v2/music-library.php";
+    private static final String PLUGIN_API = "/api/plugin/legacy-songs/v1";
     private static final int MAX_JSON_BYTES = 64 * 1024;
     private static final int MAX_TRACK_BYTES = 64 * 1024 * 1024;
     private static final char[] HEX = "0123456789abcdef".toCharArray();
@@ -92,15 +94,20 @@ final class CatalogClient {
         return origin.getHost();
     }
 
-    private String endpoint(String operation, String query) {
+    private JSONObject request(String operation, String query) throws IOException, JSONException {
+        String parameters = "?op=" + operation + "&" + query;
         if (shared) {
-            return mount + "/legacy-songs.php?op=" + operation + "&" + query;
+            return json(mount + "/legacy-songs.php" + parameters);
         }
-        return API + "/" + operation + "?" + query;
+        try {
+            return json(API + parameters);
+        } catch (FileNotFoundException | JSONException unavailable) {
+            return json(PLUGIN_API + "/" + operation + "?" + query);
+        }
     }
 
     Page catalog(int after) throws IOException, JSONException {
-        JSONObject result = json(endpoint("catalog", "after=" + after));
+        JSONObject result = request("catalog", "after=" + after);
         JSONArray items = result.getJSONArray("tracks");
         if (items.length() > 16) {
             throw new IOException("Invalid catalog length");
@@ -127,7 +134,7 @@ final class CatalogClient {
     }
 
     LevelSong downloadWithMetadata(int id) throws IOException, JSONException {
-        JSONObject response = json(endpoint("track", "id=" + id)).getJSONObject("track");
+        JSONObject response = request("track", "id=" + id).getJSONObject("track");
         Track track = new Track(response, mount, shared);
         if (track.id != id) {
             throw new IOException("Server returned a different song");
@@ -139,7 +146,7 @@ final class CatalogClient {
         if (levelId <= 0) {
             throw new IOException("Enter a positive level ID");
         }
-        JSONObject level = json(endpoint("level", "id=" + levelId));
+        JSONObject level = request("level", "id=" + levelId);
         if (level.getInt("level_id") != levelId || !level.has("track")) {
             throw new IOException("Invalid level song response");
         }
@@ -229,6 +236,9 @@ final class CatalogClient {
         connection.setUseCaches(false);
         try {
             int status = connection.getResponseCode();
+            if (status == HttpURLConnection.HTTP_NOT_FOUND) {
+                throw new FileNotFoundException("Server returned HTTP 404");
+            }
             if (status != HttpURLConnection.HTTP_OK) {
                 throw new IOException("Server returned HTTP " + status);
             }

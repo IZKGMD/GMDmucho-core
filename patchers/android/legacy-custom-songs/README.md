@@ -96,3 +96,20 @@ custom ID separately in the game's save dictionary. The upload adapter adds
 the selected `songID` to the original upload form. Published levels resolve
 the ID and checksum through MuchoCore. A previous Android overlay build is an
 independent mode and does not support the native editor selection.
+
+## MuchoCore Music Library
+
+On PHP 8, the client reads `/api/v2/music-library.php`. The same track ID is
+used for selection, downloads and level uploads. Create songs through the player
+dashboard or `/api/v2/music-upload.php`, then approve them in the admin music
+library. Catalogs show approved tracks with a readable local MP3.
+
+An upload can include a Newgrounds Audio ID or track URL alongside an MP3 the
+uploader has permission to share. The admin list links to the original, and
+`?op=newgrounds&id=12345` returns an approved local track linked to that Audio
+ID, with its MuchoCore ID and verified file metadata. The server keeps and
+serves the uploaded copy.
+
+The earlier plugin route and the PHP 7 Shared endpoint still serve their
+original contract. See [OpenAPI](../../../docs/openapi.yaml) for the PHP 8
+catalog and upload operations.

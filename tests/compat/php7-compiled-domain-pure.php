@@ -40,6 +40,8 @@ $php8OnlyDiagnosticHashes=array(
     'src/Client/AndroidClientPatcher.php'=>'bda6c4a6133a78670d482e4370a4b213f7d24b1083932676da87679e68298578',
     'src/Social/MessageController.php'=>'20146708112462034cbe140a60a553a5e344a6bdbf3d20b1430c5059c82a660b',
     'src/Social/MessageService.php'=>'3d42dfed2b6cd97f3c8db974aabb8f1aee0ec59da6f95bdc4f388bd9fced4e86',
+    // Newgrounds source attribution is available in the PHP 8 dashboard.
+    'public/dashboard/index.php'=>'138aa12c4272a33227a54068dc77c4e2ed4bceaec05d389f8d638fd1016e73b2',
     // PHP 8 request bootstrap and authentication optimizations.
     'src/Account/AccountAuthenticator.php'=>'df4c34f8cc1624fe475e1e7dff79f8bf14a113a8cf646155490e24788d23b9a0',
     'src/Core/Application.php'=>'44e8139178cc22edb7936c77b707d6256c69c9d6baac967656188527c3600998',
