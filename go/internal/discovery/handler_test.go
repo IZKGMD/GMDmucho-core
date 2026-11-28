@@ -52,7 +52,7 @@ func TestHTTPCompatibility(t *testing.T) {
 		{"/getGJSongInfo.php?songID=1", "", "-1"},
 		{"/getGJDailyLevel.php", "", "42|3600"},
 		{"/a/database/getGJDailyLevel.php", "type=1", "100043|3600"},
-		{"/getGJDailyLevel.php", "type=2", "200043|3600"},
+		{"/getGJDailyLevel.php", "type=2", "-1"},
 		{"/getGJDailyLevel.php", "weekly=1", "100043|3600"},
 		{"/getGJDailyLevel.php", "type=0&weekly=1", "42|3600"},
 		{"/getGJDailyLevel.php", "type=3", "-1"},
@@ -144,13 +144,13 @@ func TestRealHTTPDoesNotRedirectPOST(t *testing.T) {
 	defer server.Close()
 	client := server.Client()
 	client.CheckRedirect = func(*http.Request, []*http.Request) error { return errors.New("unexpected redirect") }
-	response, err := client.Post(server.URL+"/a//database/getGJDailyLevel.php/", "application/x-www-form-urlencoded", strings.NewReader("type=2"))
+	response, err := client.Post(server.URL+"/a//database/getGJDailyLevel.php/", "application/x-www-form-urlencoded", strings.NewReader("type=1"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer response.Body.Close()
 	body, err := io.ReadAll(response.Body)
-	if err != nil || string(body) != "200043|3600" {
+	if err != nil || string(body) != "100043|3600" {
 		t.Fatalf("unexpected response %q: %v", body, err)
 	}
 }

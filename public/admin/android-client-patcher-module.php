@@ -654,7 +654,9 @@ function renderAndroidPatcherSection(PDO $db): void
             Side-by-side supports the verified original GD 2.209 ARM64 APK
             (versionName 2.2.145; 174,568,364 bytes), compatible 113-route 2.209 ARM
             variants, and one experimental GD 2.2.144 ARM64 APK identified by its
-            exact fingerprint. Recognized GD 1.0–1.81 APKs keep the original app ID.
+            exact fingerprint. These APK layouts are <b>not interchangeable</b>.
+            Uncheck this option to try URL-only patching for other builds.
+            Recognized GD 1.0–1.81 APKs keep the original app ID.
             Android requires the same signing key to update an installed copy.
         </div>
 

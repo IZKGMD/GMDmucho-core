@@ -454,7 +454,9 @@ try {
         $pageMetadata[5] === '1',
         'native group snapshot uses actual id/title/members and Show Earlier=1');
     $visibleRows = explode('|', $pageSegments[0]);
-    $oldest = (int)explode(':', end($visibleRows))[0];
+    $oldest = (int)explode(':', $visibleRows[0])[0];
+    $newest = (int)explode(':', end($visibleRows))[0];
+    $check($oldest < $newest, 'native snapshot lists messages in chronological order');
     $earlierWire = $http->getMessages($req(1,'pass-1','getGJThreadMessages',[
         'threadID'=>(string)$newGroup, 'beforeID'=>(string)$oldest
     ]))->body;

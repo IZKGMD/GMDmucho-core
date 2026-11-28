@@ -37,6 +37,9 @@ final class GdCommentEncoder
         );
 
         $badge = (int)($profile['badge'] ?? 0);
+        $nativeTime = $gameVersion >= 22 && $binaryVersion >= 51;
+        $createdAt = (string)($comment['created_at'] ?? '');
+        $timestamp = $nativeTime ? (int)($comment['created_epoch'] ?? $this->dateEpoch($createdAt)) : 0;
 
         $commentParts = [
             '2', $content,
@@ -48,16 +51,16 @@ final class GdCommentEncoder
             '4', (string)($comment['likes'] ?? 0),
             '5', '0',
             '7', (string)($comment['is_spam'] ?? 0),
-            '9', $this->date((string)($comment['created_at'] ?? '')),
+            '9', $nativeTime ? ProtocolText::relativeTime($timestamp) : $this->date($createdAt),
             '6', (string)$comment['id'],
             '10', (string)($comment['percent'] ?? 0),
         ];
 
         // GD 2.209 added key 15: exact Unix creation timestamp.
         // Never add it to 2.2081 or earlier wire responses.
-        if ($gameVersion >= 22 && $binaryVersion >= 51) {
+        if ($nativeTime) {
             $commentParts[] = '15';
-            $commentParts[] = (string)$this->dateEpoch((string)($comment['created_at'] ?? ''));
+            $commentParts[] = (string)$timestamp;
         }
 
         if ($binaryVersion > 31 || $gameVersion >= 22) {
@@ -104,6 +107,10 @@ final class GdCommentEncoder
             $gameVersion
         );
 
+        $nativeTime = $gameVersion >= 22 && $binaryVersion >= 51;
+        $createdAt = (string)($comment['created_at'] ?? '');
+        $timestamp = $nativeTime ? (int)($comment['created_epoch'] ?? $this->dateEpoch($createdAt)) : 0;
+
         $parts = [
             '2', $content,
             '3', (string)(
@@ -113,12 +120,12 @@ final class GdCommentEncoder
             '4', (string)($comment['likes'] ?? 0),
             '5', '0',
             '7', (string)($comment['is_spam'] ?? 0),
-            '9', $this->date((string)($comment['created_at'] ?? '')),
+            '9', $nativeTime ? ProtocolText::relativeTime($timestamp) : $this->date($createdAt),
             '6', (string)$comment['id'],
         ];
-        if ($gameVersion >= 22 && $binaryVersion >= 51) {
+        if ($nativeTime) {
             $parts[] = '15';
-            $parts[] = (string)$this->dateEpoch((string)($comment['created_at'] ?? ''));
+            $parts[] = (string)$timestamp;
         }
         return implode('~', $parts);
     }

@@ -6,6 +6,29 @@ namespace MuchoCore\Protocol;
 
 final class ProtocolText
 {
+    public static function relativeTime(int $timestamp, ?int $now = null): string
+    {
+        if ($timestamp <= 0) {
+            return '';
+        }
+        $elapsed = max(0, ($now ?? time()) - $timestamp);
+        $units = [
+            'year' => 31536000,
+            'month' => 2592000,
+            'week' => 604800,
+            'day' => 86400,
+            'hour' => 3600,
+            'minute' => 60,
+        ];
+        foreach ($units as $unit => $seconds) {
+            if ($elapsed >= $seconds) {
+                $amount = intdiv($elapsed, $seconds);
+                return $amount . ' ' . $unit . ($amount === 1 ? '' : 's');
+            }
+        }
+        return $elapsed . ($elapsed === 1 ? ' second' : ' seconds');
+    }
+
     public static function field(
         mixed $value,
         int $maxLength = 65535

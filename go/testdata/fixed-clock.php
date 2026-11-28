@@ -14,3 +14,5 @@ namespace MuchoCore\LevelList { function time(): int { return 1700000000; } }
 namespace MuchoCore\Moderation { function time(): int { return 1700000000; } }
 
 namespace MuchoCore\Protocol { function time(): int { return 1700000000; } }
+
+namespace MuchoCore\Comment { function time(): int { return 1700000000; } }

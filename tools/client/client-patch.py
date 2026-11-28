@@ -22,12 +22,15 @@ GD2209_SHA256 = "524265b3781596fcc7c9e4d60dc5ac2d0a4cd9530ee3ea637e123f9ac1f9b6a
 GD2209_SHA256_OCT19 = "4eee06d5c2e2213b4ba2b1f6233dd426bbdd0e9b29d7c375e499516b6f8f69d5"
 # Keep exact hashes and URL counts in parity with src/Client/Gd2209Binary.php.
 GD2209_BUILDS = {
-    GD2209_SHA256: ("GD 2.209, 13 Oct 2026", 13158400, 111),
-    GD2209_SHA256_OCT19: ("GD 2.209, 19 Oct 2026", 13178880, 113),
+    GD2209_SHA256: ("GD 2.209, 13 Oct 2026", 13158400, 112),
+    GD2209_SHA256_OCT19: ("GD 2.209, 19 Oct 2026", 13178880, 114),
 }
+GD2209_GAUNTLET_URL = b"http://www.boomlings.com/database/getGJLevels21.php"
+GD2209_ENCODED_GAUNTLET_URL = base64.b64encode(GD2209_GAUNTLET_URL)
 GD2209_URL_REGEX = re.compile(
-    rb"https?://(?:www\.boomlings\.com|boomlings\.com|www\.geometrydash\.com)"
-    rb"/(?:database|databas)/[A-Za-z0-9._/-]+\.php(?=\x00)"
+    rb"(?:https?://(?:www\.boomlings\.com|boomlings\.com|www\.geometrydash\.com)"
+    rb"/(?:database|databas)/[A-Za-z0-9._/-]+\.php|"
+    rb"(?<![^\x00])" + re.escape(GD2209_ENCODED_GAUNTLET_URL) + rb")(?=\x00)"
 )
 
 SEGMENTS = ("a", "api", "database", "accounts")
@@ -489,7 +492,9 @@ def patch_gd2209_exact(data: bytes, server: str) -> tuple[bytes, list[PatchStat]
     for match in GD2209_URL_REGEX.finditer(original):
         if match.start() and original[match.start() - 1] not in b'\x00\n\r "\x27':
             continue
-        url = match.group(0)
+        slot = match.group(0)
+        encoded = slot == GD2209_ENCODED_GAUNTLET_URL
+        url = GD2209_GAUNTLET_URL if encoded else slot
         slash = url.index(b"/", url.index(b"://") + 3)
         path = url[slash:]
         if path.startswith(b"/databas/"):
@@ -501,7 +506,8 @@ def patch_gd2209_exact(data: bytes, server: str) -> tuple[bytes, list[PatchStat]
             new = b"https://" + host.encode("ascii") + b"/" + path[len(b"/database/"):]
         if len(new) > len(url):
             raise ValueError("GD 2.209 domain too long for safe in-place URL patch. Use a shorter hostname or domain alias.")
-        patched[match.start():match.end()] = new + b"\x00" * (len(url) - len(new))
+        replacement = base64.b64encode(new) if encoded else new
+        patched[match.start():match.end()] = replacement.ljust(len(slot), b"\x00")
         changes += 1
     if changes == 0:
         raise ValueError("no supported GD 2.209 URL found in PE .rdata")
@@ -536,6 +542,21 @@ def restore_gd2209_urls(data: bytes) -> bytes:
             raise ValueError("modified API URL exceeds its original fixed slot")
         output[start + at:start + at + length] = original
         cursor = at + length
+    original = GD2209_ENCODED_GAUNTLET_URL
+    for match in re.finditer(rb"(?<![^\x00])aHR0cHM6Ly[A-Za-z0-9+/=]+(?=\x00)", section):
+        encoded = match.group()
+        try:
+            url = base64.b64decode(encoded, validate=True)
+        except ValueError:
+            continue
+        if not re.fullmatch(rb"https://[A-Za-z0-9.-]+/(?:database/|a/)?getGJLevels21\.php", url):
+            continue
+        padding = len(original) - len(encoded)
+        at = match.start()
+        if (encoded != base64.b64encode(url) or padding < 0 or
+                section[match.end():at + len(original) + 1] != b"\x00" * (padding + 1)):
+            raise ValueError("modified Gauntlet URL exceeds its original fixed slot")
+        output[start + at:start + at + len(original)] = original
     return bytes(output)
 
 

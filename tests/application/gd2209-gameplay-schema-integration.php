@@ -99,20 +99,32 @@ try {
     foreach (['daily', 'weekly', 'event'] as $kind) {
         $insert->execute([$kind]);
     }
-    foreach (['daily', 'weekly', 'event'] as $type => $kind) {
+    foreach (['daily', 'weekly'] as $type => $kind) {
         $response = $controller->daily($daily(['type' => (string)$type]))->body;
         $verify(preg_match('/^[0-9]+\|[0-9]+$/D', $response) === 1,
             $kind . ' must produce native index and seconds remaining');
         $values = explode('|', $response);
-        $verify((int)$values[0] === ($type + 1) + ([0, 100001, 200001][$type]),
+        $verify((int)$values[0] === ($type + 1) + ([0, 100001][$type]),
             $kind . ' uses the requested rotation and native index namespace');
         $verify((int)$values[1] > 0, $kind . ' requires positive remaining time');
     }
+    // The client adds a five-character prefix to its base64-encoded XOR challenge.
+    $event = $controller->daily($daily(['type' => '2', 'chk' => 'ABCDEBAsCDAc=']))->body;
+    $parts = explode('|', $event);
+    $verify(count($parts) === 4 && $parts[0] === '200004' && $parts[1] === '10',
+        'Event uses the native four-field response and rotation namespace');
+    $verify(str_starts_with($parts[2], 'SaKuJ'), 'Event reward includes the client prefix');
+    $encoded = substr($parts[2], 5);
+    $verify($parts[3] === sha1($encoded . 'pC26fpYaQCtg'), 'Event reward hash matches the payload');
+    $bytes = base64_decode(strtr($encoded, '-_', '+/'), true);
+    $verify(is_string($bytes) && ($bytes ^ str_repeat('59182', strlen($bytes))) ===
+        '1:12345:200004:9:7,100,8,10', 'Event reward echoes the challenge and defines a chest');
     $verify(str_starts_with($controller->daily($daily(['weekly' => '1']))->body, '100003|'),
         'legacy weekly flag selects the weekly rotation');
     $verify(str_starts_with($controller->daily($daily(['type' => '0', 'weekly' => '1']))->body, '1|'),
         'explicit daily type takes precedence over the legacy weekly flag');
-    foreach ([['type' => ['1']], ['type' => '2junk'], ['weekly' => '2']] as $invalid) {
+    foreach ([['type' => ['1']], ['type' => '2junk'], ['weekly' => '2'],
+        ['type' => '2'], ['type' => '2', 'chk' => 'ABCDE####']] as $invalid) {
         $verify($controller->daily($daily($invalid))->body === '-1',
             'malformed rotation selector must not select a real rotation');
     }

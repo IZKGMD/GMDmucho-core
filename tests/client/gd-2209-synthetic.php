@@ -57,4 +57,14 @@ verify2209(Gd2209Binary::SHA256_OCT19 ===
     '4eee06d5c2e2213b4ba2b1f6233dd426bbdd0e9b29d7c375e499516b6f8f69d5',
     'Latest known exact build SHA256 mismatch'
 );
+$gauntlet = base64_encode('http://www.boomlings.com/database/getGJLevels21.php');
+$fixture = substr_replace($original, $gauntlet, 0x500, strlen($gauntlet));
+[$patched, $count, $paths] = Gd2209Binary::patchBytes($fixture, 'muchocoretest.5v.pl');
+$encoded = base64_encode('https://muchocoretest.5v.pl/a/getGJLevels21.php');
+verify2209($count === 3 && in_array('/database/getGJLevels21.php', $paths, true),
+    'Encoded Gauntlet list URL missing from the patch manifest');
+verify2209(substr($patched, 0x500, strlen($gauntlet)) === str_pad($encoded, strlen($gauntlet), "\0"),
+    'Encoded Gauntlet list URL retains its fixed slot');
+verify2209(Gd2209Binary::restoreApiUrls($patched) === $fixture,
+    'Encoded Gauntlet list URL can be restored for retargeting');
 echo "MUCHOCORE_GD_2209_SYNTHETIC_OK\n";

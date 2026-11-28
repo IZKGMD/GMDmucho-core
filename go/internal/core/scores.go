@@ -128,7 +128,12 @@ func (h *Handler) regularScores(r request) (string, error) {
 		} else if row.Int("percent") > 75 {
 			place = 2
 		}
-		items = append(items, protocol.Pairs(1, protocol.Username(row["username"]), 2, row.Value("user_id", row["account_id"]), 9, row.Value("cube", "1"), 10, row.Int("color1"), 11, row.Value("color2", "3"), 51, row.Int("color3"), 14, row.Int("icon_type"), 15, row.Int("special"), 16, row.Int("account_id"), 3, row.Int("percent"), 6, place, 13, row.Int("coins"), 42, scoreDate(row.Int("updated_at"))))
+		stamp := row.Int("updated_at")
+		date := scoreDate(stamp)
+		if r.version.Effective() >= 22 && r.version.Binary >= 51 {
+			date = protocol.RelativeTime(stamp, now)
+		}
+		items = append(items, protocol.Pairs(1, protocol.Username(row["username"]), 2, row.Value("user_id", row["account_id"]), 9, row.Value("cube", "1"), 10, row.Int("color1"), 11, row.Value("color2", "3"), 51, row.Int("color3"), 14, row.Int("icon_type"), 15, row.Int("special"), 16, row.Int("account_id"), 3, row.Int("percent"), 6, place, 13, row.Int("coins"), 42, date))
 	}
 	return strings.Join(items, "|"), nil
 }
