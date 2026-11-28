@@ -14,6 +14,7 @@ def record(src,out,content=None):
     target.write_text((content if content is not None else source.read_text()).rstrip()+'\n')
 def lower(source):
     source=re.sub(r':\s*(?:void|\?int)\b','',source)
+    source=source.replace('function adminRecordId(mixed $value)', 'function adminRecordId($value)')
     source=re.sub(r'catch\s*\(Throwable\)',r'catch (Throwable $error)',source)
     source=re.sub(r'\bas\s*\[([^\]]+)\]\s*\)',r'as list(\1))',source)
     source=source.replace("static fn(array $action): bool => canAdminPage($action[0])", "static function(array $action): bool { return canAdminPage($action[0]); }")
@@ -59,7 +60,7 @@ record('public/admin/index.php','comments.php',"<?php\nif(is_file($root.'/config
 messages=original_table_page('messages','SOCIAL')
 legacy_messages=messages.replace("tableExists($db,'messages')", "tableExists($db,'php7_messages')").replace('FROM messages m','FROM php7_messages m')
 record('public/admin/index.php','messages.php',"<?php\nif(is_file($root.'/config/php7-complete.on')){\n"+lower(messages)+"\n}else{\n"+lower(legacy_messages)+"\n}\n")
-record('public/admin/index.php','social.php','<?php\n'+lower(original_table_page('social','SONGS')))
+# PHP 7 uses its own Social forms and action dispatcher.
 analytics=index[index.index("elseif($page==='analytics') {")+len("elseif($page==='analytics') {"):index.index("elseif($page==='advanced') {")].rstrip()
 record('public/admin/index.php','analytics.php','<?php\n'+lower(analytics[:analytics.rfind('}')]))
 for page,next_marker in [('database','ENDPOINT TESTER'),('endpoints','BACKUPS')]:
@@ -87,6 +88,8 @@ end=index.index("} // Styled shell; page modules below",start)
 shell=index[start:end]
 shell=shell[:shell.rfind('<?php')]
 shell=shell.replace("require __DIR__.'/core/navigation.php';", "require __DIR__.'/navigation.php';")
+# PHP 8-only responsive layer is not shipped in the PHP 7 native asset bundle.
+shell=shell.replace('<link rel="stylesheet" href="/admin/admin-alignment.css?v=2">\n', '')
 shell=shell.replace("(string)((Environment::get('MUCHO_ACCOUNT_URL', '') ?: $branding['server_name']))", "(string)(!empty($settings['site_url'])?$settings['site_url']:$branding['server_name'])")
 shell=re.sub(r'(?m)^ *<button[^>]*data-lang="ru"[^>]*>.*?</button>\n', '', shell)
 record('public/admin/index.php','styled-shell.php',shell)

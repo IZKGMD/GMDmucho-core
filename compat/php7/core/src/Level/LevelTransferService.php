@@ -56,12 +56,8 @@ final class LevelTransferService
         }
         $levelId = $this->intField($data, 'levelID', 0, 0, PHP_INT_MAX);
         /* Never allow a client to update another user's level by ID alone. */
-        $existing = null;
-        if ($levelId > 0) {
-            $existing = $this->repository->findLevel($levelId);
-            if (!$existing || (int) ($existing['account_id'] ?? 0) !== $accountId) {
-                throw new RuntimeException('Level ownership mismatch.');
-            }
+        if ($levelId > 0 && !$this->repository->ownsLevel($levelId, $accountId)) {
+            throw new RuntimeException('Level ownership mismatch.');
         }
         $name = trim($this->stringField($data, 'levelName', 'Unnamed', 64));
         if ($name === '') {
@@ -85,12 +81,12 @@ final class LevelTransferService
         $savedId = $this->repository->saveLevel($levelData);
         $saved = $this->repository->findLevel($savedId);
         if ($saved !== null) {
-            $this->revisions->record($saved, $accountId, $existing === null ? 'upload' : 'update');
+            $this->revisions->record($saved, $accountId, $levelId === 0 ? 'upload' : 'update');
             $this->searchIndexer->upsert($savedId);
-            $this->cache->deletePrefix('mucho:levels:');
+            $this->invalidateLevelCache();
             try {
                 $this->jobs->enqueue('level.index', ['level_id' => $savedId]);
-                $this->jobs->enqueue('webhook.dispatch', ['event' => $existing === null ? 'level.uploaded' : 'level.updated', 'request_id' => (string) ($_SERVER['MUCHO_REQUEST_ID'] ?? ''), 'data' => ['level_id' => $savedId, 'account_id' => $accountId, 'name' => (string) ($saved['name'] ?? ''), 'game_version' => (int) ($saved['game_version'] ?? 0)]]);
+                $this->jobs->enqueue('webhook.dispatch', ['event' => $levelId === 0 ? 'level.uploaded' : 'level.updated', 'request_id' => (string) ($_SERVER['MUCHO_REQUEST_ID'] ?? ''), 'data' => ['level_id' => $savedId, 'account_id' => $accountId, 'name' => (string) ($saved['name'] ?? ''), 'game_version' => (int) ($saved['game_version'] ?? 0)]]);
             } catch (Throwable $__mcCaught) {
                 // Background work is best-effort and must not break GD traffic.
             }
@@ -102,11 +98,10 @@ final class LevelTransferService
         if ($levelId <= 0 || $clientLevelVersion <= 0) {
             return '-1';
         }
-        $level = $this->repository->findLevel($levelId);
-        if ($level === null) {
+        $serverLevelVersion = $this->repository->findLevelVersion($levelId);
+        if ($serverLevelVersion === null) {
             return '-1';
         }
-        $serverLevelVersion = max(1, (int) ($level['level_version'] ?? 1));
         return $clientLevelVersion >= $serverLevelVersion ? '1' : '2';
     }
     public function download(int $levelId, int $gameVersion, int $binaryVersion, bool $extras, bool $incrementDownloads, int $viewerAccountId = 0, string $viewerCredential = '', string $clientIp = ''): string
@@ -130,12 +125,20 @@ final class LevelTransferService
         if (!LevelAccess::canRead($this->pdo, $level, $this->auth, $viewerAccountId, $viewerCredential)) {
             return '-1';
         }
-        if ($incrementDownloads) {
-            $this->downloadTracker->record($levelId, $clientIp);
-        }
+        // A download is counted only after the entire client response has
+        // been encoded. A codec failure must never inflate download metrics.
         $response = $this->downloadEncoder->encode($level, $gameVersion, $extras, $binaryVersion);
         if ($timelyId > 0 && $response !== '-1') {
             $response = $this->decorateTimelyResponse($response, $timelyId, $gameVersion, $level);
+        }
+        if ($incrementDownloads && $response !== '-1') {
+            try {
+                // Download telemetry is best-effort. Its storage must not turn
+                // a correctly encoded level into a client-visible -1.
+                $this->downloadTracker->record($levelId, $clientIp);
+            } catch (Throwable $error) {
+                error_log(sprintf('[MuchoCore] request_id=%s level_download_tracking_failed level_id=%d exception=%s', (string) ($_SERVER['MUCHO_REQUEST_ID'] ?? '-'), $levelId, \get_class($error)));
+            }
         }
         return $response;
     }
@@ -275,7 +278,7 @@ final class LevelTransferService
         $updated = $this->repository->updateDescription($levelId, $accountId, GdLegacyText::encodeDescriptionUpdateForStorage($description, $gameVersion));
         if ($updated) {
             $this->searchIndexer->upsert($levelId);
-            $this->cache->deletePrefix('mucho:levels:');
+            $this->invalidateLevelCache();
         }
         return $updated;
     }
@@ -293,13 +296,26 @@ final class LevelTransferService
         $deleted = $this->repository->deleteLevel($levelId, $accountId);
         if ($deleted) {
             $this->searchIndexer->delete($levelId);
-            $this->cache->deletePrefix('mucho:levels:');
+            $this->invalidateLevelCache();
             try {
                 $this->jobs->enqueue('webhook.dispatch', ['event' => 'level.deleted', 'request_id' => (string) ($_SERVER['MUCHO_REQUEST_ID'] ?? ''), 'data' => ['level_id' => $levelId, 'account_id' => $accountId]]);
             } catch (Throwable $__mcCaught) {
             }
         }
         return $deleted;
+    }
+    /**
+     * A successful database write must not be reported as failed merely
+     * because the optional cache backend cannot invalidate an entry.
+     * Public level-list caches have a short TTL and will expire naturally.
+     */
+    private function invalidateLevelCache()
+    {
+        try {
+            $this->cache->deletePrefix('mucho:levels:');
+        } catch (Throwable $error) {
+            error_log(sprintf('[MuchoCore] request_id=%s level_cache_invalidation_failed exception=%s', (string) ($_SERVER['MUCHO_REQUEST_ID'] ?? '-'), \get_class($error)));
+        }
     }
     private function stringField(array $data, string $key, string $default, int $maxLength): string
     {

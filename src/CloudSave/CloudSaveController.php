@@ -23,9 +23,7 @@ final readonly class CloudSaveController
         Request $request
     ): Response {
 
-        $data=!empty($request->post)
-            ? $request->post
-            : $_POST;
+        $data = $request->post;
 
 
         try {
@@ -44,7 +42,7 @@ final readonly class CloudSaveController
                     $_SERVER['MUCHO_REQUEST_ID']
                     ?? '-'
                 ),
-                (int)($data['accountID'] ?? 0),
+                $request->postInt('accountID', 0),
                 $e::class
             ));
 
@@ -57,9 +55,7 @@ final readonly class CloudSaveController
         Request $request
     ): Response {
 
-        $data=!empty($request->post)
-            ? $request->post
-            : $_POST;
+        $data = $request->post;
 
 
         try {
@@ -78,7 +74,7 @@ final readonly class CloudSaveController
                     $_SERVER['MUCHO_REQUEST_ID']
                     ?? '-'
                 ),
-                (int)($data['accountID'] ?? 0),
+                $request->postInt('accountID', 0),
                 $e::class
             ));
 

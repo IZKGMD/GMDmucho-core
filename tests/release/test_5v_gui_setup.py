@@ -1,6 +1,5 @@
 """Contract tests for the standalone MuchoCore 5v.pl Windows wizard."""
 from pathlib import Path
-import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -12,6 +11,12 @@ WORKFLOW = ROOT / ".github/workflows/php7-preview-archives.yml"
 
 
 class GuiSetupContract(unittest.TestCase):
+    def test_setup_ui_uses_english(self):
+        source = GUI.read_text(encoding="utf-8")
+        self.assertNotRegex(source, r"[А-Яа-яЁё]")
+        self.assertIn("Check website and continue", source)
+        self.assertIn("Retry with plain FTP?", source)
+
     def test_gui_is_windows_onefile_entrypoint_with_offline_self_test(self):
         source = GUI.read_text(encoding="utf-8")
         self.assertIn("def _self_test()", source)
@@ -32,16 +37,16 @@ class GuiSetupContract(unittest.TestCase):
         source = GUI.read_text(encoding="utf-8")
         self.assertIn("self.empty_db = tk.BooleanVar(value=False)", source)
         self.assertIn('if not self.empty_db.get():', source)
-        self.assertIn("Подтверди, что база данных действительно пустая", source)
+        self.assertIn("Confirm that the database is empty", source)
 
     def test_client_publication_is_opt_in_and_keeps_exe_local_without_rights(self):
         source = GUI.read_text(encoding="utf-8")
         self.assertIn("self.rights = tk.BooleanVar(value=False)", source)
         self.assertIn("patch_windows(exe_source", source)
         self.assertIn("if redistribution_rights:", source)
-        self.assertIn("Публичная загрузка EXE отключена", source)
+        self.assertIn("The EXE was saved locally for personal use.", source)
         self.assertIn("download_android_private(site, report, OUTDIR)", source)
-        self.assertIn("Публичная загрузка APK отключена", source)
+        self.assertIn("The APK was saved locally for personal use.", source)
 
     def test_installer_has_frozen_resource_and_output_paths(self):
         source = INSTALL.read_text(encoding="utf-8")
@@ -80,7 +85,7 @@ class GuiSetupContract(unittest.TestCase):
         self.assertIn("MuchoCore-5V-Setup-Windows-x64", source)
         self.assertIn("release:", source)
         self.assertIn("softprops/action-gh-release@v2", source)
-        self.assertIn("files: dist/MuchoCore-Setup.exe", source)
+        self.assertIn("dist/MuchoCore-Setup.exe", source)
 
 
 if __name__ == "__main__":

@@ -30,6 +30,7 @@ done
 
 mkdir -p "$STAGE/mc/compat" "$STAGE/mc/public" \
   "$STAGE/mc/config" "$STAGE/mc/docs"
+cp "$ROOT/VERSION" "$STAGE/mc/"
 cp -a "$ROOT/compat/php7" "$STAGE/mc/compat/"
 rm -rf "$STAGE/mc/compat/php7/core/tests"
 cp "$ROOT/public/php7.php" "$ROOT/public/php7-setup.php" "$STAGE/mc/public/"
@@ -45,7 +46,7 @@ done
 cp -a "$ROOT/public/admin/assets/gd" "$STAGE/mc/public/admin/assets/"
 cp "$ROOT/public/admin/assets/qrcode.min.js" "$STAGE/mc/public/admin/assets/"
 cp "$ROOT/public/muchocore-theme.css" "$ROOT/public/muchocore-theme.js" "$STAGE/mc/public/"
-for asset in creator-events.css product-ui.css product-ui.js php7-admin-base.css php7-admin-login.css php7-admin-product.js php7-admin-dashboard.js php7-admin-host.js php7-shared-patcher.js php7-passkeys.js; do
+for asset in creator-events.css demonlist.css product-ui.css product-ui.js php7-admin-base.css php7-admin-login.css php7-admin-product.js php7-admin-dashboard.js php7-admin-host.js php7-shared-patcher.js php7-passkeys.js; do
   cp "$ROOT/public/assets/$asset" "$STAGE/mc/public/assets/"
 done
 printf '%s\n' '<?php require __DIR__ . "/public/php7-admin.php";' > "$STAGE/mc/admin.php"
@@ -100,6 +101,8 @@ RewriteRule ^api/api/accounts/lostusername\.php$ mc/public/php7.php [QSA,L,NC]
 RewriteRule ^(?:api|a)/(?:api/)?(?:profile|clans|muchocore)/ mc/public/php7.php [QSA,L,NC]
 RewriteRule ^(?:a|database|accounts|api)/(?:accounts/)?[A-Za-z0-9_-]+\.php$ mc/public/php7.php [QSA,L,NC]
 RewriteRule ^(?:getAccountURL|getCustomContentURL|checkIfServerOnline)\.php$ mc/public/php7.php [QSA,L,NC]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^(?:[A-Za-z][A-Za-z0-9_-]*GJ[A-Za-z0-9_-]*|accountManagement|getLevelRateInfo|getSaveData|lostpassword|lostusername|openedRegister|requestUserAccess|uploadFriendRequest20|admin(?:ClearReportedContent|CloseCase|CommentBan|CommentUnban|DeleteUserComments|FreezeAccount|GetAbuseInfo|GetAccountReview|GetReportQueue|GetReportedContent|GetUserHistory|MessageBan|MessageUnban|NameLock|NameUnlock|QueueMute|QueueUnmute|ThreadAction|TrendingBan|TrendingUnban|UnfreezeAccount|Upload(?:Ban|Unban)))\.php$ mc/public/php7.php [QSA,L,NC]
 RewriteRule ^gd-content/news/news_version\.txt$ mc/public/php7.php [QSA,L,NC]
 RewriteRule ^gd-content/news/news\.dat$ mc/public/php7.php [QSA,L,NC]
 RewriteRule ^news/news_version\.txt$ mc/public/php7.php [QSA,L,NC]
@@ -149,6 +152,21 @@ UPDATE AN EXISTING NATIVE INSTALLATION
    does not change an installation's pinned core snapshot.
 6. Check the domain and feature switches in Settings and verify game routes.
 
+EMERGENCY ADMINISTRATOR RECOVERY
+--------------------------------
+If recovery email is unavailable, open
+https://YOUR-DOMAIN/mc/admin.php?emergency_recovery=1 .
+Using your hosting provider's FTP file manager, read the SECOND LINE of
+mc/config/php7-emergency-code.php (96 hex characters). The first line of
+this private file rejects direct HTTP access. Never publish this secret.
+Enter the code and a new owner password in the emergency form.
+The existing owner is recovered; game data and other users are preserved.
+Lost 2FA, passkeys, recovery codes and previous admin sessions are revoked.
+The private emergency code rotates after every successful recovery.
+Re-enable 2FA and save new recovery codes after signing in.
+Always preserve this private file in backups, but NEVER distribute it with
+a release archive or place it in the website root.
+
 SHARED FEATURES
 ---------------
 * Original Styled and Plain admin, ratings, moderation, native administrator
@@ -190,7 +208,7 @@ README
 # The GUI EXE is self-contained; source launchers use Python 3.10+ on the operator's PC.
 for item in INSTALL_5V.py RECOVER_ADMIN_5V.py mucho5v.py \
   PUBLISH_CLIENTS_5V.py muchoclients5v.py GUI_SETUP_5V.py \
-  RECOVERY_HANDLER.php.tpl START_INSTALL_WINDOWS.cmd START_INSTALL_ADVANCED_WINDOWS.cmd START_GUI_WINDOWS.cmd START_RECOVERY_WINDOWS.cmd \
+  RECOVERY_HANDLER.php.tpl DATABASE_CHECK.php.tpl START_INSTALL_WINDOWS.cmd START_INSTALL_ADVANCED_WINDOWS.cmd START_GUI_WINDOWS.cmd START_RECOVERY_WINDOWS.cmd \
   START_INSTALL_LINUX.sh START_RECOVERY_LINUX.sh \
   START_CLIENTS_WINDOWS.cmd START_CLIENTS_LINUX.sh README_RU.txt; do
   test -f "$ROOT/tools/release/5v-installer/$item" || {
@@ -220,7 +238,7 @@ if [[ "${MUCHO_5V_WEB_DEPLOY:-0}" == "1" ]]; then
 else
 (cd "$STAGE" && zip -qr "$OUTPUT" mc \
  "5V_ROOT_REWRITE_RULES.txt" "START_HERE_SHARED.txt" \
- INSTALL_5V.py RECOVER_ADMIN_5V.py mucho5v.py RECOVERY_HANDLER.php.tpl \
+ INSTALL_5V.py RECOVER_ADMIN_5V.py mucho5v.py RECOVERY_HANDLER.php.tpl DATABASE_CHECK.php.tpl \
  PUBLISH_CLIENTS_5V.py muchoclients5v.py gd_windows_patcher.py GUI_SETUP_5V.py \
  START_INSTALL_WINDOWS.cmd START_INSTALL_ADVANCED_WINDOWS.cmd START_GUI_WINDOWS.cmd START_RECOVERY_WINDOWS.cmd \
  START_INSTALL_LINUX.sh START_RECOVERY_LINUX.sh \
@@ -237,9 +255,9 @@ for item in mc/admin.php mc/public/php7-admin.php mc/public/assets/php7-admin-ba
   mc/compat/php7/news.php mc/compat/php7/schema.php \
   mc/compat/php7/features.sql mc/compat/php7/interactions.php \
   mc/compat/php7/cloudsave.php mc/compat/php7/profile.php mc/compat/php7/readiness.php \
-  mc/.htaccess mc/public/.htaccess \
+  mc/VERSION mc/.htaccess mc/public/.htaccess \
   5V_ROOT_REWRITE_RULES.txt START_HERE_SHARED.txt \
-  INSTALL_5V.py RECOVER_ADMIN_5V.py mucho5v.py RECOVERY_HANDLER.php.tpl \
+  INSTALL_5V.py RECOVER_ADMIN_5V.py mucho5v.py RECOVERY_HANDLER.php.tpl DATABASE_CHECK.php.tpl \
   PUBLISH_CLIENTS_5V.py muchoclients5v.py gd_windows_patcher.py GUI_SETUP_5V.py \
   START_INSTALL_WINDOWS.cmd START_INSTALL_ADVANCED_WINDOWS.cmd START_GUI_WINDOWS.cmd START_RECOVERY_WINDOWS.cmd \
   START_INSTALL_LINUX.sh START_RECOVERY_LINUX.sh \
@@ -256,7 +274,7 @@ for item in mc/admin.php mc/public/php7-admin.php mc/public/assets/php7-admin-ba
   }
 done
 for forbidden in mc/config/php7-local.php mc/config/php7-news.json \
-  mc/config/php7-setup-key.txt mc/public/php7-mode.on \
+  mc/config/php7-setup-key.txt mc/config/php7-emergency-code.php mc/public/php7-mode.on \
   mc/vendor/autoload.php mc/src/Core/Application.php; do
   if grep -Fxq "$forbidden" "$LIST"; then
     echo "Forbidden private or PHP8-only package file: $forbidden" >&2

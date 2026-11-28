@@ -14,6 +14,7 @@ from pathlib import Path
 import shutil
 import socket
 import subprocess
+import sys
 import tempfile
 import time
 import urllib.error
@@ -21,7 +22,7 @@ import urllib.parse
 import urllib.request
 import zlib
 from shared_account_email import check_email_recovery
-from shared_player_dashboard import check_player_dashboard
+from shared_player_dashboard import check_music_delivery, check_player_dashboard
 
 REPO = Path(__file__).resolve().parents[2]
 PASSWORD = "P0Fixture-1!"
@@ -66,6 +67,9 @@ def run(php, report):
         # No request header can choose this behavior in the deployed runtime.
         router.write_text("<?php require __DIR__.'/mail-sink.php'; $_SERVER['HTTPS']='on';"
                           "$_SERVER['SCRIPT_NAME']='/mc/public/php7.php';"
+                          "if(is_file(__DIR__.'/config/protection-fixture.on'))$_ENV['MUCHO_PROTECT']='1';"
+                          "ob_start(null,0,PHP_OUTPUT_HANDLER_CLEANABLE|PHP_OUTPUT_HANDLER_FLUSHABLE);"
+                          "if(strpos($_SERVER['REQUEST_URI'],'/lost')!==false)date_default_timezone_set('Pacific/Honolulu');"
                           "header('X-P0-OPcache: '.(function_exists('opcache_get_status')&&opcache_get_status(false)!==false?'enabled':'missing'));"
                           "require __DIR__.'/public/php7.php';")
         servers, logs, ports = [], [], []
@@ -121,6 +125,29 @@ def run(php, report):
 
             check_player_dashboard("http://127.0.0.1:%d" % ports[0], fixture)
             checks.append("player-dashboard/login/profile/clans/mount/csrf/read-only")
+            check_music_delivery("http://127.0.0.1:%d" % ports[0], fixture)
+            checks.append("shared-music/head/single-range/suffix/if-range/unverified")
+            marker = root / "config/php7-complete.on"
+            marker.unlink()
+            fixture("read-only")
+            try:
+                require(post("/database/accounts/registerGJAccount.php", dict(
+                    VERSION, userName="ReadOnlyLegacy", password=PASSWORD,
+                    email="legacy-readonly@example.invalid")) == "-1",
+                    "Legacy registration ignored the read-only switch")
+                require(fixture("inspect")["accounts"] == 4,
+                        "Legacy registration wrote an account while read-only")
+                fixture("profile-legacy-block")
+                try:
+                    require(post("/a/getGJUserInfo20.php",
+                                 dict(VERSION, accountID=1, gjp2=GJP2, targetAccountID=2)) == "-1",
+                            "Pre-migration PHP7 did not honor the existing block")
+                finally:
+                    fixture("profile-legacy-unblock")
+            finally:
+                fixture("writable")
+                marker.write_text("1")
+            checks.append("native-pre-migration-registration-read-only")
             login = dict(VERSION, userName="P0Owner", password=PASSWORD)
             require(post("/a/accounts/loginGJAccount22.php", login, "account.login") == "1,101", "Password login IDs")
             require(post("/database/loginGJAccount20.php", dict(VERSION, userName="P0Owner", gjp2=GJP2)) == "1,101", "GJP2 login")
@@ -249,6 +276,58 @@ def run(php, report):
             require(post("/a/getGJScores20.php", dict(VERSION, type="friends", accountID=1, gjp2="wrong")) == "-1", "Friends leaderboard authentication")
             checks.append("search/download/byte-roundtrip/timestamps/leaderboard/empty-results")
 
+            viewer = dict(VERSION, accountID=1, gjp2=GJP2)
+            profile_path = "/a/getGJUserInfo20.php"
+            require(fields(post(profile_path, dict(viewer, targetAccountID=2)))["31"] == "0",
+                    "Unrelated profiles should have no relationship state")
+            fixture("profile-relationships-seed")
+            try:
+                own = fields(post(profile_path, dict(viewer, targetAccountID=1)))
+                require(own["39"] == "1", "Read and removed friend requests inflate the unread badge")
+                public = fields(post(profile_path, dict(VERSION, targetAccountID=1)))
+                require(all(key not in public for key in ("38", "39", "40")), "Public profile includes unread counters")
+                incoming = fields(post(profile_path, dict(viewer, targetAccountID=2)))
+                require(incoming["31"] == "3" and incoming["35"] == "aW5jb21pbmc=" and int(incoming["32"]) > 0,
+                        "Incoming friend request metadata missing from the profile")
+                other_viewer = dict(VERSION, accountID=2, gjp2=other)
+                outgoing = fields(post(profile_path, dict(other_viewer, targetAccountID=1)))
+                require(outgoing["31"] == "4" and "32" not in outgoing, "Outgoing friend request framing")
+            finally:
+                fixture("profile-relationships-clear")
+            require(post("/a/blockGJUser20.php", dict(viewer, targetAccountID=2)) == "1", "Create test block")
+            try:
+                require(post(profile_path, dict(viewer, targetAccountID=2)) == "-1", "Block sender saw blocked profile")
+                require(post(profile_path, dict(other_viewer, targetAccountID=1)) == "-1", "Blocked viewer saw profile")
+            finally:
+                require(post("/a/unblockGJUser20.php", dict(viewer, targetAccountID=2)) == "1", "Remove test block")
+            for target in (3, 4, 99999999):
+                require(post(profile_path, dict(VERSION, targetAccountID=target)) == "-1", "Unavailable profile was shown")
+            relative = post("/a/getGJScores20.php", dict(viewer, type="relative", count=10))
+            require([(fields(row)["1"], fields(row)["6"]) for row in relative.split("|")]
+                    == [("P0Other", "1"), ("P0Owner", "2")], "Relative leaderboard order or eligible ranks")
+            users = "/a/getGJUsers20.php"
+            found = post(users, dict(VERSION, str="P0"))
+            require(found.endswith("#2:0:10") and "P0Banned" not in found and "P0Inactive" not in found,
+                    "Search count exposed unavailable accounts")
+            require("P0Other" in post(users, dict(VERSION, str="102")), "Numeric user ID lookup")
+            require(post(users, dict(VERSION, str="P0_")) == "-1"
+                    and post(users, dict(VERSION, str="P0", page=1)) == "-1", "Search literal or empty page")
+            fixture("profile-search-seed")
+            try:
+                search = dict(VERSION, str="Paging_")
+                first = post(users, search)
+                last = post(users, dict(search, page=1))
+                require(first.endswith("#12:0:10") and last.endswith("#12:10:10"),
+                        "Full and short search pages disagree on the total")
+                require([fields(row)["1"] for row in first.split("#")[0].split("|")]
+                        == ["Paging_" + str(i) for i in range(1000, 1010)], "Search ties changed pagination order")
+                recovered = fields(post(profile_path, dict(VERSION, targetAccountID=1011)))
+                require(recovered["1"] == "Paging_1011" and int(recovered["2"]) > 0,
+                        "Legacy account without a profile did not recover its user ID")
+            finally:
+                fixture("profile-search-clear")
+            checks.append("profiles/block-directions/unread-counters/friend-state/eligible-ranks/pagination")
+
             comment = base64.b64encode(b"P0 comment").decode()
             require(post("/a/uploadGJComment21.php", dict(VERSION, accountID=1, gjp2=GJP2, levelID=level, comment=comment)) not in ("-1", "-2"), "Comment upload rejected")
             comments = post("/a/getGJComments21.php", dict(VERSION, levelID=level, count=10), "comments.read")
@@ -258,6 +337,8 @@ def run(php, report):
             checks.append("comment-write/read/content/timestamps/pagination")
 
             fixture("friendships")
+            require(fields(post(profile_path, dict(viewer, targetAccountID=2)))["31"] == "1",
+                    "Accepted friendship missing from the profile")
             require(post("/a/uploadGJLevel21.php", dict(upload, levelID=level, unlisted2=1)) == level, "Private update rejected")
             require(post("/a/downloadGJLevel22.php", download_request) == "-1", "Private download was public")
             friend_request = dict(download_request, accountID=2, gjp2=other)
@@ -283,10 +364,22 @@ def run(php, report):
 
             # Three independent PHP processes exercise real simultaneous DB access,
             # including on PHP 7.0 (which has no CLI server worker pool).
+            baseline_downloads = fixture("inspect")
+            fixture("download-counter-fail")
+            try:
+                require(post("/a/downloadGJLevel22.php", dict(download_request, inc=1)).startswith("1:" + level + ":"),
+                        "Counter failure must not break a valid level response")
+                require(fixture("inspect") == baseline_downloads,
+                        "Counter failure must leave the download transaction unchanged")
+            finally:
+                fixture("download-counter-restore")
+
             def concurrent_download(index):
                 return post("/a/downloadGJLevel22.php", dict(download_request, inc=1), worker=index % 3)
             with ThreadPoolExecutor(max_workers=6) as pool:
                 results = list(pool.map(concurrent_download, range(12)))
+            invalid = [body[:256] for body in results if not body.startswith("1:" + level + ":")]
+            require(not invalid, "Concurrent download returned malformed responses: %r" % invalid)
             require(all(fields(body.split("#")[0])["1"] == level for body in results), "Concurrent download response")
             state = fixture("inspect")
             require(int(state["levels"][0]["downloads"]) == 2 and state["download_slots"] == 2,
@@ -617,6 +710,14 @@ def run(php, report):
                     "Account rate limit failed closed")
             checks.append("native-account-management/mount/cookie/csrf/current-password/no-gjp2/banned/read-only/revocation/audit/rollback/rate-limit")
             checks.append(check_email_recovery(post, fixture, root, ports[0], require))
+            fixture("email-recovery-atomic")
+            checks.append("recovery-token-replacement-rollback")
+            fixture("email-recovery-race-prepare")
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                list(executor.map(fixture, ("email-recovery-race-first", "email-recovery-race-second")))
+                list(executor.map(fixture, ("email-recovery-race-first", "email-recovery-race-same")))
+            fixture("email-recovery-race-verify")
+            checks.append("recovery-token-concurrency-same-and-different-accounts")
             fixture("creator-install")
             creator_url = "http://127.0.0.1:%d/mc/extensions/creator-events" % ports[0]
             for readonly in (False, True):
@@ -631,6 +732,15 @@ def run(php, report):
                     "Shared read-only plugin mutation accepted")
             fixture("writable")
             checks.append("creator-events/bundled-install/shared-route/mount/read-only")
+            (root / "config/protection-fixture.on").touch()
+            aliases = ("/a/getGJUsers20.php", "/database/getGJUserSearch.php")
+            with ThreadPoolExecutor(max_workers=3) as executor:
+                responses = list(executor.map(lambda index: post(
+                    aliases[index % 2], dict(VERSION, str="P0Owner"), worker=index % 3), range(33)))
+            require(sum("P0Owner" in response for response in responses) == 30
+                    and responses.count("-1") == 3, "Parallel search aliases did not share the exact burst budget")
+            require(post("/a/checkIfServerOnline.php", VERSION) == "1", "Limiter blocked the native health route")
+            checks.append("muchoprotect-enabled/aliases/concurrent-db-quota/health-exemption")
             result = dict(kind="synthetic-local-http", native_client_certified=False,
                           php=Path(php).name, game_version=22, binary_version=51,
                           fixture_accounts=fixture("inspect")["accounts"], checks=checks, timings={})
@@ -647,6 +757,9 @@ def run(php, report):
                 server.wait(timeout=10)
             for log in logs:
                 log.close()
+            if sys.exc_info()[0] is not None:
+                for path in sorted(root.glob("server-*.log")):
+                    print(path.name + ":\n" + path.read_text(errors="replace")[-4000:], file=sys.stderr)
             if (root / "config/php7-local.php").exists():
                 fixture("drop")
 

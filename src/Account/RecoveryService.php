@@ -63,15 +63,10 @@ final readonly class RecoveryService
 
         $token = bin2hex(random_bytes(32));
         $tokenHash = hash('sha256', $token);
-        $expiresAt = date(
-            'Y-m-d H:i:s',
-            time() + self::TOKEN_TTL_SECONDS
-        );
-
         $this->repository->createToken(
             (int)$account['account_id'],
             $tokenHash,
-            $expiresAt,
+            self::TOKEN_TTL_SECONDS,
             hash('sha256', $ip)
         );
 

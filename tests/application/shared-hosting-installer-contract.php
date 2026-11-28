@@ -155,29 +155,27 @@ foreach ([
 require_once $root . '/public/admin/first-run.php';
 foreach ([
     'new browser defaults to English' => muchoAdminFirstRunLanguage([], []) === 'en',
-    'previously chosen Russian remains selected' =>
-        muchoAdminFirstRunLanguage([], ['mucho_admin_language' => 'ru']) === 'ru',
-    'query English overrides Russian cookie' =>
+    'old Russian cookie is ignored' =>
+        muchoAdminFirstRunLanguage([], ['mucho_admin_language' => 'ru']) === 'en',
+    'English query remains English' =>
         muchoAdminFirstRunLanguage(['lang' => 'en'], ['mucho_admin_language' => 'ru']) === 'en',
-    'query Russian overrides English cookie' =>
-        muchoAdminFirstRunLanguage(['lang' => 'ru'], ['mucho_admin_language' => 'en']) === 'ru',
+    'old Russian query cannot change the admin language' =>
+        muchoAdminFirstRunLanguage(['lang' => 'ru'], ['mucho_admin_language' => 'en']) === 'en',
     'unknown locale falls back to English' =>
         muchoAdminFirstRunLanguage(['lang' => 'de'], []) === 'en',
-    'array query input cannot select a locale' =>
+    'array query input cannot change the locale' =>
         muchoAdminFirstRunLanguage(['lang' => ['ru']], []) === 'en',
     'English first-run heading' =>
         muchoAdminFirstRunCopy('en')['heading'] === 'Create first administrator',
-    'Russian first-run heading' =>
-        muchoAdminFirstRunCopy('ru')['heading'] === 'Создать первого администратора',
-    'all first-run messages have Russian translations' =>
-        array_keys(muchoAdminFirstRunCopy('en')) === array_keys(muchoAdminFirstRunCopy('ru')),
+    'copy ignores old Russian preference' =>
+        muchoAdminFirstRunCopy('ru') === muchoAdminFirstRunCopy('en'),
     'English error translations exist' =>
         str_contains(muchoAdminFirstRunCopy('en')['secret_invalid'], 'activation link'),
-    'language selector rendered on the first-run page' =>
-        str_contains($wizard, 'class="language-switcher"'),
-    'selected language persists via admin cookie' =>
-        str_contains($wizard, "setcookie('mucho_admin_language'"),
-    'selected language persists after form validation' =>
+    'language selector is absent' =>
+        !str_contains($wizard, 'class="language-switcher"'),
+    'no admin language preference cookie is created' =>
+        !str_contains($wizard, "setcookie('mucho_admin_language'"),
+    'English validation forms remain on the setup route' =>
         str_contains($wizard, 'action="/admin/?lang='),
 ] as $name => $ok) {
     if (!$ok) {

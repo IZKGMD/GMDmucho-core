@@ -166,6 +166,33 @@ try {
         'like' => '0',
     ]))->body === '-1', 'missing credential cannot fall back to anonymous');
 
+    // GD 2.209 malformed actor, item and vote fields must fail closed.
+    // Previously malformed accountID could silently cast to anonymous 0
+    // and bypass per-account vote verification.
+    foreach ([
+        ['accountID' => '2junk', 'gjp2' => 'pass-2',
+            'itemID' => '1', 'type' => '2', 'like' => '1'],
+        ['accountID' => '99999999999999999999999999', 'gjp2' => 'pass-2',
+            'itemID' => '1', 'type' => '2'],
+        ['accountID' => '2', 'gjp2' => 'pass-2',
+            'itemID' => 'broken', 'levelID' => '20', 'type' => '2'],
+        ['accountID' => '2', 'gjp2' => 'pass-2',
+            'itemID' => '1', 'type' => 'broken'],
+        ['accountID' => '2', 'gjp2' => 'pass-2',
+            'itemID' => '1', 'type' => '2', 'like' => 'broken'],
+        ['accountID' => '0', 'gjp2' => 'pass-2',
+            'itemID' => '1', 'type' => '2'],
+    ] as $invalid) {
+        $check($controller->like($request($invalid))->body === '-1',
+            'malformed GD 2.209 vote is not downgraded or silently accepted');
+    }
+    $check($score('comments', 'id', 1) === 1,
+        'malformed requests did not mutate comment counter');
+    $check($score('levels', 'level_id', 20) === 0,
+        'malformed comment context did not turn into a level vote');
+    $check((int)$db->query('SELECT COUNT(*) FROM likes WHERE item_id=1 AND type=2')->fetchColumn() === 3,
+        'malformed authenticated vote created no anonymous row');
+
     // Audit pre-existing counters without silently rewriting history.
     $auditor = new VoteIntegrityAuditor($db);
     $clean = $auditor->scan(100, 100, 20);

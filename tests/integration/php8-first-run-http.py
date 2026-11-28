@@ -32,21 +32,21 @@ def check(condition, label):
     print("PASS " + label, flush=True)
 
 
-def safe_run(args, extra_env=None, timeout=90):
+def safe_run(args, extra_env=None, timeout=90, input_text=None, expected_code=0):
     env = os.environ.copy()
     if extra_env:
         env.update(extra_env)
     result = subprocess.run(
-        args, cwd=ROOT, env=env, text=True, stdout=subprocess.PIPE,
+        args, cwd=ROOT, env=env, text=True, input=input_text, stdout=subprocess.PIPE,
         stderr=subprocess.PIPE, timeout=timeout, check=False,
     )
-    if result.returncode != 0:
+    if result.returncode != expected_code:
         raise RuntimeError(
             "First-run check command failed (exit %s): %s" %
             (result.returncode, " ".join(args[:5]))
             + "; command output: " + (result.stderr.strip() or result.stdout.strip())[:900]
         )
-    return result.stdout.strip()
+    return (result.stderr if expected_code else result.stdout).strip()
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -142,6 +142,84 @@ def db_state(password):
         timeout=20,
     )
     return json.loads(output)
+
+
+def verify_console_recovery(command, owner, password, browser):
+    new_password = secrets.token_urlsafe(24) + "!8a"
+    check("already completed owner setup" in safe_run(
+        command + ["create", "second_owner", "keep-2fa"],
+        input_text=new_password, expected_code=1,
+    ), "console creation refuses an already sealed installation")
+    code, page, _ = browser.get("/admin/?emergency_recovery=1")
+    check(code == 200 and "sudo mucho admin recover" in page,
+          "the emergency page points at the working terminal command")
+    fixture_sql = r"""
+require 'vendor/autoload.php';
+$db = (new \MuchoCore\Database\Database())->connection();
+if ($db->query('SELECT DATABASE()')->fetchColumn() !== 'testgdps') {
+    throw new RuntimeException('Refusing non-test database');
+}
+$select = $db->prepare("SELECT id,totp_secret FROM admin_users WHERE username=? AND role='owner'");
+$select->execute([$argv[2]]);
+$owner = $select->fetch(PDO::FETCH_ASSOC);
+if (!$owner) throw new RuntimeException('Missing test owner');
+$id = (int)$owner['id'];
+\MuchoCore\Admin\AdminEmailRecovery::ensureSchema($db);
+if ($argv[1] === 'seed') {
+    $db->prepare("UPDATE admin_users SET totp_secret='JBSWY3DPEHPK3PXP' WHERE id=?")->execute([$id]);
+    $db->prepare('INSERT INTO admin_recovery_codes (admin_user_id,code_hash) VALUES (?,?)')
+        ->execute([$id, 'fixture-backup-code-hash']);
+    $db->prepare("INSERT INTO admin_passkeys
+        (admin_user_id,credential_id,user_handle,credential_public_key)
+        VALUES (?,'console-recovery-test','fixture','fixture-key')")->execute([$id]);
+    $db->prepare('INSERT INTO mucho_admin_client_tokens (admin_user_id,token_hash,expires_at)
+        VALUES (?,?,UTC_TIMESTAMP()+INTERVAL 1 DAY)')->execute([$id, str_repeat('f', 64)]);
+    $db->prepare("INSERT INTO admin_email_recovery (admin_user_id,verified_email,
+        verified_at, pending_email,verify_token_hash,reset_token_hash)
+        VALUES (?,'owner-test@example.invalid',UTC_TIMESTAMP(),'pending@example.invalid',?,?)")
+        ->execute([$id, str_repeat('a', 64), str_repeat('b', 64)]);
+    exit;
+}
+$email = $db->query('SELECT verified_email,verify_token_hash,reset_token_hash
+    FROM admin_email_recovery WHERE admin_user_id=' . $id)->fetch(PDO::FETCH_ASSOC);
+echo json_encode([
+    'totp' => $owner['totp_secret'] !== null,
+    'passkeys' => (int)$db->query('SELECT COUNT(*) FROM admin_passkeys
+        WHERE is_active=1 AND admin_user_id=' . $id)->fetchColumn(),
+    'backup_codes' => (int)$db->query('SELECT COUNT(*) FROM admin_recovery_codes
+        WHERE admin_user_id=' . $id)->fetchColumn(),
+    'api_tokens' => (int)$db->query('SELECT COUNT(*) FROM mucho_admin_client_tokens
+        WHERE revoked_at IS NULL AND admin_user_id=' . $id)->fetchColumn(),
+    'verified_email' => $email['verified_email'],
+    'pending_links' => $email['verify_token_hash'] !== null || $email['reset_token_hash'] !== null,
+], JSON_THROW_ON_ERROR);
+"""
+    safe_run(["php", "-r", fixture_sql, "--", "seed", owner])
+    check("No matching active owner" in safe_run(
+        command + ["recover", "absent_owner", "keep-2fa"],
+        input_text=new_password, expected_code=1,
+    ) and db_state(password)["password_ok"], "unknown owner does not change credentials")
+    check("Password updated" in safe_run(
+        command + ["recover", "", "keep-2fa"], input_text=new_password,
+    ), "console recovery selects the single active owner")
+    code, page, _ = browser.get()
+    check(code == 200 and "Administrator sign in" in page,
+          "owner recovery invalidates the existing browser session")
+    state = json.loads(safe_run(["php", "-r", fixture_sql, "--", "state", owner]))
+    check(state == {
+        "totp": True, "passkeys": 1, "backup_codes": 1, "api_tokens": 0,
+        "verified_email": "owner-test@example.invalid", "pending_links": False,
+    }, "normal recovery preserves 2FA and verified email while revoking tokens and links")
+    check("Password updated" in safe_run(
+        command + ["recover", owner, "reset-2fa"], input_text=new_password,
+    ), "explicit lost-2FA recovery works")
+    state = json.loads(safe_run(["php", "-r", fixture_sql, "--", "state", owner]))
+    check(not state["totp"] and state["passkeys"] == 0 and state["backup_codes"] == 0,
+          "lost-2FA recovery invalidates authenticator, passkeys and backup codes")
+    check(not db_state(password)["password_ok"], "old password is invalid after recovery")
+    code, _, headers = browser.post({"username": owner, "password": new_password, "login": "1"})
+    check(code in (302, 303) and headers.get("Location", "").startswith("/admin/"),
+          "owner signs in with the recovered password")
 
 
 CONSOLE_OWNER_FIXTURE_RESET_PHP = r"""
@@ -242,14 +320,21 @@ def main():
           and db_state(password)["count"] == 0,
           "isolated console fixture reset preserves browser onboarding test")
 
+    owner_command = COMPOSE + ["exec", "-T", "testgdps-app", "php", "bin/mucho-owner-account.php"]
+    check("Owner created: testowner." in safe_run(
+        owner_command + ["create", "testowner", "keep-2fa"], input_text=console_password,
+    ) and db_state(console_password)["sealed"] == 1,
+        "interactive owner creation uses the same one-time setup seal")
+    safe_run(["php", "-r", CONSOLE_OWNER_FIXTURE_RESET_PHP], timeout=20)
+
     code, page, headers = browser.get()
     check(code == 200 and "Open the private setup link" in page
           and '<html lang="en">' in page,
           "anonymous first visitor must activate ownership before registration")
     check("Create first administrator" not in page,
           "anonymous first visitor does not see a usable registration form")
-    check('data-lang="en"' in page and 'data-lang="ru"' in page,
-          "first-owner page provides EN / RU language switcher")
+    check('data-lang="ru"' not in page and 'class="language-switcher"' not in page,
+          "first-owner page shows no language switcher")
     check("no-store" in headers.get("Cache-Control", ""),
           "bootstrap page is not cacheable")
     check(secret not in page and 'name="setup_key"' not in page,
@@ -311,23 +396,18 @@ def main():
           "mismatched passwords cannot create an administrator")
 
     code, page, _ = browser.get("/admin/?lang=ru")
-    check(code == 200 and "Создать первого администратора" in page
-          and '<html lang="ru">' in page,
-          "Russian first-owner translation is available")
+    check(code == 200 and "Create first administrator" in page
+          and '<html lang="en">' in page
+          and "Создать первого администратора" not in page,
+          "old Russian URL cannot change the first-run language")
     code, page, _ = browser.get()
-    check(code == 200 and "Создать первого администратора" in page,
-          "Russian selection persists across requests")
-    code, page, _ = browser.post(dict(form, password_confirm="mismatch"))
-    check(code == 200 and "Пароли не совпадают." in page
-          and db_state(password)["count"] == 0,
-          "Russian first-owner validation errors are localized")
-    code, page, _ = browser.get("/admin/?lang=en")
     check(code == 200 and "Create first administrator" in page
           and '<html lang="en">' in page,
-          "English can be selected after Russian")
-    code, page, _ = browser.get()
-    check(code == 200 and "Create first administrator" in page,
-          "English selection persists across requests")
+          "English remains stable on subsequent first-run requests")
+    code, page, _ = browser.post(dict(form, password_confirm="mismatch"))
+    check(code == 200 and "Passwords do not match." in page
+          and db_state(password)["count"] == 0,
+          "validation errors stay English after legacy Russian query")
 
     code, _, headers = browser.post(form)
     check(code == 303 and headers.get("Location") == "/admin/",
@@ -393,6 +473,7 @@ def main():
     check(code == 200 and "Administrator sign in" not in page,
           "authenticated dashboard is available after restart")
     check(db_state(password) == state, "repeated login never reopens first-owner setup")
+    verify_console_recovery(owner_command, owner, password, anonymous)
     print("MUCHOCORE_PHP8_FRESH_INSTALL_HTTP_OK", flush=True)
 
 

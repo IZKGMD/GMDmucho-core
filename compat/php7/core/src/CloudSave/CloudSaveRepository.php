@@ -27,6 +27,17 @@ final class CloudSaveRepository
         // ciphertext first, avoiding another large payload allocation.
         $this->db->beginTransaction();
         try {
+            // The first save has no child row to lock. Lock the existing
+            // account row to serialize concurrent initial backups and avoid
+            // duplicate revision 1 under overlapping PHP-FPM workers.
+            $owner = $this->db->prepare(
+                'SELECT account_id FROM accounts WHERE account_id=:account FOR UPDATE'
+            );
+            $owner->execute(['account' => $accountId]);
+            if ($owner->fetchColumn() === false) {
+                throw new RuntimeException('Cloud save account not found.');
+            }
+
             $q = $this->db->prepare("\n                SELECT\n                    account_id,\n                    ciphertext,\n                    nonce,\n                    auth_tag,\n                    sha256,\n                    size_bytes,\n                    revision,\n                    backed_up_at\n\n                FROM mucho_cloud_saves\n\n                WHERE account_id=:account\n\n                FOR UPDATE\n            ");
             $q->execute(['account' => $accountId]);
             $old = $q->fetch(PDO::FETCH_ASSOC);
@@ -66,17 +77,28 @@ final class CloudSaveRepository
             $upsert->bindValue(':size', $size, PDO::PARAM_INT);
             $upsert->bindValue(':revision', $revision, PDO::PARAM_INT);
             $upsert->execute();
-            /*
-             * Keep last five previous revisions.
-             */
-            $history = $this->db->prepare("\n                SELECT history_id\n\n                FROM mucho_cloud_save_revisions\n\n                WHERE account_id=:account\n\n                ORDER BY revision DESC\n\n                LIMIT 100\n            ");
+            // Keep exactly the newest five revisions, even after an
+            // old import containing hundreds of historical saves. Query
+            // only the five newest revision numbers, then prune the rest
+            // in one indexed DELETE (account_id, revision).
+            $history = $this->db->prepare(
+                'SELECT revision
+                 FROM mucho_cloud_save_revisions
+                 WHERE account_id=:account
+                 ORDER BY revision DESC
+                 LIMIT 5'
+            );
             $history->execute(['account' => $accountId]);
-            $ids = array_map('intval', $history->fetchAll(PDO::FETCH_COLUMN));
-            if (count($ids) > self::HISTORY_LIMIT) {
-                foreach (array_slice($ids, self::HISTORY_LIMIT) as $historyId) {
-                    $delete = $this->db->prepare("\n                        DELETE FROM\n                        mucho_cloud_save_revisions\n\n                        WHERE history_id=:id\n                          AND account_id=:account\n                    ");
-                    $delete->execute(['id' => $historyId, 'account' => $accountId]);
-                }
+            $revisions = array_map('intval', $history->fetchAll(PDO::FETCH_COLUMN));
+            if (count($revisions) === self::HISTORY_LIMIT) {
+                $delete = $this->db->prepare(
+                    'DELETE FROM mucho_cloud_save_revisions
+                     WHERE account_id=:account AND revision<:oldest'
+                );
+                $delete->execute([
+                    'account' => $accountId,
+                    'oldest' => min($revisions),
+                ]);
             }
             $this->db->commit();
             return $revision;

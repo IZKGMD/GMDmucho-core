@@ -11,9 +11,12 @@ and interrupted legacy browser setup flows remain protected.
 
 ## Language
 
-The admin panel supports English and Russian. The original first-run
-browser activation UI remains available only to already-pending legacy
-installations, not as the default fresh VPS flow.
+The administrator panel and first-run screens are **English-only**. Existing
+`?lang=ru` bookmarks and `mucho_admin_language=ru` cookies are ignored;
+server-generated labels and validation messages stay in English across tabs.
+The original first-run browser activation UI remains available only to
+already-pending legacy installations, not as the default fresh VPS flow.
+This does not change languages supported on the public site or in the game.
 
 ## New VPS installation
 
@@ -31,9 +34,9 @@ first-owner flow, and repeat installs preserve the chosen login/password.
 For unattended installs use `MUCHO_ADMIN_USER` and `MUCHO_ADMIN_PASSWORD`
 through a **private environment** (not public logs, command arguments or
 query strings). If an old installation was interrupted before the browser
-setup was completed, `sudo mucho admin` can inspect the state and provide
-the **legacy** private setup link in a private terminal. New installations do
-not need that link.
+setup was completed, run `sudo mucho admin create` in your VPS terminal.
+For browser setup, `sudo mucho owner-link` displays the private activation
+link. The installer completes this step automatically on fresh VPS installs.
 
 Use `sudo mucho doctor` to check container health, DNS, public HTTPS,
 database migrations and whether an active owner exists. Do not post
@@ -59,7 +62,18 @@ The PHP 7 runtime is a preview and does **not** have full PHP 8 feature parity.
 
 Existing administrators and login passwords are preserved. A database seal (`admin_initialization`) prevents reopening enrollment if accounts are later deleted. Routine deployment never resets the owner password.
 
-If you lose access, use configured verified-email recovery. For a single active owner without two-factor authentication, `sudo mucho owner-recovery-link` issues a private, one-time password setup link valid for 24 hours. This immediately invalidates the old password and sessions. The `bin/mucho-admin-setup.sh` helper remains available for an explicit local server-console reset.
+Set up a verified recovery address in **Administrators** after signing in.
+**Forgot your password?** sends a single-use reset link if email is configured.
+
+From your VPS terminal, run `sudo mucho admin recover` to enter and confirm
+a new owner password. Add the owner's username if more than one active owner
+exists. The console reset invalidates browser sessions, API tokens and pending
+recovery links. It preserves the verified email address and second factors.
+
+If you also lost your second factors, use
+`sudo mucho admin recover --reset-2fa [USERNAME]`. Set up your authenticator
+and passkeys again after signing in. The existing `sudo mucho owner-recovery-link`
+command is also available for a single active owner without an authenticator.
 
 ## Security boundaries
 

@@ -4,7 +4,6 @@
 All writes are restricted to the GitHub Actions testgdps database and a
 randomly named disposable song in the isolated HTTP acceptance stack.
 """
-import json
 import os
 from pathlib import Path
 import re
@@ -15,6 +14,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import wave
 
 ROOT = Path(__file__).resolve().parents[2]
 BASE = "http://127.0.0.1:18080"
@@ -52,6 +52,26 @@ def request(path, fields=None, headers=None):
         return response.status, response.read(), dict(response.headers.items())
 
 
+def create_mp3_fixture(tone):
+    ffmpeg = [os.environ.get("MUCHO_TEST_FFMPEG", "ffmpeg"), "-hide_banner", "-nostdin", "-loglevel", "error"]
+    run(ffmpeg + [
+        "-f", "lavfi", "-i", "sine=frequency=523:duration=1.0",
+        "-ac", "1", "-ar", "22050", "-codec:a", "libmp3lame",
+        "-b:a", "64k", "-y", str(tone),
+    ])
+    source_bytes = tone.read_bytes()
+    check(len(source_bytes) > 1000, "original test MP3 is nonempty")
+    decoded = tone.with_suffix(".wav")
+    run(ffmpeg + [
+        "-xerror", "-f", "mp3", "-c:a", "mp3", "-i", str(tone),
+        "-c:a", "pcm_s16le", "-y", str(decoded),
+    ])
+    with wave.open(str(decoded), "rb") as audio:
+        check(audio.getnframes() / audio.getframerate() > 0.5,
+              "fixture decodes to more than half a second of MP3 audio")
+    return source_bytes
+
+
 def main():
     if not (os.environ.get("GITHUB_ACTIONS") == "true" and
             os.environ.get("MUCHO_TEST_ALLOW_WRITES") == "1" and
@@ -73,21 +93,7 @@ def main():
     try:
         with tempfile.TemporaryDirectory(prefix="muchocore-audio-") as temporary:
             tone = Path(temporary) / "original-test-tone.mp3"
-            run([
-                "ffmpeg", "-hide_banner", "-nostdin", "-loglevel", "error",
-                "-f", "lavfi", "-i", "sine=frequency=523:duration=1.0",
-                "-ac", "1", "-ar", "22050", "-codec:a", "libmp3lame",
-                "-b:a", "64k", "-y", str(tone),
-            ])
-            source_bytes = tone.read_bytes()
-            check(len(source_bytes) > 1000, "original test MP3 is nonempty")
-            media = json.loads(run([
-                "ffprobe", "-v", "error", "-show_entries",
-                "format=duration:stream=codec_name", "-of", "json", str(tone),
-            ]))
-            check(any(s.get("codec_name") == "mp3" for s in media.get("streams", []))
-                  and float(media["format"]["duration"]) > 0.5,
-                  "fixture is decodable MP3 rather than fabricated header bytes")
+            source_bytes = create_mp3_fixture(tone)
             # Match PHP-FPM's production upload ownership and 0640 mode;
             # 0644 would hide a real Caddy-vs-PHP permissions regression.
             run(["sudo", "install", "-o", "www-data", "-g", "www-data",

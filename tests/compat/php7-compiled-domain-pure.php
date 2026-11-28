@@ -10,6 +10,20 @@ $sources=json_decode(file_get_contents($root.'/compat/php7/core/sources.json'),t
 // changes fail this guard until the snapshot is explicitly recompiled.
 // PHP 7 retains its previous, verified single-build Android patcher.
 $php8OnlyDiagnosticHashes=array(
+    // PHP 8 endpoint review. These exact revisions are pending the PHP 7 port.
+    'src/Account/AccountService.php'=>'d47cd2ba509f5e736cd70a2db406d855cf99bd5d6994b6ba1f6d47dca3684438',
+    'src/CloudSave/CloudSaveService.php'=>'7bf9310038af5eb52b0a1ce8d5fbc6a216448f56f79f6bd3d54ceb469afc129d',
+    'src/Compatibility/DiscoveryController.php'=>'28a8bd39a57976c72153ea54bd0335b0dd3f719f3718d7ae807bc564649fe395',
+    'src/LevelList/LevelListRepository.php'=>'4dee38efcc2598f37fc7cdf4d1ee30a680c1ad8ce9d6d5887f57ec7560267370',
+    'src/LevelList/LevelListService.php'=>'aa81001b03ebbc6df3db1825b58faca828d64c7cb7068799ff65d622729d3327',
+    'src/Social/RelationshipController.php'=>'39d4ad9311e012d6ebc7588bd1ae71e2e07b2e2291bd12f2fc5a67517e8892a1',
+    'src/Social/RelationshipRepository.php'=>'b5e1fbeaa789c425727a194d34959334f7aaa138e8c022d31201e7729b1ce8ff',
+    'src/Social/RelationshipService.php'=>'3cc77f9b12097556adc5cde1e12d667f5c244d8f207efa3c6d97edaad58bba79',
+    'tests/application/gd2209-gameplay-schema-integration.php'=>'0f24048f3757f9abb8001dbb8fd50e3a652c658dd7e35d3adc014e9234510856',
+    // PHP 8 webhook SSRF hardening; PHP 7 compiled runtime remains unchanged.
+    'src/Integration/WebhookDispatcher.php'=>'c330659d2243e22f2f75a1dee1cf5f1cc1d97d91dfe4d3f73a06bfbe3a51b6f5',
+    // PHP 8 admin copy is English-only; the native PHP 7 compiled snapshot remains frozen.
+    'public/admin/advanced-module.php'=>'1fff523ddae413cbc47e4eb5a11b9ac8a7cc3f29b8578b405e97c49916a23eb0',
     // PHP 8-first native profile reporting. The PHP 7 generated snapshot is
     // intentionally held constant until the separate PHP 7 port is scheduled.
     // Pin exact PHP 8 source content: future edits still fail this guard.
@@ -22,6 +36,13 @@ $php8OnlyDiagnosticHashes=array(
     'src/Client/AndroidClientPatcher.php'=>'5721dc460765470757a66518d7110c5886f8c6eefe943a1dcfda5c78b5c6821d',
     'src/Social/MessageController.php'=>'20146708112462034cbe140a60a553a5e344a6bdbf3d20b1430c5059c82a660b',
     'src/Social/MessageService.php'=>'3d42dfed2b6cd97f3c8db974aabb8f1aee0ec59da6f95bdc4f388bd9fced4e86',
+    // PHP 8 request bootstrap and authentication optimizations.
+    'src/Account/AccountAuthenticator.php'=>'df4c34f8cc1624fe475e1e7dff79f8bf14a113a8cf646155490e24788d23b9a0',
+    'src/Core/Application.php'=>'44e8139178cc22edb7936c77b707d6256c69c9d6baac967656188527c3600998',
+    'src/Level/LevelTransferRepository.php'=>'5d3fce996b77d2e0216d46d8e04804866ac98cfc7646835df812682c4c2349fb',
+    'src/Level/LevelTransferService.php'=>'5d4c3456d6f379d28e8555dbc01d62728ef76b600b0f5021d599924a8bd6bd90',
+    'src/Routing/Router.php'=>'d67bce97a1168d7682f2a9010b05f2a4ef4c0e54f170a2204817f6e011e85751',
+    'src/Level/LevelDownloadTracker.php'=>'81a0a1314d86793d76961e4a4cf4b90b0f9ffe7b9a79f0951a63fb13ddd0e290',
 );
 $count=0;
 foreach($sources as $path=>$hash){

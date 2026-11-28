@@ -16,19 +16,19 @@ final readonly class CommentController
 
     private function getPostParam(Request $request, string $key): string
     {
-        return (string)($request->postString($key) ?: ($_POST[$key] ?? ''));
+        return $request->postString($key);
     }
 
     public function uploadLevelComment(Request $request): Response
     {
-        $accountId = $request->postInt("accountID", 0) ?: (int)($_POST["accountID"] ?? 0);
+        $accountId = $request->postInt("accountID", 0);
         $gjp = $request->gdCredential();
         $version = $request->clientVersion();
         $udid = $request->postString("udid");
         $ip = $request->clientIp();
-        $levelId = $request->postInt("levelID", 0) ?: (int)($_POST["levelID"] ?? 0);
+        $levelId = $request->postInt("levelID", 0);
         $content = $this->getPostParam($request, "comment");
-        $percent = $request->postInt("percent", 0) ?: (int)($_POST["percent"] ?? 0);
+        $percent = $request->postInt("percent", 0);
 
         $legacyUdidUpload =
             $accountId <= 0 &&
@@ -114,11 +114,11 @@ final readonly class CommentController
 
     public function getLevelComments(Request $request): Response
     {
-        $levelId = $request->postInt("levelID", 0) ?: (int)($_POST["levelID"] ?? 0);
-        $userId = $request->postInt("userID", 0) ?: (int)($_POST["userID"] ?? 0);
-        $page = $request->postInt("page", 0) ?: (int)($_POST["page"] ?? 0);
-        $count = $request->postInt("count", 10) ?: (int)($_POST["count"] ?? 10);
-        $mode = $request->postInt("mode", 0) ?: (int)($_POST["mode"] ?? 0);
+        $levelId = $request->postInt("levelID", 0);
+        $userId = $request->postInt("userID", 0);
+        $page = $request->postInt("page", 0);
+        $count = $request->postInt("count", 10);
+        $mode = $request->postInt("mode", 0);
         $version = $request->clientVersion();
 
         try {
@@ -163,7 +163,7 @@ final readonly class CommentController
 
     public function uploadAccountComment(Request $request): Response
     {
-        $accountId = $request->postInt("accountID", 0) ?: (int)($_POST["accountID"] ?? 0);
+        $accountId = $request->postInt("accountID", 0);
         $gjp = $request->gdCredential();
         $version = $request->clientVersion();
         $udid = $request->postString("udid");
@@ -192,8 +192,8 @@ final readonly class CommentController
 
     public function getAccountComments(Request $request): Response
     {
-        $accountId = $request->postInt("accountID", 0) ?: (int)($_POST["accountID"] ?? 0);
-        $page = $request->postInt("page", 0) ?: (int)($_POST["page"] ?? 0);
+        $accountId = $request->postInt("accountID", 0);
+        $page = $request->postInt("page", 0);
 
         try {
             return Response::text(
@@ -219,8 +219,8 @@ final readonly class CommentController
 
     public function deleteComment(Request $request): Response
     {
-        $commentId = $request->postInt("commentID", 0) ?: (int)($_POST["commentID"] ?? 0);
-        $accountId = $request->postInt("accountID", 0) ?: (int)($_POST["accountID"] ?? 0);
+        $commentId = $request->postInt("commentID", 0);
+        $accountId = $request->postInt("accountID", 0);
         $gjp = $request->gdCredential();
         $version = $request->clientVersion();
         $udid = $request->postString("udid");
@@ -244,8 +244,8 @@ final readonly class CommentController
 
     public function deleteAccountComment(Request $request): Response
     {
-        $commentId = $request->postInt("commentID", 0) ?: (int)($_POST["commentID"] ?? 0);
-        $accountId = $request->postInt("accountID", 0) ?: (int)($_POST["accountID"] ?? 0);
+        $commentId = $request->postInt("commentID", 0);
+        $accountId = $request->postInt("accountID", 0);
         $gjp = $request->gdCredential();
         $version = $request->clientVersion();
         $udid = $request->postString("udid");

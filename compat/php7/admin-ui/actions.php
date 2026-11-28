@@ -71,6 +71,11 @@ function mucho7_admin_ui_action(PDO $pdo,$aid,$action,$data,$root,$settings){
         $module=strpos($action,'clan-')===0?'clans':(strpos($action,'muchoprofile-')===0?'profiles':($action==='relation-delete'?'social':'contentpacks'));
         $db=$pdo;require mucho7_compiled_include($root.'/public/admin/actions/'.$module.'.php');return;
     }
+    if(in_array($action,array('demonlist-level','demonlist-review'),true)){
+        if(!is_file($root.'/config/php7-complete.on'))throw new RuntimeException('Complete the core migration first.');
+        require_once $root.'/compat/php7/domain.php';mucho7_domain_configure($settings,$root,$pdo);
+        $db=$pdo;require mucho7_compiled_include($root.'/public/admin/actions/demonlist.php');return;
+    }
     if($action==='comment-delete'&&is_file($root.'/config/php7-complete.on')){
         $actor=mucho7_admin_user($pdo,$aid);if(!mucho7_admin_can($pdo,$actor,'comments.manage'))throw new RuntimeException('No permission for this action.');
         $table=isset($data['table'])&&is_string($data['table'])?$data['table']:'';

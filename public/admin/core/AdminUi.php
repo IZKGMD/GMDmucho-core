@@ -4,11 +4,23 @@ declare(strict_types=1);
 /** Shared, bounded list state. Only allowlisted query fields survive a POST. */
 function adminListState(array $input): array
 {
+    $query = $input['q'] ?? '';
+    $filter = $input['filter'] ?? '';
+    $page = $input['p'] ?? 1;
     return [
-        'q' => mb_substr(trim((string)($input['q'] ?? '')), 0, 128, 'UTF-8'),
-        'filter' => (string)($input['filter'] ?? ''),
-        'p' => max(1, min(100000, (int)($input['p'] ?? 1))),
+        'q' => is_string($query) ? mb_substr(trim($query), 0, 128, 'UTF-8') : '',
+        'filter' => is_string($filter) ? $filter : '',
+        'p' => max(1, min(100000, adminRecordId($page) ?? 1)),
     ];
+}
+
+function adminRecordId(mixed $value): ?int
+{
+    if (!is_int($value) && !is_string($value)) {
+        return null;
+    }
+    $id = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+    return $id === false ? null : $id;
 }
 
 function adminListReturnFields(array $state): void

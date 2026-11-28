@@ -105,6 +105,32 @@ $controller = (string)file_get_contents($controllerFile);
 $repository = (string)file_get_contents($repositoryFile);
 $history = (string)file_get_contents($historyFile);
 
+// Native Request parsing must be the sole source of comment parameters.
+// A malformed request field must not get reinterpreted using a global POST
+// value or cast "123junk" to the unintended comment/level/account ID.
+$malformedComment = new Request('POST', '/database/uploadGJComment21.php', [], [
+    'accountID' => '123junk',
+    'levelID' => '456junk',
+    'commentID' => '789junk',
+    'page' => '12junk',
+    'count' => '10junk',
+    'percent' => '90junk',
+], []);
+foreach (['accountID','levelID','commentID','page','count','percent'] as $field) {
+    assertCommentContract(
+        $malformedComment->postInt($field, -1) === -1,
+        'reject malformed comment field: ' . $field
+    );
+}
+assertCommentContract(
+    !str_contains($controller, '(int)($_POST') &&
+    !str_contains($controller, '(int) ($_POST') &&
+    !str_contains($controller, '?: ($_POST') &&
+    !str_contains($controller, '?: $_POST[') &&
+    str_contains($controller, 'return $request->postString($key);'),
+    'comments cannot fall back to permissively cast global POST data'
+);
+
 assertCommentContract(
     str_contains($controller, '$count,') &&
     str_contains($controller, '$mode'),

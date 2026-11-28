@@ -868,7 +868,7 @@ document.getElementById('v4PlayerForm')
 
     if(op==='delete'){
         const x=prompt(
-            'Удалятся аккаунты и связанные данные.\\nВведите DELETE'
+            'Deleting accounts also deletes related data.\\nType DELETE to confirm'
         );
 
         if(x!=='DELETE'){

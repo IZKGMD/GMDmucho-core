@@ -29,12 +29,18 @@ final class Response
     {
         return new self('', $this->status, $this->contentType);
     }
-    public function send()
+    public static function clearOutputBuffers()
     {
-        // Clear output buffers, BOMs and accidental whitespace.
-        while (ob_get_level() > 0) {
+        while (ob_get_level() > 0 && ob_get_status()['flags'] & PHP_OUTPUT_HANDLER_REMOVABLE) {
             ob_end_clean();
         }
+        if (ob_get_level() > 0 && ob_get_status()['flags'] & PHP_OUTPUT_HANDLER_CLEANABLE) {
+            ob_clean();
+        }
+    }
+    public function send()
+    {
+        self::clearOutputBuffers();
         http_response_code($this->status);
         header('Content-Type: ' . $this->contentType);
         echo $this->body;

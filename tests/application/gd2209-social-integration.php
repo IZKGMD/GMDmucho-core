@@ -202,6 +202,25 @@ try {
         !$notifications->claim(2, 'pass-2', $notificationId),
         'duplicate claim is rejected'
     );
+    // Server knows only the follow notification wire shape. A future
+    // imported event type must be excluded from the native list and cannot
+    // be marked claimed as though it carried a known reward.
+    $db->exec("INSERT INTO mucho_notifications
+        (account_id,actor_account_id,notification_type,source_id)
+        VALUES (2,1,'message',555)");
+    $unsupported = (int)$db->query(
+        "SELECT id FROM mucho_notifications WHERE notification_type='message'"
+    )->fetchColumn();
+    $followList = $notifications->list(2, 'pass-2', 0);
+    $check(str_ends_with($followList, '#1:0:20') &&
+        substr_count($followList, '|') === 0,
+        'unsupported notifications do not change native list or pagination');
+    $check(!$notifications->claim(2, 'pass-2', $unsupported) &&
+        (int)$db->query('SELECT reward_claimed FROM mucho_notifications WHERE id=' .
+            $unsupported)->fetchColumn() === 0,
+        'unsupported notification cannot be silently claimed');
+    $db->exec('DELETE FROM mucho_notifications WHERE id=' . $unsupported);
+
     $check(
         $following->mute(1, 'pass-1', 2, true) &&
         $following->mute(1, 'pass-1', 2, true),

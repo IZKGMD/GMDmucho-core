@@ -26,6 +26,7 @@ jobs:
           [[ "$(grep -c '^preflight()' install.sh)" -eq 1 ]]
           [[ "$(grep -c -x 'EOFOUT' install.sh)" -eq 1 ]]
           bash tests/release/install-sh.sh
+          python3 tests/release/test_vps_install_inputs.py
           bash tests/release/deployment-contract.sh
           bash tests/release/installer-dx.sh
           php tests/release/php-runtime-security-contract.php
@@ -82,7 +83,11 @@ jobs:
         run: |
           VERSION="$(tr -d '[:space:]' < VERSION)"
           if [[ -f ".release/v${VERSION}.ready" ]]; then
-            php tests/release/v110-endpoint-gate.php
+            case "$(cat ".release/v${VERSION}.ready")" in
+              php8-maintenance) php tests/protocol/endpoint-perfection.php ;;
+              '') php tests/release/v110-endpoint-gate.php ;;
+              *) echo "Unknown stable release profile" >&2; exit 1 ;;
+            esac
           fi
 
       - name: Check PHP sources
@@ -97,6 +102,8 @@ jobs:
           php bin/mucho-gd2209-coverage.php --json > /dev/null
           php tests/client/client-compatibility.php
           php tests/client/gd-2209-synthetic.php
+          php tests/application/gd2209-audio-batch-sqlite.php
+          php tests/application/gd2209-level-score-batch-sqlite.php
           php tests/client/gd-2209-patcher-quality.php
           php tests/client/parallel-apk-upload.php
           php tests/application/client-patcher-cleanup.php
@@ -113,6 +120,7 @@ jobs:
           php tests/protocol/protocol-19-surface.php
           php tests/protocol/protocol-19-wire.php
           php tests/protocol/social-wire.php
+          php tests/protocol/gd2209-notification-wire.php
           php tests/protocol/gd2209-message-trace.php
           php tests/protocol/level-protocol-guards.php
           php tests/protocol/protocol-22-hashes.php
@@ -171,6 +179,7 @@ jobs:
           php tests/application/comment-contract.php
           php tests/application/social-crud-contract.php
           php tests/application/friend-request-read-state.php
+          php tests/application/gd2209-legacy-social-profiles-sqlite.php
           php tests/application/player-session-revocation.php
           php tests/application/v106-hardening-contract.php
           php tests/application/v108-intelligence-contract.php
@@ -212,6 +221,11 @@ jobs:
           php tests/client/android-client-patcher.php
           bash tests/client/client-auto-patch-contract.sh
 
+      - name: Enforce continuous endpoint quality and test coverage
+        run: |
+          python3 tests/release/php8-ci-continuity-test.py
+          python3 tests/release/endpoint-inventory-growth-test.py
+
       - name: Audit 1.1.0 P0 endpoint evidence (diagnostic, not release signoff)
         run: |
           python3 tests/release/v110_p0_audit_test.py
@@ -236,14 +250,18 @@ jobs:
           python3 tests/release/test_5v_archive_installer.py
           python3 tests/release/test_5v_client_publisher.py
           python3 tests/release/test_5v_gui_setup.py
+          python3 tests/release/test_5v_install_resume.py
           python3 tools/client/client-patch.py --self-test
           php tests/application/php82-shared-host-compatibility.php
           php tests/application/shared-hosting-installer-contract.php
           php tests/application/shared-one-archive-installer-contract.php
           php tests/compat/php7-native-pure.php
           php tests/compat/php7-native-parity.php
+          php tests/compat/php7-halogen-legacy-routes.php
+          php tests/compat/php7-gd2209-client-route-inventory.php
           php tests/compat/php7-native-download-parity.php
           php tests/compat/php7-native-auth.php
+          php tests/compat/php7-admin-mail-recovery.php
           php tests/compat/php7-cloudsave-crypto.php
           php tests/compat/php7-domain-complete-query.php
           php tests/compat/php7-native-original-admin.php
@@ -259,6 +277,7 @@ jobs:
           php tests/compat/php7-native-features-pure.php
           php tests/compat/php7-native-comments-parity.php
           php tests/compat/php7-native-social-parity.php
+          php tests/compat/php7-social-input-parity.php
           php tests/application/shared-hosting-ftp-bootstrap-contract.php
           php tests/application/ftp-installer-preserves-existing.php
           php tests/application/shared-hosting-ftp-deploy-contract.php
@@ -296,6 +315,8 @@ jobs:
           node --check public/muchocore-theme.js
           node --check public/admin/admin-i18n.js
           node --test tests/application/product-ui.test.cjs
+          node --test tests/application/admin-alignment.test.cjs
+          node --test tests/application/admin-english-only.test.cjs
           node --test tests/application/mucho-design-system.test.cjs
           node --test tests/application/mucho-minimal-design.test.cjs
           node --test tests/application/mucho-structure-v3.test.cjs
@@ -677,7 +698,9 @@ jobs:
           TEST_DB_HOST: 127.0.0.1
           TEST_DB_PORT: 3306
           TEST_DB_ROOT_PASSWORD: ci-migration-root
-        run: php tests/application/cvolton-migration-integration.php
+        run: |
+          php tests/application/cvolton-migration-integration.php
+          php tests/application/migration-demonlist-integration.php
 
       - name: Verify PHP 8 registration race responses, GJP2 and transaction rollback
         env:
@@ -760,14 +783,18 @@ jobs:
           TEST_DB_HOST: 127.0.0.1
           TEST_DB_PORT: 3306
           TEST_DB_ROOT_PASSWORD: ci-migration-root
-        run: php tests/application/cloudsave-consistency-integration.php
+        run: |
+          php tests/application/cloudsave-consistency-integration.php
+          php tests/compat/php7-native-cloudsave-history-mysql.php
 
       - name: Verify queue leases and database cache races
         env:
           TEST_DB_HOST: 127.0.0.1
           TEST_DB_PORT: 3306
           TEST_DB_ROOT_PASSWORD: ci-migration-root
-        run: php tests/application/core-storage-integration.php
+        run: |
+          php tests/application/core-storage-integration.php
+          php tests/security/muchoprotect-storage-mysql.php
 
       - name: Verify bounded search index rebuild
         env:
@@ -832,7 +859,9 @@ jobs:
           TEST_DB_HOST: 127.0.0.1
           TEST_DB_PORT: 3306
           TEST_DB_ROOT_PASSWORD: ci-migration-root
-        run: php tests/application/gd2209-social-integration.php
+        run: |
+          php tests/application/gd2209-social-integration.php
+          php tests/compat/php7-native-notifications-mysql.php
 
       - name: Verify PHP 8 private message migration, encoding and access controls
         env:
@@ -846,7 +875,9 @@ jobs:
           TEST_DB_HOST: 127.0.0.1
           TEST_DB_PORT: 3306
           TEST_DB_ROOT_PASSWORD: ci-migration-root
-        run: php tests/application/gd2209-thread-integration.php
+        run: |
+          php tests/application/gd2209-thread-integration.php
+          php tests/compat/php7-native-threads-privacy-mysql.php
 
       - name: Verify GD 2.209 Daily, Weekly, Event, Quests and Rewards schema
         env:
@@ -874,7 +905,10 @@ jobs:
           TEST_DB_HOST: 127.0.0.1
           TEST_DB_PORT: 3306
           TEST_DB_ROOT_PASSWORD: ci-migration-root
-        run: php tests/application/gd2209-level-integration.php
+        run: |
+          php tests/application/gd2209-level-integration.php
+          php tests/compat/php7-native-level-score-leaderboard-mysql.php
+          php tests/compat/php7-native-levelscore-readonly-mysql.php
 
       - name: Verify GD 2.209 moderation queue roles, filters and sent history
         env:
@@ -954,6 +988,10 @@ jobs:
               php -l compat/php7/cloudsave.php
               php -l compat/php7/profile.php
               php -l compat/php7/schema.php
+              php -l compat/php7/admin-mail-recovery.php
+              php -l compat/php7/admin-ui/email-recovery.php
+              php -l compat/php7/admin-ui/admins.php
+              php -l public/php7-admin.php
               php -l public/php7-setup.php
               php -l compat/php7/config.example.php
               php -l public/php7.php

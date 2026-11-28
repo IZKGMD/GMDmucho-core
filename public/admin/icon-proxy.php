@@ -63,18 +63,37 @@ $contentType = '';
 
 if (function_exists('curl_init')) {
     $ch = curl_init($upstream);
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_CONNECTTIMEOUT => 3,
-        CURLOPT_TIMEOUT => 8,
-        CURLOPT_FOLLOWLOCATION => false,
-        CURLOPT_USERAGENT => 'MuchoGDPS-Admin/1.0',
-        CURLOPT_HTTPHEADER => ['Accept: image/png'],
-    ]);
-    $data = curl_exec($ch);
-    $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-    $contentType = (string)curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
-    curl_close($ch);
+    if ($ch !== false) {
+        $data = '';
+        $tooLarge = false;
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => false,
+            CURLOPT_CONNECTTIMEOUT => 3,
+            CURLOPT_TIMEOUT => 8,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_MAXFILESIZE => 512000,
+            CURLOPT_USERAGENT => 'MuchoGDPS-Admin/1.0',
+            CURLOPT_HTTPHEADER => ['Accept: image/png'],
+            // A limit applied only after curl_exec() is too late: a large
+            // upstream response can exhaust PHP memory before validation.
+            CURLOPT_WRITEFUNCTION => static function ($handle, string $chunk) use (&$data, &$tooLarge): int {
+                $bytes = strlen($chunk);
+                if ($bytes > 512000 - strlen($data)) {
+                    $tooLarge = true;
+                    return 0; // Stop the transfer; never keep a partial PNG.
+                }
+                $data .= $chunk;
+                return $bytes;
+            },
+        ]);
+        $complete = curl_exec($ch) !== false;
+        $status = (int)curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        $contentType = (string)curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+        curl_close($ch);
+        if (!$complete || $tooLarge) {
+            $data = false;
+        }
+    }
 }
 
 if (
@@ -84,7 +103,14 @@ if (
     strlen($data) <= 512000 &&
     str_starts_with($data, "\x89PNG\r\n\x1a\n")
 ) {
-    @file_put_contents($cache, $data, LOCK_EX);
+    // Publish only fully written images; concurrent requests must never
+    // read a partially written cache entry.
+    $tempCache = $cache . '.' . bin2hex(random_bytes(6)) . '.tmp';
+    if (@file_put_contents($tempCache, $data, LOCK_EX) === strlen($data)) {
+        @chmod($tempCache, 0640);
+        @rename($tempCache, $cache);
+    }
+    @unlink($tempCache);
     header('Content-Type: image/png');
     header('Cache-Control: public, max-age=86400');
     echo $data;

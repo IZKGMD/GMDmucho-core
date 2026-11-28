@@ -27,7 +27,7 @@ if str(BUNDLE_DIR) not in sys.path:
 
 import INSTALL_5V
 import RECOVER_ADMIN_5V
-from mucho5v import FtpSite, HttpsSite, InstallError, private_config, site_origin, valid_ftp_host
+from mucho5v import FtpSite, FtpTlsUnavailable, HttpsSite, InstallError, private_config, site_origin, valid_ftp_host
 from PUBLISH_CLIENTS_5V import login_owner
 from muchoclients5v import (
     patch_windows, patch_android, download_android_private,
@@ -48,6 +48,7 @@ def _self_test() -> int:
         CORE_DIR / "compat" / "php7" / "runtime.php",
         RULE_FILE,
         BUNDLE_DIR / "RECOVERY_HANDLER.php.tpl",
+        BUNDLE_DIR / "DATABASE_CHECK.php.tpl",
     )
     if not all(item.is_file() for item in required):
         return 2
@@ -131,29 +132,29 @@ def prepare_clients(cfg: dict, exe_source: Path | None,
             ftp = ftp_context.__enter__()
             ftp.root = cfg.get("_resolved_root")
             if not ftp.root:
-                raise InstallError("Корневая FTP-папка не сохранена после установки.")
+                raise InstallError("Setup could not recover the verified FTP folder.")
         else:
             ftp = None
 
         if exe_source:
             try:
                 output, report = patch_windows(exe_source, cfg["site"], OUTDIR)
-                log("Windows EXE пропатчен и проверен локально: " + output.name)
+                log("Windows EXE patched and verified locally: " + output.name)
                 if redistribution_rights:
                     url = publish_windows(ftp, site, output, report)
                     links["exe"] = {
                         "url": url, "sha256": report["sha256"],
                         "size": report["size"],
                     }
-                    log("Ссылка Windows: " + url)
+                    log("Windows link: " + url)
                 else:
-                    log("Публичная загрузка EXE отключена: нет подтверждения прав.")
+                    log("The EXE was saved locally for personal use.")
             except (InstallError, OSError, ValueError) as exc:
                 log("EXE: " + str(exc))
 
         if apk_source:
             try:
-                log("Вход владельца для защищённой обработки APK...")
+                log("Signing in as the owner to process the APK…")
                 login_owner(site, cfg["admin"], cfg["adminpassword"])
                 report = patch_android(
                     site, apk_source, cfg["site"],
@@ -167,561 +168,732 @@ def prepare_clients(cfg: dict, exe_source: Path | None,
                         "size": report["output_size"],
                         "certificate_sha256": report.get("certificate_sha256"),
                     }
-                    log("Ссылка Android: " + url)
+                    log("Android link: " + url)
                 else:
                     local_apk = download_android_private(site, report, OUTDIR)
-                    log("Android APK пропатчен, подписан и сохранён локально: "
+                    log("Android APK patched, signed, and saved locally: "
                         + str(local_apk))
-                    log("Публичная загрузка APK отключена: права на распространение не подтверждены.")
+                    log("The APK was saved locally for personal use.")
                 try:
                     if cleanup_published_job(site, report["job_id"]):
-                        log("Временные файлы APK очищены; ключ подписи сохранён.")
+                        log("Temporary APK files removed. The signing key was kept.")
                 except InstallError as exc:
-                    log("Предупреждение: временные файлы APK остались: " + str(exc))
-                log("Сохрани закрытый mc/config/php7-apk-signer.json в резервной копии.")
+                    log("Some temporary APK files could not be removed: " + str(exc))
+                log("Back up the private mc/config/php7-apk-signer.json file.")
             except (InstallError, OSError, ValueError) as exc:
                 log("APK: " + str(exc))
 
         if links:
             try:
                 page = publish_index(ftp, site, links)
-                log("Страница клиентов: " + page)
+                log("Client downloads page: " + page)
             except (InstallError, OSError) as exc:
-                log("Прямые ссылки готовы, но индекс не обновлён: " + str(exc))
+                log("The links are ready. The downloads page could not be updated: " + str(exc))
             try:
                 saved = save_links(OUTDIR, cfg["site"], links)
-                log("Ссылки и SHA-256 сохранены локально: " + str(saved))
+                log("Links and SHA-256 hashes saved to: " + str(saved))
             except OSError as exc:
-                log("Не удалось сохранить локальный список ссылок: " + str(exc))
+                log("Could not save the local download links: " + str(exc))
     finally:
         if ftp_context is not None:
             ftp_context.__exit__(None, None, None)
     return links
 
 
-def main() -> int:
-    if "--self-test" in sys.argv:
-        return _self_test()
+class InstallerWindow:
+    def __init__(self, root):
+        self.root = root
+        self.events = queue.Queue()
+        self.worker = None
+        self.verified_folder = None
+        self.recovery_active = False
+        self.advanced = False
+        self.root.title("MuchoCore Setup for 5v.pl")
+        self.root.geometry("760x690")
+        self.root.minsize(680, 600)
+        self.root.configure(bg="#111018")
 
-    class InstallerWindow:
-        def __init__(self, root):
-            self.root = root
-            self.events = queue.Queue()
-            self.worker = None
-            self.recovery_active = False
-            self.advanced = False
-            self.root.title("MuchoCore Setup · Только 5v.pl")
-            self.root.geometry("790x850")
-            self.root.minsize(720, 720)
-            self.root.configure(bg="#111018")
+        style = ttk.Style()
+        try:
+            style.theme_use("clam")
+        except tk.TclError:
+            pass
+        style.configure("TFrame", background="#17151f")
+        style.configure("TLabel", background="#17151f", foreground="#eeeaf5",
+                        font=("Segoe UI", 9))
+        style.configure("Title.TLabel", font=("Segoe UI", 19, "bold"),
+                        foreground="#f4efff")
+        style.configure("Sub.TLabel", foreground="#aaa3b8")
+        style.configure("TButton", font=("Segoe UI", 9), padding=7)
+        style.configure("Accent.TButton", font=("Segoe UI", 10, "bold"),
+                        foreground="#ffffff", background="#7652ad")
+        style.map("Accent.TButton", background=[("active", "#8c68c2")])
+        style.configure("TEntry", padding=6, fieldbackground="#25212e", foreground="#eeeaf5")
+        style.configure("TCheckbutton", background="#17151f", foreground="#eeeaf5")
+        style.map("TCheckbutton", background=[("active", "#25212e")])
+        style.configure("TNotebook", background="#17151f", borderwidth=0)
+        style.configure("TNotebook.Tab", padding=(14, 8), background="#25212e", foreground="#c6bfd2")
+        style.map("TNotebook.Tab", background=[("selected", "#7652ad")], foreground=[("selected", "#ffffff")])
+        style.configure("TLabelframe", background="#17151f",
+                        foreground="#eeeaf5")
+        style.configure("TLabelframe.Label", background="#17151f",
+                        foreground="#cbb6ec", font=("Segoe UI", 9, "bold"))
 
-            style = ttk.Style()
-            try:
-                style.theme_use("clam")
-            except tk.TclError:
-                pass
-            style.configure("TFrame", background="#17151f")
-            style.configure("TLabel", background="#17151f", foreground="#eeeaf5",
-                            font=("Segoe UI", 9))
-            style.configure("Title.TLabel", font=("Segoe UI", 19, "bold"),
-                            foreground="#f4efff")
-            style.configure("Sub.TLabel", foreground="#aaa3b8")
-            style.configure("TButton", font=("Segoe UI", 9), padding=7)
-            style.configure("Accent.TButton", font=("Segoe UI", 10, "bold"),
-                            foreground="#ffffff", background="#7652ad")
-            style.map("Accent.TButton", background=[("active", "#8c68c2")])
-            style.configure("TEntry", padding=6)
-            style.configure("TLabelframe", background="#17151f",
-                            foreground="#eeeaf5")
-            style.configure("TLabelframe.Label", background="#17151f",
-                            foreground="#cbb6ec", font=("Segoe UI", 9, "bold"))
+        outer = ttk.Frame(root, padding=18)
+        outer.pack(fill="both", expand=True)
+        ttk.Label(outer, text="MuchoCore", style="Title.TLabel").pack(anchor="w")
+        ttk.Label(
+            outer,
+            text="Set up a Geometry Dash server on 5v.pl",
+            style="Sub.TLabel",
+        ).pack(anchor="w", pady=(2, 12))
 
-            outer = ttk.Frame(root, padding=18)
-            outer.pack(fill="both", expand=True)
-            ttk.Label(outer, text="MuchoCore", style="Title.TLabel").pack(anchor="w")
-            ttk.Label(
-                outer,
-                text="Установка GDPS на shared-хостинг 5v.pl · Windows",
-                style="Sub.TLabel",
-            ).pack(anchor="w", pady=(2, 12))
+        top = ttk.Frame(outer)
+        top.pack(fill="x", pady=(0, 10))
+        ttk.Button(top, text="Create website on 5v.pl",
+                   command=lambda: webbrowser.open("https://5v.pl/")).pack(side="left")
+        ttk.Button(top, text="Find my FTP details",
+                   command=lambda: webbrowser.open(
+                       "https://5v.pl/pomoc,pytanie,serwer-ftp-zapomnialem-nazwy-hosta-lub-moj-unikalny-login.html"
+                   )).pack(side="left", padx=7)
+        ttk.Button(top, text="Recover admin access",
+                   command=self.open_recovery).pack(side="right")
 
-            top = ttk.Frame(outer)
-            top.pack(fill="x", pady=(0, 10))
-            ttk.Button(top, text="Открыть 5v.pl",
-                       command=lambda: webbrowser.open("https://5v.pl/")).pack(side="left")
-            ttk.Button(top, text="Где найти FTP-данные?",
-                       command=lambda: webbrowser.open(
-                           "https://5v.pl/pomoc,pytanie,serwer-ftp-zapomnialem-nazwy-hosta-lub-moj-unikalny-login.html"
-                       )).pack(side="left", padx=7)
-            ttk.Button(top, text="Восстановить админку",
-                       command=self.open_recovery).pack(side="right")
+        self.vars = {}
+        self.entries = {}
+        self.steps = ttk.Notebook(outer)
+        self.steps.pack(fill="both", expand=True, pady=(0, 8))
+        self.step_frames = []
+        self.step_canvases = []
+        for title in ("1. Website", "2. Database", "3. Administrator"):
+            page = ttk.Frame(self.steps)
+            self.steps.add(page, text=title)
+            canvas = tk.Canvas(page, background="#17151f", highlightthickness=0)
+            scrollbar = ttk.Scrollbar(page, orient="vertical", command=canvas.yview)
+            canvas.configure(yscrollcommand=scrollbar.set)
+            scrollbar.pack(side="right", fill="y")
+            canvas.pack(side="left", fill="both", expand=True)
+            panel = ttk.Frame(canvas, padding=10)
+            panel.columnconfigure(1, weight=1)
+            window = canvas.create_window((0, 0), window=panel, anchor="nw")
+            canvas.bind("<Configure>", lambda event, c=canvas, w=window: c.itemconfigure(w, width=event.width))
+            panel.bind("<Configure>", lambda event, c=canvas: c.configure(scrollregion=c.bbox("all")))
+            self.step_frames.append(panel)
+            self.step_canvases.append(canvas)
+        self.steps.bind("<<NotebookTabChanged>>", self.step_changed)
 
-            self.vars = {}
-            self.entries = {}
-            form = ttk.Frame(outer)
-            form.pack(fill="x")
-            form.columnconfigure(1, weight=1)
+        def field(parent, row, key, label, placeholder="", secret=False):
+            ttk.Label(parent, text=label).grid(row=row, column=0, sticky="w",
+                                               padx=(0, 12), pady=4)
+            var = tk.StringVar(value=placeholder)
+            entry = ttk.Entry(parent, textvariable=var, show="*" if secret else "")
+            entry.grid(row=row, column=1, sticky="ew", pady=4)
+            self.vars[key] = var
+            self.entries[key] = entry
+            return entry
 
-            def field(row, key, label, placeholder="", secret=False):
-                ttk.Label(form, text=label).grid(row=row, column=0, sticky="w",
-                                                  padx=(0, 12), pady=4)
-                var = tk.StringVar(value=placeholder)
-                entry = ttk.Entry(form, textvariable=var, show="*" if secret else "")
-                entry.grid(row=row, column=1, sticky="ew", pady=4)
-                self.vars[key] = var
-                self.entries[key] = entry
-                return entry
+        form = self.step_frames[0]
+        ttk.Label(form, text="Create a website in 5v.pl, then enter its address and the FTP details from the dashboard. Setup finds the website folder for you.",
+                  style="Sub.TLabel", wraplength=580).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 8))
+        field(form, 1, "site", "Website (name.5v.pl)")
+        field(form, 2, "ftp_host", "FTP server")
+        field(form, 3, "ftp_user", "FTP username")
+        field(form, 4, "ftp_password", "FTP password", secret=True)
+        row = 5
+        self.advanced_button = ttk.Button(
+            form, text="Advanced settings ▾",
+            command=self.toggle_advanced,
+        )
+        self.advanced_button.grid(row=row, column=0, columnspan=2,
+                                 sticky="w", pady=(8, 2))
+        row += 1
+        self.advanced_frame = ttk.Frame(form)
+        self.advanced_frame.grid(row=row, column=0, columnspan=2, sticky="ew")
+        self.advanced_frame.columnconfigure(1, weight=1)
+        self.advanced_vars = {
+            "mysqlhost": tk.StringVar(value="localhost"),
+            "mysqlport": tk.StringVar(value="3306"),
+            "root": tk.StringVar(value=""),
+            "ftp_mode": tk.StringVar(value="FTPS"),
+        }
+        for n, (key, label) in enumerate((
+            ("mysqlhost", "MySQL host"),
+            ("mysqlport", "MySQL port"),
+            ("root", "FTP folder (blank for automatic)"),
+        )):
+            ttk.Label(self.advanced_frame, text=label).grid(
+                row=n, column=0, sticky="w", padx=(0, 12), pady=3)
+            ttk.Entry(self.advanced_frame,
+                      textvariable=self.advanced_vars[key]).grid(
+                          row=n, column=1, sticky="ew", pady=3)
+        ttk.Label(self.advanced_frame, text="FTP encryption").grid(
+            row=3, column=0, sticky="w", padx=(0, 12), pady=3)
+        self.ftp_mode = ttk.Combobox(
+            self.advanced_frame, state="readonly",
+            values=("FTPS", "FTP"), textvariable=self.advanced_vars["ftp_mode"])
+        self.ftp_mode.grid(row=3, column=1, sticky="ew", pady=3)
+        self.ftp_warning = tk.BooleanVar(value=False)
+        ttk.Checkbutton(
+            self.advanced_frame,
+            text="I understand that plain FTP sends my password and files without encryption",
+            variable=self.ftp_warning,
+        ).grid(row=4, column=0, columnspan=2, sticky="w", pady=3)
+        self.advanced_frame.grid_remove()
+        row += 1
 
-            row = 0
-            ttk.Label(form, text="САЙТ И FTP", foreground="#cbb6ec",
-                      font=("Segoe UI", 9, "bold")).grid(
-                          row=row, column=0, columnspan=2, sticky="w", pady=(0, 3))
-            row += 1
-            field(row, "site", "Адрес GDPS", "https://mygdps.5v.pl"); row += 1
-            field(row, "ftp_host", "FTP-сервер 5v.pl"); row += 1
-            field(row, "ftp_user", "FTP-логин"); row += 1
-            field(row, "ftp_password", "FTP-пароль", secret=True); row += 1
+        form = self.step_frames[1]
+        ttk.Label(form, text="Create an empty MySQL database in the 5v.pl dashboard and enter its details here.",
+                  style="Sub.TLabel", wraplength=600).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 8))
+        field(form, 1, "db_name", "Empty database name")
+        field(form, 2, "db_user", "Database username")
+        field(form, 3, "db_password", "Database password", secret=True)
+        self.empty_db = tk.BooleanVar(value=False)
+        ttk.Checkbutton(form, text="I have an empty database or am resuming this installation with the same database",
+                        variable=self.empty_db).grid(row=4, column=0, columnspan=2, sticky="w", pady=8)
+        ttk.Label(form, text="The default MySQL address is localhost:3306. Change it in Advanced settings on the Website tab.",
+                  style="Sub.TLabel", wraplength=600).grid(row=5, column=0, columnspan=2, sticky="w")
 
-            ttk.Label(form, text="MYSQL И ПЕРВЫЙ ВЛАДЕЛЕЦ", foreground="#cbb6ec",
-                      font=("Segoe UI", 9, "bold")).grid(
-                          row=row, column=0, columnspan=2, sticky="w", pady=(10, 3))
-            row += 1
-            field(row, "db_name", "Имя пустой MySQL-базы"); row += 1
-            field(row, "db_user", "Логин MySQL"); row += 1
-            field(row, "db_password", "Пароль MySQL", secret=True); row += 1
-            field(row, "admin", "Логин владельца", "admin"); row += 1
-            field(row, "email", "E-mail владельца"); row += 1
-            field(row, "admin_password", "Пароль владельца (10–72 символа)", secret=True); row += 1
-            field(row, "admin_confirm", "Повтори пароль владельца", secret=True); row += 1
+        form = self.step_frames[2]
+        ttk.Label(form, text="Choose credentials for the owner of your Geometry Dash server.",
+                  style="Sub.TLabel").grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 8))
+        field(form, 1, "admin", "Admin username", "admin")
+        field(form, 2, "email", "E-mail")
+        field(form, 3, "admin_password", "Password (10–72 bytes)", secret=True)
+        field(form, 4, "admin_confirm", "Confirm password", secret=True)
+        self.clients_button = ttk.Button(form, text="Prepare game clients (optional) ▾", command=self.toggle_clients)
+        self.clients_button.grid(row=5, column=0, columnspan=2, sticky="w", pady=8)
+        self.clients_frame = ttk.Frame(form)
+        self.clients_frame.grid(row=6, column=0, columnspan=2, sticky="ew")
+        self.exe_var = tk.StringVar()
+        self.apk_var = tk.StringVar()
+        self.file_field(self.clients_frame, 0, "Windows EXE", self.exe_var, ".exe")
+        self.file_field(self.clients_frame, 1, "Android APK", self.apk_var, ".apk")
+        self.rights = tk.BooleanVar(value=False)
+        ttk.Checkbutton(self.clients_frame,
+            text="I have permission to redistribute the game files publicly",
+            variable=self.rights).grid(row=2, column=0, columnspan=3, sticky="w", pady=7)
+        self.clients_frame.grid_remove()
 
-            self.empty_db = tk.BooleanVar(value=False)
-            ttk.Checkbutton(
-                form, text="Я создал сайт и действительно пустую MySQL-базу",
-                variable=self.empty_db,
-            ).grid(row=row, column=0, columnspan=2, sticky="w", pady=(7, 2))
-            row += 1
+        self.status = tk.StringVar(value="Ready to install")
+        ttk.Label(outer, textvariable=self.status, style="Sub.TLabel").pack(
+            anchor="w", pady=(5, 4), before=self.steps)
+        self.details_button = ttk.Button(outer, text="Details ▾", command=self.toggle_log)
+        self.details_button.pack(anchor="w", pady=(0, 4), before=self.steps)
+        self.log = tk.Text(
+            outer, height=6, wrap="word", bg="#0d0c12", fg="#e8e2f0",
+            insertbackground="#ffffff", relief="flat", font=("Consolas", 9),
+            padx=9, pady=8,
+        )
+        bottom = self.bottom = ttk.Frame(outer)
+        bottom.pack(side="bottom", fill="x", pady=(10, 0), before=self.steps)
+        self.back_button = ttk.Button(bottom, text="Back", command=self.previous_step)
+        self.back_button.pack(side="left")
+        self.next_button = ttk.Button(bottom, text="Check website and continue", style="Accent.TButton", command=self.next_step)
+        self.next_button.pack(side="left", padx=8)
+        self.start_button = ttk.Button(bottom, text="Install MuchoCore", style="Accent.TButton", command=self.start)
+        self.open_admin_button = ttk.Button(bottom, text="Open admin panel", command=lambda: webbrowser.open(self.installed_site + "/mc/admin.php"))
+        ttk.Button(bottom, text="Close", command=self.on_close).pack(side="right")
+        self.step_changed()
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
+        self.root.after(120, self.pump)
+        self.write_log("Create your site and an empty database in the 5v.pl dashboard before starting.")
+        self.write_log("Setup keeps your passwords in memory and connects directly to your hosting provider.")
 
-            self.advanced_button = ttk.Button(
-                form, text="Дополнительные настройки ▾",
-                command=self.toggle_advanced,
-            )
-            self.advanced_button.grid(row=row, column=0, columnspan=2,
-                                     sticky="w", pady=(8, 2))
-            row += 1
-            self.advanced_frame = ttk.Frame(form)
-            self.advanced_frame.grid(row=row, column=0, columnspan=2, sticky="ew")
-            self.advanced_frame.columnconfigure(1, weight=1)
-            self.advanced_vars = {
-                "mysqlhost": tk.StringVar(value="localhost"),
-                "mysqlport": tk.StringVar(value="3306"),
-                "root": tk.StringVar(value=""),
-                "ftp_mode": tk.StringVar(value="FTPS"),
-            }
-            for n, (key, label) in enumerate((
-                ("mysqlhost", "MySQL host"),
-                ("mysqlport", "MySQL port"),
-                ("root", "FTP-папка (пусто = авто)"),
-            )):
-                ttk.Label(self.advanced_frame, text=label).grid(
-                    row=n, column=0, sticky="w", padx=(0, 12), pady=3)
-                ttk.Entry(self.advanced_frame,
-                          textvariable=self.advanced_vars[key]).grid(
-                              row=n, column=1, sticky="ew", pady=3)
-            ttk.Label(self.advanced_frame, text="FTP-защита").grid(
-                row=3, column=0, sticky="w", padx=(0, 12), pady=3)
-            self.ftp_mode = ttk.Combobox(
-                self.advanced_frame, state="readonly",
-                values=("FTPS", "FTP"), textvariable=self.advanced_vars["ftp_mode"])
-            self.ftp_mode.grid(row=3, column=1, sticky="ew", pady=3)
-            self.ftp_warning = tk.BooleanVar(value=False)
-            ttk.Checkbutton(
-                self.advanced_frame,
-                text="Понимаю: обычный FTP передаёт пароль и файлы без шифрования",
-                variable=self.ftp_warning,
-            ).grid(row=4, column=0, columnspan=2, sticky="w", pady=3)
-            self.advanced_frame.grid_remove()
-            row += 1
+    def toggle_log(self):
+        if self.log.winfo_ismapped():
+            self.log.pack_forget()
+            self.details_button.configure(text="Details ▾")
+        else:
+            self.log.pack(fill="x", before=self.steps)
+            self.details_button.configure(text="Details ▴")
 
-            clients = ttk.LabelFrame(outer, text="Клиенты Geometry Dash 2.209 (необязательно)",
-                                     padding=9)
-            clients.pack(fill="x", pady=(10, 8))
-            self.exe_var = tk.StringVar()
-            self.apk_var = tk.StringVar()
-            self.file_field(clients, 0, "Windows EXE", self.exe_var, ".exe")
-            self.file_field(clients, 1, "Android APK", self.apk_var, ".apk")
-            self.rights = tk.BooleanVar(value=False)
-            ttk.Checkbutton(
-                clients,
-                text="У меня есть разрешение на публичное распространение этих игровых файлов",
-                variable=self.rights,
-            ).grid(row=2, column=0, columnspan=3, sticky="w", pady=(7, 0))
+    def toggle_clients(self):
+        if self.clients_frame.winfo_ismapped():
+            self.clients_frame.grid_remove()
+            self.clients_button.configure(text="Prepare game clients (optional) ▾")
+        else:
+            self.clients_frame.grid()
+            self.clients_button.configure(text="Prepare game clients (optional) ▴")
 
-            self.status = tk.StringVar(value="Готов к установке")
-            ttk.Label(outer, textvariable=self.status, style="Sub.TLabel").pack(
-                anchor="w", pady=(5, 4))
-            self.log = tk.Text(
-                outer, height=8, wrap="word", bg="#0d0c12", fg="#e8e2f0",
-                insertbackground="#ffffff", relief="flat", font=("Consolas", 9),
-                padx=9, pady=8,
-            )
-            self.log.pack(fill="both", expand=True)
-            bottom = ttk.Frame(outer)
-            bottom.pack(fill="x", pady=(10, 0))
-            self.start_button = ttk.Button(
-                bottom, text="УСТАНОВИТЬ MUCHOCORE", style="Accent.TButton",
-                command=self.start,
-            )
-            self.start_button.pack(side="left")
-            ttk.Button(bottom, text="Закрыть", command=self.on_close).pack(side="right")
-            self.root.protocol("WM_DELETE_WINDOW", self.on_close)
-            self.root.after(120, self.pump)
-            self.write_log("Перед началом создай сайт и пустую базу в кабинете 5v.pl.")
-            self.write_log("Пароли не сохраняются и не отправляются на muchogdps.space.")
+    def step_changed(self, _event=None):
+        if not hasattr(self, "next_button"):
+            return
+        index = self.steps.index(self.steps.select())
+        self.back_button.configure(state="disabled" if index == 0 else "normal")
+        if index == 2:
+            self.next_button.pack_forget()
+            if not getattr(self, "installed_site", None):
+                self.start_button.pack(side="left", padx=8)
+        else:
+            self.start_button.pack_forget()
+            self.next_button.pack(side="left", padx=8)
+            self.next_button.configure(text="Check website and continue" if index == 0 else "Next")
 
-        def open_recovery(self):
-            window = tk.Toplevel(self.root)
-            window.title("MuchoCore · Восстановление админки")
-            window.geometry("590x590")
-            window.transient(self.root)
-            window.grab_set()
-            frame = ttk.Frame(window, padding=16)
-            frame.pack(fill="both", expand=True)
-            ttk.Label(frame, text="Восстановление существующего владельца",
-                      style="Title.TLabel").pack(anchor="w")
-            ttk.Label(
-                frame,
-                text="База, игроки и уровни не удаляются. Нужен FTP-доступ к своему сайту.",
-                style="Sub.TLabel", wraplength=540,
-            ).pack(anchor="w", pady=(4, 12))
-            values = {
-                "site": self.vars["site"].get(),
-                "host": self.vars["ftp_host"].get(),
-                "user": self.vars["ftp_user"].get(),
-                "ftp_password": self.vars["ftp_password"].get(),
-                "owner": "",
-                "new_password": "",
-                "confirm": "",
-            }
-            variables = {key: tk.StringVar(value=value) for key, value in values.items()}
-            labels = (
-                ("site", "Адрес сайта"),
-                ("host", "FTP-сервер"),
-                ("user", "FTP-логин"),
-                ("ftp_password", "FTP-пароль"),
-                ("owner", "Логин владельца (пусто = авто, если владелец один)"),
-                ("new_password", "Новый пароль (10–72 символа)"),
-                ("confirm", "Повтори новый пароль"),
-            )
-            entries = {}
-            for key, label in labels:
-                line = ttk.Frame(frame)
-                line.pack(fill="x", pady=4)
-                ttk.Label(line, text=label, width=42).pack(side="left")
-                entry = ttk.Entry(
-                    line, textvariable=variables[key],
-                    show="*" if "password" in key or key == "confirm" else "",
-                )
-                entry.pack(side="left", fill="x", expand=True)
-                entries[key] = entry
-            ttk.Label(
-                frame,
-                text="Используется FTPS. Временный обработчик автоматически удаляется после операции.",
-                style="Sub.TLabel", wraplength=540,
-            ).pack(anchor="w", pady=(6, 8))
-            status = tk.StringVar(value="Готово")
-            ttk.Label(frame, textvariable=status, style="Sub.TLabel").pack(anchor="w")
-            output = tk.Text(
-                frame, height=8, wrap="word", bg="#0d0c12", fg="#e8e2f0",
-                relief="flat", font=("Consolas", 9), padx=8, pady=7,
-            )
-            output.pack(fill="both", expand=True, pady=(6, 8))
-            events = queue.Queue()
-            run_button = ttk.Button(frame, text="ВОССТАНОВИТЬ ДОСТУП")
-            run_button.pack(anchor="w")
+    def previous_step(self):
+        if not (self.worker and self.worker.is_alive()):
+            self.steps.select(max(0, self.steps.index(self.steps.select()) - 1))
 
-            def log(message):
-                output.insert("end", str(message).rstrip() + "\n")
-                output.see("end")
+    def connection_config(self):
+        site = site_origin(self.vars["site"].get())
+        host = valid_ftp_host(self.vars["ftp_host"].get())
+        user = self.vars["ftp_user"].get().strip()
+        password = self.vars["ftp_password"].get()
+        if not user or len(user) > 128 or not password:
+            raise InstallError("Enter the FTP username and password from your 5v.pl dashboard.")
+        mode = self.advanced_vars["ftp_mode"].get().upper()
+        if mode not in ("FTPS", "FTP"):
+            raise InstallError("Choose FTPS or plain FTP.")
+        if mode == "FTP" and not self.ftp_warning.get():
+            raise InstallError("Confirm that you understand the risks of unencrypted FTP.")
+        return dict(site=site, host=host, user=user, password=password,
+                    secure=mode == "FTPS", root=self.advanced_vars["root"].get().strip())
 
-            def start_recovery():
-                if run_button["state"] == "disabled":
-                    return
-                try:
-                    origin = site_origin(variables["site"].get())
-                    host = valid_ftp_host(variables["host"].get())
-                    ftp_user = variables["user"].get().strip()
-                    ftp_password = variables["ftp_password"].get()
-                    owner = variables["owner"].get().strip()
-                    new_password = variables["new_password"].get()
-                    confirmation = variables["confirm"].get()
-                    if not ftp_user or not ftp_password:
-                        raise InstallError("Заполни FTP-логин и пароль.")
-                    if owner and not re.fullmatch(r"[A-Za-z0-9_-]{1,20}", owner):
-                        raise InstallError("Проверь логин существующего владельца.")
-                    if not 10 <= len(new_password.encode("utf-8")) <= 72:
-                        raise InstallError("Новый пароль должен быть длиной 10–72 байта.")
-                    if new_password != confirmation:
-                        raise InstallError("Пароли не совпадают.")
-                except (InstallError, ValueError) as exc:
-                    messagebox.showerror("Проверь данные", str(exc), parent=window)
-                    return
-                if not messagebox.askyesno(
-                    "Подтвердить восстановление",
-                    "Изменить пароль существующего владельца на " + origin +
-                    "?\n\nВсе старые сессии, 2FA и passkeys будут отозваны. "
-                    "Игровые данные сохраняются.",
-                    parent=window,
-                ):
-                    return
-                run_button.configure(state="disabled")
-                self.recovery_active = True
-                status.set("Восстановление выполняется…")
-                log("Проверка FTP-доступа и временного обработчика…")
+    def validate_database(self):
+        if not self.empty_db.get():
+            raise InstallError("Confirm that the database is empty or belongs to this unfinished installation.")
+        private_config(site_origin(self.vars["site"].get()),
+                       self.advanced_vars["mysqlhost"].get().strip() or "localhost",
+                       int(self.advanced_vars["mysqlport"].get()),
+                       self.vars["db_name"].get().strip(), self.vars["db_user"].get().strip(),
+                       self.vars["db_password"].get())
 
-                def worker():
-                    try:
-                        with contextlib.redirect_stdout(QueueWriter(events)):
-                            RECOVER_ADMIN_5V.recover(
-                                origin, host, ftp_user, ftp_password,
-                                owner, new_password, ftps=True, root_hint="",
-                            )
-                        events.put(("done", origin))
-                    except Exception as exc:
-                        events.put(("error", str(exc)))
-
-                threading.Thread(target=worker, daemon=True).start()
-
-            run_button.configure(command=start_recovery)
-
-            def pump_recovery():
-                try:
-                    while True:
-                        kind, value = events.get_nowait()
-                        if kind == "log":
-                            log(value)
-                        elif kind == "error":
-                            self.recovery_active = False
-                            status.set("Восстановление остановлено")
-                            log("ОШИБКА: " + str(value))
-                            run_button.configure(state="normal")
-                            messagebox.showerror("Не удалось восстановить", str(value), parent=window)
-                        elif kind == "done":
-                            self.recovery_active = False
-                            status.set("Доступ восстановлен")
-                            run_button.configure(state="normal")
-                            for key in ("ftp_password", "new_password", "confirm"):
-                                variables[key].set("")
-                            messagebox.showinfo(
-                                "Готово",
-                                "Пароль существующего владельца изменён. "
-                                "Войди в " + str(value) + "/mc/admin.php и включи 2FA заново.",
-                                parent=window,
-                            )
-                except queue.Empty:
-                    pass
-                if window.winfo_exists():
-                    window.after(120, pump_recovery)
-
-            window.protocol(
-                "WM_DELETE_WINDOW",
-                lambda: messagebox.showwarning(
-                    "Восстановление выполняется",
-                    "Не закрывай это окно до завершения операции.",
-                    parent=window,
-                ) if run_button["state"] == "disabled" else window.destroy(),
-            )
-            window.after(120, pump_recovery)
-
-        def file_field(self, parent, row, label, variable, extension):
-            ttk.Label(parent, text=label).grid(row=row, column=0, sticky="w", padx=(0, 8), pady=3)
-            ttk.Entry(parent, textvariable=variable).grid(row=row, column=1, sticky="ew", pady=3)
-            ttk.Button(
-                parent, text="Выбрать…",
-                command=lambda: variable.set(filedialog.askopenfilename(
-                    title="Выбери оригинальный " + extension,
-                    filetypes=[(extension.upper(), "*" + extension), ("Все файлы", "*.*")],
-                )),
-            ).grid(row=row, column=2, padx=(7, 0), pady=3)
-            parent.columnconfigure(1, weight=1)
-
-        def toggle_advanced(self):
-            self.advanced = not self.advanced
-            if self.advanced:
-                self.advanced_frame.grid()
-                self.advanced_button.configure(text="Дополнительные настройки ▴")
+    def next_step(self):
+        if self.worker and self.worker.is_alive():
+            return
+        index = self.steps.index(self.steps.select())
+        try:
+            if index == 0:
+                cfg = self.connection_config()
+                self.start_connection_check(cfg)
             else:
-                self.advanced_frame.grid_remove()
-                self.advanced_button.configure(text="Дополнительные настройки ▾")
+                self.validate_database()
+                self.steps.select(2)
+        except (InstallError, OSError, ValueError) as exc:
+            messagebox.showerror("Check your details", str(exc), parent=self.root)
 
-        def write_log(self, message):
-            self.log.insert("end", message.rstrip() + "\n")
-            self.log.see("end")
+    def start_connection_check(self, cfg):
+        self.verified_folder = None
+        self.next_button.configure(state="disabled")
+        self.status.set("Checking FTP and website access…")
+        self.worker = threading.Thread(target=self.check_connection, args=(cfg,), daemon=True)
+        self.worker.start()
 
-        def on_close(self):
-            if self.recovery_active:
-                messagebox.showwarning(
-                    "Восстановление выполняется",
-                    "Не закрывай мастер до завершения восстановления доступа.",
-                    parent=self.root,
-                )
-                return
-            if self.worker and self.worker.is_alive():
-                messagebox.showwarning(
-                    "Установка выполняется",
-                    "Не закрывай мастер во время FTP-загрузки или миграции. "
-                    "Дождись завершения, чтобы не прервать установку.",
-                    parent=self.root,
-                )
-                return
-            self.root.destroy()
+    def check_connection(self, cfg):
+        try:
+            with FtpSite(cfg["host"], cfg["user"], cfg["password"], secure=cfg["secure"]) as ftp:
+                verified = ftp.verify_folder(cfg["site"], cfg["root"])
+            self.events.put(("connection_ok", verified))
+        except FtpTlsUnavailable as exc:
+            self.events.put(("ftps_unavailable", (cfg["host"], str(exc))))
+        except Exception as exc:
+            self.events.put(("connection_error", str(exc)))
+        finally:
+            cfg["password"] = ""
 
-        def build_config(self):
-            site = site_origin(self.vars["site"].get())
-            ftp_host = valid_ftp_host(self.vars["ftp_host"].get())
-            ftp_user = self.vars["ftp_user"].get().strip()
-            ftp_password = self.vars["ftp_password"].get()
-            if not ftp_user or len(ftp_user) > 128 or not ftp_password:
-                raise InstallError("Заполни FTP-логин и пароль из кабинета 5v.pl.")
-            db_name = self.vars["db_name"].get().strip()
-            db_user = self.vars["db_user"].get().strip()
-            db_password = self.vars["db_password"].get()
-            admin = self.vars["admin"].get().strip()
-            email = self.vars["email"].get().strip()
-            admin_password = self.vars["admin_password"].get()
-            admin_confirm = self.vars["admin_confirm"].get()
-            if not self.empty_db.get():
-                raise InstallError("Подтверди, что база данных действительно пустая.")
-            if not re.fullmatch(r"[A-Za-z0-9_-]{1,20}", admin):
-                raise InstallError("Логин владельца: 1–20 латинских букв, цифр, _ или -.")
-            if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
-                raise InstallError("Укажи действующий e-mail владельца.")
-            if not 10 <= len(admin_password.encode("utf-8")) <= 72:
-                raise InstallError("Пароль владельца должен быть длиной 10–72 байта.")
-            if admin_password != admin_confirm:
-                raise InstallError("Пароли владельца не совпадают.")
-            if not 8 <= len(db_password) <= 256:
-                raise InstallError("Пароль MySQL должен быть длиной 8–256 символов.")
-            mysqlhost = self.advanced_vars["mysqlhost"].get().strip() or "localhost"
-            mysqlport = int(self.advanced_vars["mysqlport"].get())
-            root = self.advanced_vars["root"].get().strip()
-            mode = self.advanced_vars["ftp_mode"].get().upper()
-            if mode not in ("FTPS", "FTP"):
-                raise InstallError("Выбери FTPS или FTP.")
-            if mode == "FTP" and not self.ftp_warning.get():
-                raise InstallError("Подтверди предупреждение о незашифрованном FTP.")
-            private_config(site, mysqlhost, mysqlport, db_name, db_user, db_password)
-            return {
-                "site": site, "host": ftp_host, "user": ftp_user,
-                "password": ftp_password, "secure": mode == "FTPS",
-                "root": root, "mysqlhost": mysqlhost, "mysqlport": mysqlport,
-                "dbname": db_name, "dbuser": db_user, "dbpassword": db_password,
-                "admin": admin, "email": email, "adminpassword": admin_password,
-            }
+    def retry_plain_ftp(self, host, error):
+        self.next_button.configure(state="normal")
+        self.status.set("The FTP server does not support explicit FTPS")
+        if self.vars["ftp_host"].get().strip().lower() != host:
+            self.status.set("FTP server changed. Check the website again.")
+            return
+        if not messagebox.askyesno(
+            "Retry with plain FTP?",
+            error + "\n\nPlain FTP sends your FTP username, password, and files without encryption. "
+            "Use plain FTP for this installation on " + host + "?",
+            parent=self.root,
+        ):
+            return
+        self.advanced_vars["ftp_mode"].set("FTP")
+        self.ftp_warning.set(True)
+        try:
+            self.start_connection_check(self.connection_config())
+        except InstallError as exc:
+            messagebox.showerror("Check your details", str(exc), parent=self.root)
 
-        def start(self):
-            if self.worker and self.worker.is_alive():
-                return
-            try:
-                cfg = self.build_config()
-            except (InstallError, OSError, ValueError) as exc:
-                messagebox.showerror("Проверь данные", str(exc), parent=self.root)
-                return
-            try:
-                exe = detect_client(".exe", self.exe_var.get().strip())
-            except (InstallError, OSError, ValueError) as exc:
-                exe = None
-                self.write_log("EXE пропущен: " + str(exc))
-            try:
-                apk = detect_client(".apk", self.apk_var.get().strip())
-            except (InstallError, OSError, ValueError) as exc:
-                apk = None
-                self.write_log("APK пропущен: " + str(exc))
-            summary = (
-                "Будет установлен новый MuchoCore на:\n" + cfg["site"] +
-                "\n\nСуществующая папка mc/ не будет перезаписана."
-                "\nПароли останутся только в памяти этого приложения."
+    def open_recovery(self):
+        if self.worker and self.worker.is_alive():
+            messagebox.showinfo("Setup is busy", "Wait for the current check or installation to finish.", parent=self.root)
+            return
+        window = tk.Toplevel(self.root)
+        window.title("MuchoCore Admin Recovery")
+        window.geometry("590x590")
+        window.transient(self.root)
+        window.grab_set()
+        frame = ttk.Frame(window, padding=16)
+        frame.pack(fill="both", expand=True)
+        ttk.Label(frame, text="Recover owner access",
+                  style="Title.TLabel").pack(anchor="w")
+        ttk.Label(
+            frame,
+            text="Recovery requires FTP access to your site and preserves your database, players, and levels.",
+            style="Sub.TLabel", wraplength=540,
+        ).pack(anchor="w", pady=(4, 12))
+        values = {
+            "site": self.vars["site"].get(),
+            "host": self.vars["ftp_host"].get(),
+            "user": self.vars["ftp_user"].get(),
+            "ftp_password": self.vars["ftp_password"].get(),
+            "owner": "",
+            "new_password": "",
+            "confirm": "",
+        }
+        variables = {key: tk.StringVar(value=value) for key, value in values.items()}
+        labels = (
+            ("site", "Website"),
+            ("host", "FTP server"),
+            ("user", "FTP username"),
+            ("ftp_password", "FTP password"),
+            ("owner", "Owner username (blank if there is only one)"),
+            ("new_password", "New password (10–72 bytes)"),
+            ("confirm", "Confirm new password"),
+        )
+        entries = {}
+        for key, label in labels:
+            line = ttk.Frame(frame)
+            line.pack(fill="x", pady=4)
+            ttk.Label(line, text=label, width=42).pack(side="left")
+            entry = ttk.Entry(
+                line, textvariable=variables[key],
+                show="*" if "password" in key or key == "confirm" else "",
             )
-            if not messagebox.askyesno("Подтверждение установки", summary,
-                                       parent=self.root):
+            entry.pack(side="left", fill="x", expand=True)
+            entries[key] = entry
+        plain_ftp = tk.BooleanVar(value=False)
+        ttk.Checkbutton(
+            frame,
+            text="Use plain FTP (sends my FTP password and files without encryption)",
+            variable=plain_ftp,
+        ).pack(anchor="w", pady=(6, 8))
+        status = tk.StringVar(value="Ready")
+        ttk.Label(frame, textvariable=status, style="Sub.TLabel").pack(anchor="w")
+        output = tk.Text(
+            frame, height=8, wrap="word", bg="#0d0c12", fg="#e8e2f0",
+            relief="flat", font=("Consolas", 9), padx=8, pady=7,
+        )
+        output.pack(fill="both", expand=True, pady=(6, 8))
+        events = queue.Queue()
+        run_button = ttk.Button(frame, text="Recover access")
+        run_button.pack(anchor="w")
+
+        def log(message):
+            output.insert("end", str(message).rstrip() + "\n")
+            output.see("end")
+
+        def start_recovery():
+            if run_button["state"] == "disabled":
                 return
-            cfg["_exe_source"] = str(exe) if exe else ""
-            cfg["_apk_source"] = str(apk) if apk else ""
-            cfg["_redistribution_rights"] = bool(self.rights.get())
-            self.start_button.configure(state="disabled")
-            self.status.set("Установка выполняется…")
-            self.write_log("Проверка настроек и подключение к 5v.pl…")
-            self.worker = threading.Thread(
-                target=self.run_worker, args=(cfg,), daemon=True)
-            self.worker.start()
-
-        def run_worker(self, cfg):
-            writer = QueueWriter(self.events)
             try:
-                with contextlib.redirect_stdout(writer):
-                    self.events.put(("status", "Загрузка и настройка MuchoCore…"))
-                    INSTALL_5V.perform_install(cfg, prepare_clients=False)
-                    self.events.put(("log", "Ядро и админка установлены."))
-                    exe = Path(cfg["_exe_source"]) if cfg.get("_exe_source") else None
-                    apk = Path(cfg["_apk_source"]) if cfg.get("_apk_source") else None
-                    if not exe and not apk:
-                        self.events.put(("log", "Исходники игры не найдены — этап клиентов пропущен."))
-                    else:
-                        self.events.put(("status", "Подготовка игровых клиентов…"))
-                        try:
-                            links = prepare_clients(
-                                cfg, exe, apk, cfg["_redistribution_rights"],
-                                log=lambda value: self.events.put(("log", str(value))),
-                            )
-                            if links:
-                                self.events.put(("log", "Публичные ссылки созданы."))
-                            elif not cfg["_redistribution_rights"]:
-                                self.events.put(("log", "Клиенты не опубликованы: нет подтверждения прав."))
-                        except Exception as client_error:
-                            self.events.put(("log", "Ядро и админка уже установлены. "
-                                                      "Проблема только на этапе клиентов: "
-                                                      + str(client_error)))
-                            self.events.put(("log", "Клиенты можно подготовить позже через админку "
-                                                      "или отдельный запуск мастера."))
-                    self.events.put(("done", cfg["site"]))
-            except Exception as exc:
-                self.events.put(("error", str(exc)))
-                self.events.put(("log", traceback.format_exc(limit=4)))
-            finally:
-                # Drop references to credentials after the worker is complete.
-                for key in ("password", "dbpassword", "adminpassword"):
-                    cfg[key] = ""
+                origin = site_origin(variables["site"].get())
+                host = valid_ftp_host(variables["host"].get())
+                ftp_user = variables["user"].get().strip()
+                ftp_password = variables["ftp_password"].get()
+                owner = variables["owner"].get().strip()
+                new_password = variables["new_password"].get()
+                confirmation = variables["confirm"].get()
+                secure = not plain_ftp.get()
+                if not ftp_user or not ftp_password:
+                    raise InstallError("Enter your FTP username and password.")
+                if owner and not re.fullmatch(r"[A-Za-z0-9_-]{1,20}", owner):
+                    raise InstallError("Check the existing owner's username.")
+                if not 10 <= len(new_password.encode("utf-8")) <= 72:
+                    raise InstallError("The new password must be 10–72 bytes.")
+                if new_password != confirmation:
+                    raise InstallError("The passwords do not match.")
+            except (InstallError, ValueError) as exc:
+                messagebox.showerror("Check your details", str(exc), parent=window)
+                return
+            if not messagebox.askyesno(
+                "Confirm recovery",
+                "Reset the existing owner's password on " + origin +
+                "?\n\nThis revokes existing sessions, two-factor credentials, and passkeys. "
+                "Your game data is preserved.",
+                parent=window,
+            ):
+                return
+            run_button.configure(state="disabled")
+            self.recovery_active = True
+            status.set("Recovering access…")
+            log("Verifying FTP access and the temporary recovery script…")
 
-        def pump(self):
+            def worker():
+                try:
+                    with contextlib.redirect_stdout(QueueWriter(events)):
+                        RECOVER_ADMIN_5V.recover(
+                            origin, host, ftp_user, ftp_password,
+                            owner, new_password, ftps=secure, root_hint="",
+                        )
+                    events.put(("done", origin))
+                except Exception as exc:
+                    events.put(("error", str(exc)))
+
+            threading.Thread(target=worker, daemon=True).start()
+
+        run_button.configure(command=start_recovery)
+
+        def pump_recovery():
             try:
                 while True:
-                    kind, value = self.events.get_nowait()
+                    kind, value = events.get_nowait()
                     if kind == "log":
-                        self.write_log(str(value))
-                    elif kind == "status":
-                        self.status.set(str(value))
+                        log(value)
                     elif kind == "error":
-                        self.status.set("Установка завершилась с ошибкой")
-                        self.write_log("ОШИБКА: " + str(value))
-                        self.start_button.configure(state="normal")
-                        messagebox.showerror(
-                            "Установка остановлена",
-                            str(value) + "\n\nНе удаляй папку mc/ и базу. "
-                            "Отчёт и состояние сайта нужно проверить перед повторным запуском.",
-                            parent=self.root,
-                        )
+                        self.recovery_active = False
+                        status.set("Recovery stopped")
+                        log("Error: " + str(value))
+                        run_button.configure(state="normal")
+                        messagebox.showerror("Recovery failed", str(value), parent=window)
                     elif kind == "done":
-                        self.status.set("Готово · " + str(value))
-                        self.start_button.configure(state="normal")
-                        self.write_log("Установка завершена. Админка: " + str(value) + "/mc/admin.php")
+                        self.recovery_active = False
+                        status.set("Access restored")
+                        run_button.configure(state="normal")
+                        for key in ("ftp_password", "new_password", "confirm"):
+                            variables[key].set("")
                         messagebox.showinfo(
-                            "MuchoCore установлен",
-                            "Ядро установлено.\nАдминка: " + str(value) +
-                            "/mc/admin.php\n\nПроверь клиент в реальной Geometry Dash 2.209.",
-                            parent=self.root,
+                            "Ready",
+                            "The owner's password has been reset. "
+                            "Sign in at " + str(value) + "/mc/admin.php and set up two-factor authentication again.",
+                            parent=window,
                         )
             except queue.Empty:
                 pass
-            self.root.after(120, self.pump)
+            if window.winfo_exists():
+                window.after(120, pump_recovery)
+
+        window.protocol(
+            "WM_DELETE_WINDOW",
+            lambda: messagebox.showwarning(
+                "Recovery in progress",
+                "Keep this window open until recovery finishes.",
+                parent=window,
+            ) if run_button["state"] == "disabled" else window.destroy(),
+        )
+        window.after(120, pump_recovery)
+
+    def file_field(self, parent, row, label, variable, extension):
+        ttk.Label(parent, text=label).grid(row=row, column=0, sticky="w", padx=(0, 8), pady=3)
+        ttk.Entry(parent, textvariable=variable).grid(row=row, column=1, sticky="ew", pady=3)
+        ttk.Button(
+            parent, text="Browse…",
+            command=lambda: variable.set(filedialog.askopenfilename(
+                title="Select the original " + extension,
+                filetypes=[(extension.upper(), "*" + extension), ("All files", "*.*")],
+            )),
+        ).grid(row=row, column=2, padx=(7, 0), pady=3)
+        parent.columnconfigure(1, weight=1)
+
+    def toggle_advanced(self):
+        self.advanced = not self.advanced
+        if self.advanced:
+            self.advanced_frame.grid()
+            self.advanced_button.configure(text="Advanced settings ▴")
+        else:
+            self.advanced_frame.grid_remove()
+            self.advanced_button.configure(text="Advanced settings ▾")
+
+    def write_log(self, message):
+        self.log.insert("end", message.rstrip() + "\n")
+        self.log.see("end")
+
+    def on_close(self):
+        if self.recovery_active:
+            messagebox.showwarning(
+                "Recovery in progress",
+                "Keep Setup open until it finishes recovering access.",
+                parent=self.root,
+            )
+            return
+        if self.worker and self.worker.is_alive():
+            messagebox.showwarning(
+                "Installation in progress",
+                "Keep Setup open while it uploads files or migrates the database. "
+                "Wait for the current step to finish.",
+                parent=self.root,
+            )
+            return
+        self.root.destroy()
+
+    def build_config(self):
+        cfg = self.connection_config()
+        self.validate_database()
+        db_name = self.vars["db_name"].get().strip()
+        db_user = self.vars["db_user"].get().strip()
+        db_password = self.vars["db_password"].get()
+        admin = self.vars["admin"].get().strip()
+        email = self.vars["email"].get().strip()
+        admin_password = self.vars["admin_password"].get()
+        admin_confirm = self.vars["admin_confirm"].get()
+        if not re.fullmatch(r"[A-Za-z0-9_-]{1,20}", admin):
+            raise InstallError("The owner username must contain 1–20 letters (A–Z), digits, underscores, or hyphens.")
+        if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
+            raise InstallError("Enter a valid email address for the owner.")
+        if not 10 <= len(admin_password.encode("utf-8")) <= 72:
+            raise InstallError("The owner's password must be 10–72 bytes.")
+        if admin_password != admin_confirm:
+            raise InstallError("The owner's passwords do not match.")
+        mysqlhost = self.advanced_vars["mysqlhost"].get().strip() or "localhost"
+        mysqlport = int(self.advanced_vars["mysqlport"].get())
+        return {
+            **cfg, "mysqlhost": mysqlhost, "mysqlport": mysqlport,
+            "dbname": db_name, "dbuser": db_user, "dbpassword": db_password,
+            "admin": admin, "email": email, "adminpassword": admin_password,
+        }
+
+    def start(self):
+        if self.recovery_active:
+            return
+        if self.worker and self.worker.is_alive():
+            return
+        try:
+            cfg = self.build_config()
+        except (InstallError, OSError, ValueError) as exc:
+            messagebox.showerror("Check your details", str(exc), parent=self.root)
+            return
+        try:
+            exe = detect_client(".exe", self.exe_var.get().strip())
+        except (InstallError, OSError, ValueError) as exc:
+            exe = None
+            self.write_log("Skipped EXE: " + str(exc))
+        try:
+            apk = detect_client(".apk", self.apk_var.get().strip())
+        except (InstallError, OSError, ValueError) as exc:
+            apk = None
+            self.write_log("Skipped APK: " + str(exc))
+        cfg["_exe_source"] = str(exe) if exe else ""
+        cfg["_apk_source"] = str(apk) if apk else ""
+        cfg["_redistribution_rights"] = bool(self.rights.get())
+        cfg["_verified_folder"] = self.verified_folder
+        self.start_button.configure(state="disabled")
+        self.status.set("Installing MuchoCore…")
+        self.write_log("Checking settings and connecting to 5v.pl…")
+        self.worker = threading.Thread(
+            target=self.run_worker, args=(cfg,), daemon=True)
+        self.worker.start()
+
+    def run_worker(self, cfg):
+        writer = QueueWriter(self.events)
+        try:
+            with contextlib.redirect_stdout(writer):
+                self.events.put(("status", "Uploading and configuring MuchoCore…"))
+                INSTALL_5V.perform_install(cfg, prepare_clients=False)
+                self.events.put(("log", "Core and admin panel installed."))
+                exe = Path(cfg["_exe_source"]) if cfg.get("_exe_source") else None
+                apk = Path(cfg["_apk_source"]) if cfg.get("_apk_source") else None
+                if not exe and not apk:
+                    self.events.put(("log", "Setup found no original game clients to patch."))
+                else:
+                    self.events.put(("status", "Preparing game clients…"))
+                    try:
+                        links = prepare_clients(
+                            cfg, exe, apk, cfg["_redistribution_rights"],
+                            log=lambda value: self.events.put(("log", str(value))),
+                        )
+                        if links:
+                            self.events.put(("log", "Public download links are ready."))
+                        elif not cfg["_redistribution_rights"]:
+                            self.events.put(("log", "Patched clients are saved locally."))
+                    except Exception as client_error:
+                        self.events.put(("log", "The core and admin panel are installed. "
+                                                  "Client preparation failed: "
+                                                  + str(client_error)))
+                        self.events.put(("log", "Prepare clients later in the admin panel "
+                                                  "or by running Setup again."))
+                self.events.put(("done", cfg["site"]))
+        except Exception as exc:
+            self.events.put(("error", str(exc)))
+            self.events.put(("log", traceback.format_exc(limit=4)))
+        finally:
+            # Drop references to credentials after the worker is complete.
+            for key in ("password", "dbpassword", "adminpassword"):
+                cfg[key] = ""
+
+    def pump(self):
+        try:
+            while True:
+                kind, value = self.events.get_nowait()
+                if kind == "connection_ok":
+                    self.verified_folder = value
+                    self.next_button.configure(state="normal")
+                    self.status.set("Website and FTP access verified")
+                    self.steps.select(1)
+                elif kind == "ftps_unavailable":
+                    self.retry_plain_ftp(*value)
+                elif kind == "connection_error":
+                    self.next_button.configure(state="normal")
+                    self.status.set("Connection check failed")
+                    messagebox.showerror("Check FTP and website access", str(value), parent=self.root)
+                elif kind == "log":
+                    self.write_log(str(value))
+                    if re.match(r"^\[[1-5]/5\]", str(value)):
+                        self.status.set(str(value))
+                elif kind == "status":
+                    self.status.set(str(value))
+                elif kind == "error":
+                    self.status.set("Installation failed")
+                    self.write_log("Error: " + str(value))
+                    self.start_button.configure(state="normal")
+                    messagebox.showerror(
+                        "Installation stopped",
+                        str(value) + "\n\nKeep the mc/ folder and database. "
+                        "Fix the error, then click Install MuchoCore again to resume.",
+                        parent=self.root,
+                    )
+                elif kind == "done":
+                    self.status.set("Installed on " + str(value))
+                    self.installed_site = str(value)
+                    self.start_button.pack_forget()
+                    self.next_button.pack_forget()
+                    self.back_button.pack_forget()
+                    self.open_admin_button.pack(side="left")
+                    for key in ("ftp_password", "db_password", "admin_password", "admin_confirm"):
+                        self.vars[key].set("")
+                    self.write_log("Installation complete. Admin panel: " + str(value) + "/mc/admin.php")
+                    messagebox.showinfo(
+                        "MuchoCore installed",
+                        "The core is ready.\nAdmin panel: " + str(value) +
+                        "/mc/admin.php\n\nYou can now test your client in Geometry Dash 2.209.",
+                        parent=self.root,
+                    )
+        except queue.Empty:
+            pass
+        self.root.after(120, self.pump)
+
+
+
+def _ui_self_test() -> int:
+    """Exercise the actual Windows wizard offline, including a small screen."""
+    root = tk.Tk()
+    try:
+        window = InstallerWindow(root)
+        root.geometry("680x600")
+        root.update()
+        expected_fields = [
+            {"site", "ftp_host", "ftp_user", "ftp_password"},
+            {"db_name", "db_user", "db_password"},
+            {"admin", "email", "admin_password", "admin_confirm"},
+        ]
+        for index, expected in enumerate(expected_fields):
+            window.steps.select(index)
+            if index == 0:
+                window.toggle_advanced()
+            if index == 2:
+                window.toggle_clients()
+            root.update()
+            visible = {key for key, entry in window.entries.items() if entry.winfo_viewable()}
+            if visible != expected:
+                return 6
+            button = window.start_button if index == 2 else window.next_button
+            if not button.winfo_viewable() or button.winfo_rooty() + button.winfo_height() > root.winfo_rooty() + root.winfo_height():
+                return 7
+        return 0
+    finally:
+        root.destroy()
+
+
+def main() -> int:
+    if "--self-test" in sys.argv:
+        return _self_test()
+    if "--ui-self-test" in sys.argv:
+        return _ui_self_test()
 
     root = tk.Tk()
     InstallerWindow(root)

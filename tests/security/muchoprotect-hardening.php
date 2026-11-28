@@ -9,6 +9,7 @@ require_once dirname(__DIR__, 2) . '/src/Core/Environment.php';
 require_once dirname(__DIR__, 2) . '/src/Http/ClientIp.php';
 require_once dirname(__DIR__, 2) . '/src/Compatibility/ClientVersion.php';
 require_once dirname(__DIR__, 2) . '/src/Http/Request.php';
+require_once dirname(__DIR__, 2) . '/src/Routing/Router.php';
 require_once dirname(__DIR__, 2) . '/src/Security/RateLimitBackend.php';
 require_once dirname(__DIR__, 2) . '/src/Security/PenaltyStoreBackend.php';
 require_once dirname(__DIR__, 2) . '/src/Security/RateLimiter.php';
@@ -50,6 +51,8 @@ try {
         file_put_contents($bucket, $invalid);
         protectHardeningCheck(!$limiter->allowStrict($key, 2, 60),
             'malformed counter fails closed instead of resetting its quota');
+        protectHardeningCheck($limiter->allow($key, 2, 60),
+            'fail-open accepts a storage error without rewriting the counter');
         protectHardeningCheck(file_get_contents($bucket) === $invalid,
             'corrupt counter remains untouched for investigation');
     }
@@ -60,6 +63,8 @@ try {
         'valid second request is allowed');
     protectHardeningCheck(!$limiter->allowStrict($key, 2, 60),
         'valid quota is enforced on the next request');
+    protectHardeningCheck(!$limiter->allow($key, 2, 60),
+        'fail-open enforces a valid exhausted quota');
 
     // Several supported legacy front controllers can compose their route
     // prefixes. All aliases should consume the exact same endpoint budget.
@@ -81,6 +86,33 @@ try {
         protectHardeningCheck($result['decision'] === 'allow',
             'legacy route aliases share a normal eight-request burst');
     }
+
+    // Router and MuchoProtect must agree on legacy version aliases and on
+    // arbitrarily nested compatibility prefixes. Otherwise real registration
+    // requests reach the handler without the registration-specific budget.
+    $registration = new MuchoProtect(
+        new RateLimiter($root . '/registration-limits'),
+        new AbusePenaltyStore($root . '/registration-penalties')
+    );
+    $paths = [
+        '/registerGJAccount.php',
+        '/registerGJAccount19.php',
+        '/' . str_repeat('api/', 12) . 'registerGJAccount22.php',
+    ];
+    foreach ($paths as $index => $path) {
+        $request = new Request('POST', $path, [], [],
+            ['REMOTE_ADDR' => '192.0.2.201']);
+        $decision = $registration->inspect($request, $path);
+        protectHardeningCheck(
+            $decision['decision'] === ($index < 2 ? 'allow' : 'block')
+                && ($index < 2 || $decision['reason'] === 'burst_limit'),
+            'registration aliases and nested paths retain one burst budget ' . ($index + 1)
+        );
+    }
+    protectHardeningCheck(
+        (new \MuchoCore\Routing\Router())->normalizePath($paths[2]) === '/registergjaccount',
+        'deep compatibility path resolves to registration at the router'
+    );
 
     // Seed a realistic oversized audit file to exercise a single rotation.
     $auditFile = $auditDir . '/events.ndjson';

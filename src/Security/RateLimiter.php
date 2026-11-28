@@ -23,15 +23,19 @@ final readonly class RateLimiter implements RateLimitBackend
             : dirname(__DIR__, 2) . '/storage/control/rate-limit';
     }
 
-    public function allowStrict(
-        string $key,
-        int $limit,
-        int $windowSeconds
-    ): bool {
-        if ($limit < 1 || $windowSeconds < 1) {
-            return false;
-        }
+    public function allowStrict(string $key, int $limit, int $windowSeconds): bool
+    {
+        return $limit > 0 && $windowSeconds > 0 && $this->consume($key, $limit, $windowSeconds) === true;
+    }
 
+    public function allow(string $key, int $limit, int $windowSeconds): bool
+    {
+        return $limit < 1 || $windowSeconds < 1 || ($this->consume($key, $limit, $windowSeconds) ?? true);
+    }
+
+    /** null means storage was unavailable; false means the quota was exhausted. */
+    private function consume(string $key, int $limit, int $windowSeconds): ?bool
+    {
         $this->maybeCleanup();
 
         if (
@@ -39,22 +43,22 @@ final readonly class RateLimiter implements RateLimitBackend
             !@mkdir($this->directory, 0700, true) &&
             !is_dir($this->directory)
         ) {
-            return false;
+            return null;
         }
 
         $file = $this->directory . '/' . hash('sha256', $key) . '.json';
         if (is_link($file)) {
-            return false;
+            return null;
         }
         $fp = @fopen($file, 'c+');
 
         if ($fp === false) {
-            return false;
+            return null;
         }
 
         try {
             if (!flock($fp, LOCK_EX)) {
-                return false;
+                return null;
             }
 
             rewind($fp);
@@ -75,7 +79,7 @@ final readonly class RateLimiter implements RateLimitBackend
                 $state['count'] < 0 ||
                 $state['count'] === PHP_INT_MAX
             ))) {
-                return false;
+                return null;
             }
 
             $now = time();
@@ -83,7 +87,7 @@ final readonly class RateLimiter implements RateLimitBackend
             $count = is_array($state) ? $state['count'] : 0;
             // Allow minor wall-clock corrections without changing quota.
             if ($start > $now + $windowSeconds) {
-                return false;
+                return null;
             }
             $start = min($start, $now);
 
@@ -96,7 +100,7 @@ final readonly class RateLimiter implements RateLimitBackend
 
             rewind($fp);
             if (!ftruncate($fp, 0)) {
-                return false;
+                return null;
             }
 
             $payload = json_encode([
@@ -107,16 +111,16 @@ final readonly class RateLimiter implements RateLimitBackend
 
             $written = fwrite($fp, $payload);
             if ($written !== strlen($payload)) {
-                return false;
+                return null;
             }
 
             if (!fflush($fp)) {
-                return false;
+                return null;
             }
 
             return $count <= $limit;
         } catch (\Throwable) {
-            return false;
+            return null;
         } finally {
             @flock($fp, LOCK_UN);
             fclose($fp);
@@ -237,76 +241,4 @@ final readonly class RateLimiter implements RateLimitBackend
         }
     }
 
-    public function allow(
-        string $key,
-        int $limit,
-        int $windowSeconds
-    ): bool {
-        if ($limit < 1 || $windowSeconds < 1) {
-            return true;
-        }
-
-        $this->maybeCleanup();
-
-        if (
-            !is_dir($this->directory) &&
-            !@mkdir($this->directory, 0700, true) &&
-            !is_dir($this->directory)
-        ) {
-            return true; // Keep the game protocol available if storage is unavailable.
-        }
-
-        $file = $this->directory . '/' . hash('sha256', $key) . '.json';
-        $fp = @fopen($file, 'c+');
-
-        if ($fp === false) {
-            return true;
-        }
-
-        try {
-            if (!flock($fp, LOCK_EX)) {
-                return true;
-            }
-
-            rewind($fp);
-            $raw = stream_get_contents($fp);
-
-            $state = is_string($raw) && $raw !== ''
-                ? json_decode($raw, true)
-                : null;
-
-            $now = time();
-            $start = is_array($state) ? (int)($state['start'] ?? 0) : 0;
-            $count = is_array($state) ? (int)($state['count'] ?? 0) : 0;
-
-            if ($start <= 0 || ($now - $start) >= $windowSeconds) {
-                $start = $now;
-                $count = 0;
-            }
-
-            $count++;
-
-            rewind($fp);
-            if (!ftruncate($fp, 0)) {
-                return true;
-            }
-            $payload = json_encode([
-                'start' => $start,
-                'count' => $count,
-                'window' => $windowSeconds,
-            ], JSON_THROW_ON_ERROR);
-            if (fwrite($fp, $payload) !== strlen($payload) || !fflush($fp)) {
-                return true;
-            }
-
-            return $count <= $limit;
-        } catch (\Throwable) {
-            // Legacy game traffic may proceed when local storage fails,
-            // but a broken bucket must never cause an uncaught HTTP 500.
-            return true;
-        } finally {
-            @flock($fp, LOCK_UN);
-            fclose($fp);
-        }
-    }
 }

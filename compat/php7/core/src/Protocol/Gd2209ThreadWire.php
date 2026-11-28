@@ -71,7 +71,7 @@ final class Gd2209ThreadWire
             $result[] = implode(':', [
                 (int) $row['invitee_account_id'],
                 // account ID
-                (int) ($row['user_id'] ?? 0),
+                (int) ($row['user_id'] ?? $row['invitee_account_id']),
                 // user ID
                 base64_encode((string) $row['username']),
                 (int) $row['inviter_account_id'],

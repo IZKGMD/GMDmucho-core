@@ -10,5 +10,4 @@ try {
     exit;
 }
 header('Content-Type: text/plain; charset=us-ascii');
-header('Cache-Control: public, max-age=15');
 echo $version;

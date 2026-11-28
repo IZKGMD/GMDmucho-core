@@ -49,37 +49,53 @@ final readonly class Gd2209UtilityService
         if ($songIds === [] && $sfxIds === []) {
             throw new RuntimeException('No audio IDs');
         }
+
+        // A 2.209 request may contain up to 64 songs and 64 editor sounds.
+        // Resolve each family in ONE bounded query, rather than 128 queries.
+        // The output order must follow the request, not SQL's row order.
+        $songSizes = $this->loadAudioSizes($songIds, true);
+        $soundSizes = $this->loadAudioSizes($sfxIds, false);
         $a = [];
         $b = [];
         foreach ($songIds as $id) {
-            $q = $this->db->prepare(
-                'SELECT size FROM songs WHERE id=:id AND is_verified=1 LIMIT 1'
-            );
-            $q->execute(['id'=>$id]);
-            $size = $q->fetchColumn();
-            if ($size === false || !is_numeric($size)
-                || (float)$size <= 0 || (float)$size > 10000) {
+            $size = $songSizes[$id] ?? null;
+            if (!is_numeric($size) || (float)$size <= 0 || (float)$size > 10000) {
                 throw new RuntimeException('Unknown or invalid song byte size');
             }
-            // Existing MuchoCore songs.size is measured in MiB.
+            // MuchoCore songs.size is measured in MiB.
             $a[] = $id . ':' . (int)round((float)$size * 1048576);
         }
         foreach ($sfxIds as $id) {
-            // Only custom editor audio uploads are backed by local bytes.
-            // Native RobTop CDN SFX IDs are NOT assumed to be these IDs.
-            $q = $this->db->prepare(
-                'SELECT size_bytes FROM mucho_editor_sounds
-                 WHERE id=:id LIMIT 1'
-            );
-            $q->execute(['id'=>$id]);
-            $size = $q->fetchColumn();
-            if ($size === false || (int)$size < 1) {
+            // Native RobTop CDN sounds are NOT assumed to be local editor IDs.
+            $size = $soundSizes[$id] ?? null;
+            if ($size === null || (int)$size < 1) {
                 throw new RuntimeException('Unknown editor SFX byte size');
             }
             $b[] = $id . ':' . (int)$size;
         }
-        // Provisional envelope until native parser capture.
+        // Retain the provisional envelope pending a native parser capture.
         return implode(',', $a) . '#' . implode(',', $b);
+    }
+
+    /** @return array<int, mixed> */
+    private function loadAudioSizes(array $ids, bool $song): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+        // IDs are strictly validated by ids(). Only fixed SQL fragments are
+        // selected here. The placeholders prevent parameter interpolation.
+        $marks = implode(',', array_fill(0, count($ids), '?'));
+        $sql = $song
+            ? 'SELECT id, size AS amount FROM songs WHERE is_verified=1 AND id IN (' . $marks . ')'
+            : 'SELECT id, size_bytes AS amount FROM mucho_editor_sounds WHERE id IN (' . $marks . ')';
+        $statement = $this->db->prepare($sql);
+        $statement->execute($ids);
+        $sizes = [];
+        while ($row = $statement->fetch(PDO::FETCH_ASSOC)) {
+            $sizes[(int)$row['id']] = $row['amount'];
+        }
+        return $sizes;
     }
 
     public function contentStatus(

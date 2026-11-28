@@ -39,6 +39,9 @@ $rewardsController = (string)file_get_contents(
 $accountAuthenticator = (string)file_get_contents(
     __DIR__ . '/../../src/Account/AccountAuthenticator.php'
 );
+$credentialCache = (string)file_get_contents(
+    __DIR__ . '/../../src/Account/VerifiedCredentialCache.php'
+);
 $accountService = (string)file_get_contents(
     __DIR__ . '/../../src/Account/AccountService.php'
 );
@@ -85,8 +88,10 @@ assertSecurityRegression(
     !str_contains($accountAuthenticator, 'FROM mucho_auth_sessions') &&
     str_contains(
         $accountAuthenticator,
-        'password_verify($credential, $storedPass)'
-    ),
+        'VerifiedCredentialCache::verify($credential, $storedPass)'
+    ) &&
+    str_contains($credentialCache, 'password_verify($credential, $storedHash)') &&
+    str_contains($credentialCache, 'hash_equals($cached, $proof)'),
     'standard account authentication never trusts account+IP session grants'
 );
 
@@ -320,7 +325,11 @@ assertSecurityRegression(
 
 assertSecurityRegression(
     str_contains($iconProxy, 'allowStrict') &&
-    str_contains($iconProxy, '512000') &&
+    str_contains($iconProxy, 'CURLOPT_WRITEFUNCTION') &&
+    str_contains($iconProxy, 'CURLOPT_MAXFILESIZE => 512000') &&
+    str_contains($iconProxy, '512000 - strlen($data)') &&
+    str_contains($iconProxy, 'if (!$complete || $tooLarge)') &&
+    str_contains($iconProxy, 'rename($tempCache, $cache)') &&
     str_contains($iconProxy, 'gdicon.oat.zone'),
     'public icon proxy is rate limited and response-size bounded'
 );
@@ -419,9 +428,12 @@ assertSecurityRegression(
 
 assertSecurityRegression(
     str_contains($likeService, 'bool $isLike = true') &&
-    str_contains($likeController, '$r->postInt(\'like\', 1) === 1') &&
+    str_contains($likeController, '$isLike === 1') &&
+    substr_count($likeController, '$isLike === 1') >= 2 &&
+    str_contains($likeController, "array_key_exists('like', " ) &&
     str_contains($likeServicePhp7, 'bool $isLike = true') &&
-    str_contains($likeControllerPhp7, '$r->postInt(\'like\', 1) === 1'),
+    substr_count($likeControllerPhp7, '$isLike === 1') >= 2 &&
+    str_contains($likeControllerPhp7, "array_key_exists('like', "),
     'authenticated and anonymous PHP vote paths preserve dislike direction'
 );
 

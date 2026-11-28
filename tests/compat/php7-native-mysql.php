@@ -6,6 +6,7 @@ require dirname(__DIR__,2) . '/compat/php7/schema.php';
 require dirname(__DIR__,2) . '/compat/php7/auth.php';
 require dirname(__DIR__,2) . '/compat/php7/download.php';
 require dirname(__DIR__,2) . '/compat/php7/users.php';
+require dirname(__DIR__,2) . '/compat/php7/levels.php';
 
 $host = getenv('TEST_DB_HOST') ?: '127.0.0.1';
 $port = (int)(getenv('TEST_DB_PORT') ?: 3306);
@@ -55,11 +56,18 @@ try {
     if ($login !== '1,1') {
         throw new RuntimeException('Login failed: '.$login);
     }
+    $songUrl='https://fixture.invalid/music/example.mp3?v=1&cache=yes';
+    $test->prepare('INSERT INTO songs(id,name,author_name,size,download_url) VALUES(700,?,?,?,?)')
+        ->execute(array(' Native song ', ' Native artist ',1.25,$songUrl));
+    $expectedSong='1~|~700~|~2~|~Native song~|~3~|~0~|~4~|~Native artist~|~5~|~1.25~|~6~|~~|~10~|~'.rawurlencode($songUrl).'~|~7~|~~|~8~|~0';
+    if (mucho7_dispatch($test,'/database/getGJSongInfo.php','POST',array('songID'=>'700'),$opts)!==$expectedSong) {
+        throw new RuntimeException('Native PHP7 song metadata is not safely encoded.');
+    }
     $insert = $test->prepare(
         "INSERT INTO levels
          (account_id,name,description,level_data,game_version,level_version,
           difficulty,likes,stars,song_id)
-         VALUES (1,'Native Level','Hello','kS1,1,2;',22,1,3,12,4,0)"
+         VALUES (1,'Native Level','Hello','kS1,1,2;',22,1,3,12,4,700)"
     );
     $insert->execute();
     $list = mucho7_dispatch($test,'/database/getGJLevels21.php','POST',[
@@ -68,6 +76,9 @@ try {
     ], $opts);
     if (strpos($list,'Native Level') === false || strpos($list,':62:') === false) {
         throw new RuntimeException('Search did not return 2.209-native level wire.');
+    }
+    if (strpos($list,$expectedSong)===false) {
+        throw new RuntimeException('Native song lookup and level music metadata differ.');
     }
     $download = mucho7_dispatch($test,'/database/downloadGJLevel22.php','POST',[
         'gameVersion'=>'22','binaryVersion'=>'51','levelID'=>'1'

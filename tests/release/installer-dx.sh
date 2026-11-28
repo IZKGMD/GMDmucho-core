@@ -34,7 +34,7 @@ grep -Fq 'Direct VPS origin is healthy at' install.sh
 grep -Fq 'Explicitly declare HTTP and HTTPS listeners in direct mode.' install.sh
 grep -Fq 'Direct VPS HTTPS remains the default.' README.md
 grep -Fq 'No Cloudflare API token, Global API Key, Cloudflare Tunnel or Cloudflare Proxy is required for this path.' README.md
-grep -Fq 'already-active UFW' README.md
+grep -Fq 'already-active UFW' docs/VPS_INSTALL_QUICK_RU.md
 grep -Fq 'allowing inbound TCP 80 and 443' install.sh
 grep -Fq 'configure_local_firewall' install.sh
 
@@ -82,7 +82,7 @@ grep -Fq 'POST "/accounts/$account_id/cfd_tunnel"' bin/mucho-cloudflare-tunnel.s
 grep -Fq 'PUT "/accounts/$account_id/cfd_tunnel/$tunnel_id/configurations"' bin/mucho-cloudflare-tunnel.sh
 grep -Fq 'POST "/zones/$zone_id/dns_records"' bin/mucho-cloudflare-tunnel.sh
 
-grep -Fq 'Cloudflare Tunnel -> Edit' README.md
+grep -Fq 'Cloudflare Tunnel -> Edit' docs/VPS_INSTALL_QUICK_RU.md
 grep -Fq 'sudo mucho doctor' install.sh
 grep -Fq -- '--metrics' docker-compose.tunnel.yml
 grep -Fq 'TUNNEL_TOKEN_FILE: /run/secrets/muchocore_tunnel_token' docker-compose.tunnel.yml

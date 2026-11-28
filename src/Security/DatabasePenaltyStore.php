@@ -12,31 +12,45 @@ final readonly class DatabasePenaltyStore implements PenaltyStoreBackend
 
     public function status(string $key): array
     {
+        return $this->statuses([$key])[$key] ?? ['active'=>false,'remaining'=>0,'strikes'=>0];
+    }
+
+    /** @param list<string> $keys @return array<string,array{active:bool,remaining:int,strikes:int}> */
+    public function statuses(array $keys): array
+    {
+        if ($keys === []) {
+            return [];
+        }
+        $byHash = [];
+        foreach ($keys as $key) {
+            $byHash[hash('sha256', $key)] = $key;
+        }
+        $marks = implode(',', array_fill(0, count($byHash), '?'));
         try {
             $stmt = $this->db->prepare(
-                'SELECT expires_at,strikes
-                 FROM mucho_security_penalties
-                 WHERE bucket_key=:bucket LIMIT 1'
+                'SELECT bucket_key,expires_at,strikes
+                 FROM mucho_security_penalties WHERE bucket_key IN (' . $marks . ')'
             );
-            $stmt->execute(['bucket'=>hash('sha256',$key)]);
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            if (!is_array($row)) return ['active'=>false,'remaining'=>0,'strikes'=>0];
-
-            $remaining = (int)($row['expires_at'] ?? 0) - time();
-            return [
-                'active' => $remaining > 0,
-                'remaining' => max(0,$remaining),
-                'strikes' => max(0,(int)($row['strikes'] ?? 0)),
-            ];
+            $stmt->execute(array_keys($byHash));
+            $now = time();
+            $statuses = [];
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $remaining = (int)$row['expires_at'] - $now;
+                $statuses[$byHash[$row['bucket_key']]] = [
+                    'active' => $remaining > 0,
+                    'remaining' => max(0, $remaining),
+                    'strikes' => max(0, (int)$row['strikes']),
+                ];
+            }
+            return $statuses;
         } catch (Throwable) {
-            return ['active'=>false,'remaining'=>0,'strikes'=>0];
+            return [];
         }
     }
 
     public function penalize(string $key,int $baseSeconds=15,int $maxSeconds=900,int $strikeWindowSeconds=600): array
     {
-        if ($baseSeconds < 1 || $maxSeconds < $baseSeconds) {
+        if ($baseSeconds < 1 || $maxSeconds < $baseSeconds || $this->db->inTransaction()) {
             return ['seconds'=>0,'strikes'=>0];
         }
 
@@ -105,7 +119,7 @@ final readonly class DatabasePenaltyStore implements PenaltyStoreBackend
         try {
             $stmt = $this->db->prepare(
                 "DELETE FROM mucho_security_penalties
-                 WHERE updated_at < FROM_UNIXTIME(:cutoff)
+                 WHERE updated_at < FROM_UNIXTIME(:cutoff) AND expires_at <= UNIX_TIMESTAMP()
                  ORDER BY updated_at ASC LIMIT {$maxEntries}"
             );
             $stmt->execute(['cutoff'=>$cutoff]);

@@ -108,7 +108,7 @@ final readonly class RelationshipRepository
                  FROM friend_requests fr
                  JOIN accounts a
                    ON a.account_id=fr.to_account_id
-                 JOIN profiles p
+                 LEFT JOIN profiles p
                    ON p.account_id=fr.to_account_id
                  WHERE fr.account_id=:id
                  ORDER BY fr.id DESC
@@ -123,7 +123,7 @@ final readonly class RelationshipRepository
                  FROM friend_requests fr
                  JOIN accounts a
                    ON a.account_id=fr.account_id
-                 JOIN profiles p
+                 LEFT JOIN profiles p
                    ON p.account_id=fr.account_id
                  WHERE fr.to_account_id=:id AND fr.is_read<>2
                  ORDER BY fr.id DESC
@@ -235,22 +235,26 @@ final readonly class RelationshipRepository
     public function deleteRequest(
         int $accountId,
         int $target,
-        bool $sent
+        bool $sent,
+        int $requestId = 0
     ): bool {
-        if ($sent) {
-            $sql =
-                'DELETE FROM friend_requests
-                 WHERE account_id=:me
-                   AND to_account_id=:target';
-        } else {
-            $sql =
-                'DELETE FROM friend_requests
-                 WHERE to_account_id=:me
-                   AND account_id=:target';
+        if ($target <= 0 && $requestId <= 0) {
+            return false;
         }
 
-        $q = $this->pdo->prepare($sql);
-        $q->execute(['me'=>$accountId,'target'=>$target]);
+        $where = $sent ? 'account_id=:me' : 'to_account_id=:me';
+        $params = ['me' => $accountId];
+        if ($target > 0) {
+            $where .= $sent ? ' AND to_account_id=:target' : ' AND account_id=:target';
+            $params['target'] = $target;
+        }
+        if ($requestId > 0) {
+            $where .= ' AND id=:id';
+            $params['id'] = $requestId;
+        }
+
+        $q = $this->pdo->prepare('DELETE FROM friend_requests WHERE ' . $where);
+        $q->execute($params);
         return $q->rowCount() > 0;
     }
 
@@ -349,7 +353,7 @@ final readonly class RelationshipRepository
                  FROM friends f
                  JOIN accounts a
                    ON a.account_id=f.friend_account_id
-                 JOIN profiles p
+                 LEFT JOIN profiles p
                    ON p.account_id=f.friend_account_id
                  WHERE f.account_id=:id
                  ORDER BY a.username ASC"
@@ -366,7 +370,7 @@ final readonly class RelationshipRepository
                  FROM blocks b
                  JOIN accounts a
                    ON a.account_id=b.blocked_account_id
-                 JOIN profiles p
+                 LEFT JOIN profiles p
                    ON p.account_id=b.blocked_account_id
                  WHERE b.account_id=:id
                  ORDER BY a.username ASC"
@@ -382,7 +386,7 @@ final readonly class RelationshipRepository
                         0 AS is_new
                  FROM mucho_follows f
                  JOIN accounts a ON a.account_id=f.followed_account_id
-                 JOIN profiles p ON p.account_id=f.followed_account_id
+                 LEFT JOIN profiles p ON p.account_id=f.followed_account_id
                  WHERE f.follower_account_id=:id
                    AND a.is_active=1 AND a.is_banned=0
                  ORDER BY a.username ASC"
@@ -398,7 +402,7 @@ final readonly class RelationshipRepository
                         0 AS is_new
                  FROM mucho_muted_users m
                  JOIN accounts a ON a.account_id=m.muted_account_id
-                 JOIN profiles p ON p.account_id=m.muted_account_id
+                 LEFT JOIN profiles p ON p.account_id=m.muted_account_id
                  WHERE m.account_id=:id
                    AND a.is_active=1 AND a.is_banned=0
                  ORDER BY a.username ASC"
