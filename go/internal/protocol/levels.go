@@ -85,6 +85,9 @@ func LevelList(rows []dbutil.Row, total, offset, game, binary int) string {
 	for _, r := range rows {
 		id, uid, aid := r["level_id"], r.Value("user_id", r.Value("account_id", "1")), r.Value("account_id", "1")
 		item := Pairs(1, id, 2, Field(r["name"], 65535), 5, r.Int("level_version"), 6, uid, 8, 10, 9, difficulty(r.Int("difficulty")), 10, r.Int("downloads"), 12, r.Int("audio_track"), 13, r.Int("game_version"), 14, r.Int("likes"), 17, r.Int("demon"), 43, r.Int("demon_difficulty"), 25, r.Int("auto_level"), 18, r.Int("stars"), 19, r.Int("featured"), 42, r.Int("epic"), 45, r.Int("object_count"), 3, Field(DescriptionResponse(r["description"], game), 65535), 15, r.Int("length"), 30, r.Int("original_level_id"), 31, r.Int("two_player"), 37, r.Int("coins"), 38, r.Int("coins_verified"), 39, r.Int("requested_stars"), 46, 1, 47, 2, 40, r.Int("ldm"), 35, r.Int("song_id"))
+		if r.Int("is_gauntlet") != 0 {
+			item += ":44:1"
+		}
 		if game >= 22 && binary >= 51 {
 			item += Pairs("", 62, Epoch(r["created_at"]), 63, Epoch(r["updated_at"]))
 		}
