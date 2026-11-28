@@ -600,16 +600,19 @@ function renderAndroidPatcherSection(PDO $db): void
             <input type="checkbox" id="mcAndroidPatcherAlongside" checked
                 aria-describedby="mcAndroidPatcherAlongsideHelp"
                 style="width:18px;height:18px;flex-shrink:0">
-            Install alongside the original Geometry Dash (verified GD 2.209 ARM64 APK only)
+            Install alongside the original Geometry Dash (supported ARM64 layouts)
         </label>
         <div id="mcAndroidPatcherAlongsideHelp" class="muted small" style="line-height:1.6">
-            Side-by-side requires the exact verified, original GD 2.209 ARM64 APK
-            (versionName 2.2.145; 174,568,364 bytes). Other GD 2.209 APK builds are
-            <b>not interchangeable</b> and must be verified before patching. For an
-            older supported Geometry Dash APK, uncheck this option to attempt URL-only
-            patching. Without side-by-side relocation the resulting APK does not have a
-            separate app ID and may not install over an existing differently signed app.
-            Keep your original game installed.
+            Side-by-side supports the verified original GD 2.209 ARM64 APK
+            (versionName 2.2.145; 174,568,364 bytes), compatible 113-route 2.209 ARM
+            variants, and one <b>experimental, exact-fingerprint</b> third-party
+            2.2.144 ARM64 APK (64 API routes; SHA-256
+            <code>3c7bf689fc25d21856e053634581ef8d452c44cf854ddefebf53aae6eabfe558</code>).
+            This does not verify third-party APK safety or real-device operation.
+            Other builds are <b>not interchangeable</b>. For older unrecognized APKs,
+            uncheck this option to try URL-only patching; that does not create a
+            separate app ID and may fail installation due to signature conflicts.
+            Keep the original application and data safe.
         </div>
 
         <label for="mcAndroidPatcherFile" class="mc-drop" id="mcAndroidPatcherDrop">

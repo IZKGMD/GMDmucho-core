@@ -71,7 +71,9 @@ All fixes are mirrored in the native PHP7 compiled score controllers and
 are guarded by the **same isolated MariaDB test** on PHP8 and PHP7. The
 fixture exercises invalid types, malformed timely IDs, non-numeric platformer
 identifiers, valid write/improvement/read flows, absence of side effects,
-and UTC formatting under a deliberately non-UTC server timezone.
+and UTC formatting under a deliberately non-UTC server timezone. The PHP 8
+controller sends a relative age with game version 22 and binary version 51
+or newer. Older clients and the compiled PHP 7 runtime receive UTC dates.
 
 The contract tests only establish source/fixture behavior. Actual client
 acceptance and on-provider performance are still separate release gates.

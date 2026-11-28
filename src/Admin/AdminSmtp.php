@@ -15,8 +15,7 @@ final class AdminSmtp
     public static function configured(): bool
     {
         foreach (['MUCHO_ADMIN_SMTP_HOST', 'MUCHO_ADMIN_SMTP_USER',
-                  'MUCHO_ADMIN_SMTP_PASSWORD', 'MUCHO_ADMIN_MAIL_FROM',
-                  'MUCHO_ADMIN_MAIL_ORIGIN'] as $key) {
+                  'MUCHO_ADMIN_SMTP_PASSWORD', 'MUCHO_ADMIN_MAIL_FROM'] as $key) {
             if (trim((string) Environment::get($key, '')) === '') {
                 return false;
             }
@@ -26,12 +25,19 @@ final class AdminSmtp
 
     public static function origin(): ?string
     {
-        $url = trim((string) Environment::get('MUCHO_ADMIN_MAIL_ORIGIN', ''));
+        // Prefer the explicit mail origin, but accept an already configured
+        // canonical public origin. Never derive reset URLs from request headers.
+        $explicit = trim((string) Environment::get('MUCHO_ADMIN_MAIL_ORIGIN', ''));
+        $url = $explicit !== '' ? $explicit : trim((string)(
+            Environment::get('MUCHO_PUBLIC_URL', '')
+            ?: Environment::get('MUCHO_ACCOUNT_URL', '')
+            ?: ''
+        ));
         $parts = parse_url($url);
         if (!is_array($parts) || ($parts['scheme'] ?? '') !== 'https' ||
             empty($parts['host']) || (isset($parts['user']) || isset($parts['pass'])) ||
             isset($parts['query']) || isset($parts['fragment']) ||
-            isset($parts['path']) || isset($parts['port']) ||
+            (isset($parts['path']) && $parts['path'] !== '/') || isset($parts['port']) ||
             !preg_match('/^[a-z0-9.-]+$/iD', (string) $parts['host'])) {
             return null;
         }

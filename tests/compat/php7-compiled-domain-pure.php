@@ -33,7 +33,7 @@ $php8OnlyDiagnosticHashes=array(
     'src/Moderation/ReportQueueRepository.php'=>'af4189c92ad58fbe80529cff48424ea374a184136993ab7f4a4659b302a96901',
     'src/Moderation/ReportQueueService.php'=>'699f44e17d3c4b5c64a17e0e10525ade9460e3cb2d04347fe7b330416bac747c',
     'src/Client/AndroidGd2209Binary.php'=>'8c0dcb95a744fba6dbb7a59222c3ae12cc25f6ff7ad35ee83ed85c9b9ea601f7',
-    'src/Client/AndroidClientPatcher.php'=>'5b201600cff430ba777df3403f403686a89e35e55e965943c69d7013fca72e9c',
+    'src/Client/AndroidClientPatcher.php'=>'5721dc460765470757a66518d7110c5886f8c6eefe943a1dcfda5c78b5c6821d',
     'src/Social/MessageController.php'=>'20146708112462034cbe140a60a553a5e344a6bdbf3d20b1430c5059c82a660b',
     'src/Social/MessageService.php'=>'3d42dfed2b6cd97f3c8db974aabb8f1aee0ec59da6f95bdc4f388bd9fced4e86',
     // PHP 8 request bootstrap and authentication optimizations.
@@ -55,7 +55,7 @@ $php8OnlyDiagnosticHashes=array(
     'src/Score/LevelScoreController.php'=>'22e26c358f19ed939671ffcfa184898bb1b8e5479143ba45b82fb67b7f1163b0',
     'src/Social/ThreadService.php'=>'736d728e9905b96f59036b7090a0d637167a86357a5ae9382fb2af094560a81e',
     'tests/application/gd2209-thread-integration.php'=>'40b72d2aeba970da2d1325c5d47f830bd2295fb3b27c9a03e25df92e524cc3a0',
-    'src/Level/LevelRepository.php'=>'86e673b56e97e09767a4b54f2bba968e0f07467adcd453d72f9e779dac879f4e',
+    'src/Level/LevelRepository.php'=>'fde92e0730b2d00064c1054a6de4c8ed25858eeb468a78635e5d4ea9f3238359',
     'src/Protocol/GdLevelListEncoder.php'=>'92dcc92c8f1bd0f93a9c280b8bdc0760931ef6e6f48dc75cb2e4a4b54603efe1',
 );
 $count=0;

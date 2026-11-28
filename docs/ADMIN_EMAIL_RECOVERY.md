@@ -62,3 +62,32 @@ existing sessions become invalid, and check that TOTP still applies.
 HTTP 200 and passing CI are not evidence that SMTP mail was delivered.
 If SMTP is missing, the interface explains this and console reset remains
 the fallback. The PHP 7 and Go editions are not part of this change.
+
+## Upgrade readiness and recovery troubleshooting
+
+The `admin_email_recovery` table is created by
+`20261119_001_admin_email_recovery.php` during the normal database migration
+step. It is **not created by web requests**; existing records are preserved.
+If the table is absent, finish the PHP 8 migrations before opening the admin
+recovery page. Do not manually delete administrators or re-open first-run setup.
+
+Configure an authenticated TLS SMTP relay in the active private `.env`:
+
+```dotenv
+MUCHO_ADMIN_SMTP_HOST=smtp.example.com
+MUCHO_ADMIN_SMTP_PORT=587
+MUCHO_ADMIN_SMTP_SECURITY=starttls
+MUCHO_ADMIN_SMTP_USER=mailer@example.com
+MUCHO_ADMIN_SMTP_PASSWORD=CONFIGURE_PRIVATELY
+MUCHO_ADMIN_MAIL_FROM=mailer@example.com
+```
+
+A trusted recovery URL is required. Set `MUCHO_ADMIN_MAIL_ORIGIN` to the
+public HTTPS site root, or let the recovery service use a valid root-only
+`MUCHO_PUBLIC_URL` or `MUCHO_ACCOUNT_URL`. A request Host header is never
+used to form a reset URL. A 250 response from the SMTP server only indicates
+relay acceptance, **not inbox delivery**. Confirm the email reaches the
+mailbox before relying on recovery.
+
+For owner lockout when SMTP has not been configured, use the existing
+server-console recovery procedure instead of resetting the database.
