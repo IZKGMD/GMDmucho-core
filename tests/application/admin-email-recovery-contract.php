@@ -25,6 +25,26 @@ $admin = file_get_contents($root . '/public/admin/index.php');
 $route = file_get_contents($root . '/public/admin/email-recovery.php');
 $service = file_get_contents($root . '/src/Admin/AdminEmailRecovery.php');
 $smtp = file_get_contents($root . '/src/Admin/AdminSmtp.php');
+$migration = file_get_contents($root . '/database/migrations/20261119_001_admin_email_recovery.php');
+checkRecovery(str_contains($migration,'CREATE TABLE IF NOT EXISTS admin_email_recovery')
+        && str_contains($migration,'reset_token_hash')
+        && str_contains($migration,'verified_email')
+        && str_contains($migration,'verify_token_hash'),
+    'admin email recovery schema is provisioned by migrations');
+checkRecovery(!str_contains($route,'AdminEmailRecovery::ensureSchema($db)')
+        && !str_contains(
+            substr($service,
+                strpos($service,'public static function status('),
+                strpos($service,'public static function requestVerification(') -
+                    strpos($service,'public static function status(')
+            ),
+            'self::ensureSchema($db)'
+        ),
+    'browser routes never execute recovery DDL');
+checkRecovery(str_contains($smtp,"Environment::get('MUCHO_PUBLIC_URL', '')")
+        && str_contains($smtp,"Environment::get('MUCHO_ACCOUNT_URL', '')")
+        && !str_contains($smtp,'HTTP_HOST'),
+    'SMTP recovery accepts only trusted configured HTTPS origins');
 checkRecovery(str_contains($admin, "header('Referrer-Policy: no-referrer')") &&
               str_contains($admin, "header('Cache-Control: private, no-store, max-age=0')") &&
               str_contains($admin, "header('X-Content-Type-Options: nosniff')"),
