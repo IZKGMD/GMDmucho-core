@@ -11,6 +11,7 @@ use RuntimeException;
 final readonly class CloudSaveService
 {
     private const MAX_SAVE_BYTES = 32 * 1024 * 1024;
+    private const LEGACY_SUFFIX = ';21;30;a;a';
 
     public function __construct(
         private PDO $db,
@@ -28,9 +29,14 @@ final readonly class CloudSaveService
             throw new RuntimeException('Missing cloud save payload.');
         }
 
-        $size = strlen($saveData);
-        if ($size <= 0 || $size > self::MAX_SAVE_BYTES) {
+        if (strlen($saveData) > self::MAX_SAVE_BYTES) {
             throw new RuntimeException('Cloud save exceeds size limit.');
+        }
+
+        $gameVersion = $this->versionField($data['gameVersion'] ?? null, 21);
+        $binaryVersion = $this->versionField($data['binaryVersion'] ?? null, 30);
+        if (($gameVersion !== 21 || $binaryVersion !== 30) && !$this->hasVersionSuffix($saveData)) {
+            $saveData .= ";{$gameVersion};{$binaryVersion};a;a";
         }
 
         $this->repository->save($accountId, $saveData);
@@ -48,13 +54,28 @@ final readonly class CloudSaveService
             return '-1';
         }
 
-        // Preserve the stored save payload byte-for-byte. Trimming can
-        // corrupt a legitimate legacy payload before it is sent back.
-        if (!str_contains($saveData, ';21;30;a;a')) {
-            $saveData .= ';21;30;a;a';
+        return $this->hasVersionSuffix($saveData) ? $saveData : $saveData . self::LEGACY_SUFFIX;
+    }
+
+    private function hasVersionSuffix(string $saveData): bool
+    {
+        return preg_match('/;[0-9]{1,3};[0-9]{1,3};a;a\z/', substr($saveData, -12)) === 1;
+    }
+
+    private function versionField(mixed $value, int $default): int
+    {
+        if ($value === null || $value === '') {
+            return $default;
         }
 
-        return $saveData;
+        if (
+            (!is_string($value) && !is_int($value)) ||
+            preg_match('/\A[0-9]{1,3}\z/', (string)$value) !== 1
+        ) {
+            throw new RuntimeException('Invalid cloud save version.');
+        }
+
+        return (int)$value;
     }
 
     private function authenticate(array $data): int

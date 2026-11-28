@@ -3,6 +3,8 @@ declare(strict_types=1);
 require_once __DIR__.'/../core/AdminUi.php';
 $state=adminListState($_GET);
 $q=$state['q'];
+$openId=adminRecordId($_GET['id'] ?? null);
+$openTab=$_GET['tab'] ?? '';
 $filter=in_array($state['filter'],['active','banned','inactive'],true) ? $state['filter'] : '';
 $state['filter']=$filter;
 $where=[];
@@ -49,7 +51,7 @@ $roleOptions=$manage ? $db->query("SELECT code FROM roles WHERE code IN ('user',
 <?php if(!$rows): ?><div class="card empty-state">No players found. Change the search or filters.</div><?php endif ?>
 <div class="admin-records">
 <?php foreach($rows as $r): $id=(int)$r['account_id']; ?>
-<details class="card admin-record" id="player-<?=$id?>">
+<details class="card admin-record" id="player-<?=$id?>"<?=$openId===$id?' open':''?>>
 <summary><?=adminGdIcon('players')?>
 <span class="record-name"><b><?=h($r['username'])?></b><small>#<?=$id?> · <?=h($r['role'])?></small></span>
 <span class="record-stat"><?=adminGdIcon('stars')?><?=number_format((int)($r['stars'] ?? 0))?></span>
@@ -67,7 +69,7 @@ $roleOptions=$manage ? $db->query("SELECT code FROM roles WHERE code IN ('user',
 <label>Role<select name="role"><?php foreach($roleOptions as $role): ?><option value="<?=h($role)?>" <?=$r['role']===$role?'selected':''?>><?=h($role)?></option><?php endforeach ?></select></label>
 <div class="record-checks"><label><input type="checkbox" name="active" <?=$r['is_active']?'checked':''?>>Active</label><label><input type="checkbox" name="banned" <?=$r['is_banned']?'checked':''?>>Banned</label></div>
 <button>Save changes</button></form>
-<details class="record-extra"><summary>Statistics</summary>
+<details class="record-extra"<?=$openId===$id&&$openTab==='statistics'?' open':''?>><summary>Statistics</summary>
 <form method="post" class="admin-stats-grid">
 <input type="hidden" name="csrf" value="<?=csrf()?>"><input type="hidden" name="action" value="profile-save">
 <input type="hidden" name="return" value="players"><input type="hidden" name="id" value="<?=$id?>">
@@ -77,7 +79,7 @@ $roleOptions=$manage ? $db->query("SELECT code FROM roles WHERE code IN ('user',
 <?php endforeach ?><button>Save</button></form></details>
 <?php else: ?><p><?=h($r['email'])?> · <?=h($r['created_at'])?></p><?php endif ?>
 <?php if($reset): ?>
-<details class="record-extra"><summary>Change password</summary>
+<details class="record-extra"<?=$openId===$id&&$openTab==='password'?' open':''?>><summary>Change password</summary>
 <form method="post" class="admin-edit-grid" data-password-confirm>
 <input type="hidden" name="csrf" value="<?=csrf()?>"><input type="hidden" name="action" value="password-reset">
 <input type="hidden" name="return" value="players"><input type="hidden" name="id" value="<?=$id?>">

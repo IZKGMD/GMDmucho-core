@@ -12,12 +12,10 @@ if (!is_string($entry)) {
     throw new RuntimeException('PHP7 front controller missing');
 }
 $public = strpos($entry, 'if (in_array($path, array(');
-$mysql = strpos($entry, "extension_loaded('pdo_mysql')");
-$connect = strpos($entry, 'new PDO(');
-if ($public === false || $mysql === false || $connect === false
-    || !($public < $mysql && $mysql < $connect)
-    || strpos($entry, 'mucho7_dispatch(null, $uri, $method, $_POST, $options)')
-       === false) {
+$connect = strpos($entry, '$pdo = mucho7_connect($settings);');
+$dispatch = strpos($entry, 'mucho7_dispatch(null, $uri, $method, $_POST, $options)');
+if ($public === false || $connect === false || $dispatch === false
+    || !($public < $dispatch && $dispatch < $connect)) {
     throw new RuntimeException('PHP7 native news must run before MySQL checks');
 }
 $opts = array(

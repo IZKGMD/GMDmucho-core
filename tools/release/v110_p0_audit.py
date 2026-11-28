@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only P0 endpoint readiness audit for MuchoCore 1.1.0.
+"""Read-only P0 endpoint readiness audit for MuchoCore.
 
 A fixture matching an endpoint proves only route observation, NOT native client
 acceptance or correct response wire format. Never use this to sign off a release.
@@ -140,7 +140,8 @@ def audit(root):
         })
 
     return {
-        "target_release": "1.1.0", "scope": "P0 diagnostic only",
+        "target_release": manifest.get("policy", {}).get("target_release"),
+        "scope": "P0 diagnostic only",
         "note": "Route observations alone do not certify wire format or native acceptance.",
         "p0_count": len(P0),
         "p0_ready": sum(bool(item["ready"]) for item in results),

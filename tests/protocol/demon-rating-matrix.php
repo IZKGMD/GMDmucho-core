@@ -126,36 +126,47 @@ foreach ($profiles as $profile => $expected) {
         $profile . ' PHP8 persisted state');
 }
 
-// Regression: internal MuchoCore ratings 1=Auto, 2..6=Easy..Insane.
-// GD 2.209 field 9 uses 0/10/20/30/40/50; 60 falsely draws Demon.
+// These ratings are stored in MuchoCore's compact 1..6 schema.
+// Geometry Dash does NOT use compact*10: it reserves key 9's 50 for
+// Insane, Auto and Demon, distinguished by the auto/demon flags.
 foreach ([
-    'unrated' => [0, 0, 0, 0, 0],
-    'auto' => [1, 0, 1, 0, 1],
-    'easy' => [2, 0, 0, 10, 2],
-    'normal' => [3, 0, 0, 20, 3],
-    'hard' => [4, 0, 0, 30, 5],
-    'harder' => [5, 0, 0, 40, 7],
-    'insane' => [6, 0, 0, 50, 9],
-    'demon' => [6, 1, 0, 50, 10],
-] as $name => [$stored, $demon, $auto, $expected, $stars]) {
+    [1, 50, 1, 0, 1, 'Auto'],
+    [2, 10, 0, 0, 2, 'Easy'],
+    [3, 20, 0, 0, 3, 'Normal'],
+    [4, 30, 0, 0, 5, 'Hard'],
+    [5, 40, 0, 0, 7, 'Harder'],
+    [6, 50, 0, 0, 9, 'Insane'],
+    [6, 50, 0, 1, 10, 'Demon'],
+] as [$stored, $wireDifficulty, $auto, $demon, $stars, $label]) {
     $row = $base;
     $row['difficulty'] = $stored;
-    $row['demon'] = $demon;
     $row['auto_level'] = $auto;
+    $row['demon'] = $demon;
     $row['stars'] = $stars;
-    $row['demon_difficulty'] = 0;
     foreach ([[22, 51], [21, 35]] as [$gv, $bv]) {
-        $search = $listEncoder->encode([$row], 1, 0, 10, $gv, $bv);
-        $download = $downloadEncoder->encode($row, $gv, false, $bv);
-        ratingAssert(wireField($search, 9) === (string)$expected,
-            $name . ' list field 9 mismatch GD ' . $gv);
-        ratingAssert(wireField($download, 9) === (string)$expected,
-            $name . ' download field 9 mismatch GD ' . $gv);
-        ratingAssert(wireField($search, 18) === (string)$stars,
-            $name . ' stars must not change');
-        ratingAssert(wireField($search, 17) === (string)$demon,
-            $name . ' demon flag preserved');
+        foreach ([
+            'search' => $listEncoder->encode([$row], 1, 0, 10, $gv, $bv),
+            'download' => $downloadEncoder->encode($row, $gv, false, $bv),
+        ] as $surface => $response) {
+            ratingAssert(wireField($response, 9) === (string)$wireDifficulty,
+                $label . ' ' . $surface . ' key 9 should match GD difficulty');
+            ratingAssert(wireField($response, 25) === (string)$auto,
+                $label . ' ' . $surface . ' auto flag');
+            ratingAssert(wireField($response, 17) === (string)$demon,
+                $label . ' ' . $surface . ' demon flag');
+            ratingAssert(wireField($response, 18) === (string)$stars,
+                $label . ' ' . $surface . ' stars');
+        }
     }
+}
+// Raw legacy GD values were already normalized by other importers.
+// Preserve them instead of interpreting 10 or 50 as compact codes.
+foreach ([10,20,30,40,50] as $raw) {
+    $row = $base;
+    $row['difficulty'] = $raw;
+    $row['demon'] = 0;
+    ratingAssert(wireField($listEncoder->encode([$row], 1, 0, 10, 22, 51),9)
+        === (string)$raw, 'raw imported difficulty ' . $raw);
 }
 
 ratingAssert(

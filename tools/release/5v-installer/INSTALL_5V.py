@@ -58,9 +58,9 @@ def read_checkpoint(ftp, identity):
         return state
     except (ValueError, AttributeError, TypeError):
         raise InstallError(
-            "На сайте уже есть mc/, но это не незавершённая установка этой сборки. "
-            "Для обновления используй обновлятор, для сброса пароля — «Восстановить админку». "
-            "Файлы и база не изменены.") from None
+            "This site already has an mc/ folder from another installation. "
+            "Use the updater to upgrade, or choose Recover admin access to reset the owner password. "
+            "Your files and database were preserved.") from None
 
 
 def write_checkpoint(ftp, identity, stage):
@@ -74,7 +74,7 @@ def check_empty_database(ftp, site, cfg):
     """Check credentials and emptiness before uploading the core, without SQL writes."""
     template = BUNDLE_DIR / "DATABASE_CHECK.php.tpl"
     if not template.is_file():
-        raise InstallError("В установщике нет проверки базы. Скачай полный архив или новый Setup EXE.")
+        raise InstallError("The database check is missing. Download a fresh copy of Setup or extract the full archive.")
     token = secrets.token_hex(32)
     host = cfg["site"].split("//", 1)[1]
     content = (template.read_text(encoding="utf-8")
@@ -95,8 +95,8 @@ def check_empty_database(ftp, site, cfg):
         if code != 200 or not isinstance(result, dict) or result.get("ok") is not True:
             reason = result.get("error") if isinstance(result, dict) else None
             if reason == "database_not_empty":
-                raise InstallError("База уже содержит таблицы. Создай отдельную пустую базу; существующие данные не изменены.")
-            raise InstallError("Не удалось подключиться к пустой MySQL-базе. Проверь её имя, логин и пароль в панели 5v.pl. Файлы ядра ещё не загружены.")
+                raise InstallError("The database already contains tables. Create a separate empty database for this installation.")
+            raise InstallError("Could not connect to the empty MySQL database. Check its name, username, and password in the 5v.pl dashboard.")
     finally:
         ftp.delete(ftp.root, name)
 
@@ -172,25 +172,25 @@ def csrf_from(page: bytes, expected_action: str) -> str:
     html = page.decode("utf-8", "replace")
     if ('value="' + expected_action + '"') not in html and \
             ("value='" + expected_action + "'") not in html:
-        raise InstallError("Сайт не показал ожидаемую форму: " + expected_action)
+        raise InstallError("The site did not return the expected form: " + expected_action)
     parser = FormFields()
     parser.feed(html)
     csrf = parser.fields.get("csrf", "")
     if not re.fullmatch(r"[a-f0-9]{48,64}", csrf):
-        raise InstallError("Токен защиты формы не найден. Проверь работу PHP-сессий.")
+        raise InstallError("The form security token is missing. Check that PHP sessions work.")
     return csrf
 
 
 def bootstrap_owner(site: HttpsSite, cfg):
     code, html = site.request("/mc/admin.php")
     if code != 200:
-        raise InstallError("Админка недоступна по HTTPS (HTTP %d)." % code)
+        raise InstallError("The admin panel is unavailable over HTTPS (HTTP %d)." % code)
     if (b'First owner' not in html and b'Create your administrator' not in html) or b'name="db_password"' not in html:
         # A previous POST can commit successfully even if its response was lost.
         # Authenticate the same owner rather than trying to recreate the account.
         from PUBLISH_CLIENTS_5V import login_owner
         login_owner(site, cfg["admin"], cfg["adminpassword"])
-        print("Существующий владелец подтверждён; продолжаем установку.")
+        print("Existing owner verified. Resuming installation.")
         return
     csrf = csrf_from(html, "bootstrap")
     code, page = site.request("/mc/admin.php", {
@@ -200,8 +200,8 @@ def bootstrap_owner(site: HttpsSite, cfg):
         "enable_features": "1",
     })
     if code not in (200, 303) or b'First owner' in page or b'class="admin-login' in page:
-        raise InstallError("Не удалось создать владельца. Проверь MySQL, пароль и журнал PHP.")
-    print("Владелец создан; аккаунт не будет перезаписан повторным запуском.")
+        raise InstallError("Could not create the owner. Check MySQL, the owner password, and the PHP error log.")
+    print("Owner created. Setup preserves this account if you resume installation.")
 
 
 def initiate_owner_email_recovery(site: HttpsSite, cfg: dict) -> str:
@@ -232,29 +232,29 @@ def initiate_owner_email_recovery(site: HttpsSite, cfg: dict) -> str:
 
 def perform_migration(site: HttpsSite, ftp: FtpSite):
     """Use the site's original authenticated, resumable owner-only migrations."""
-    print("Подготавливаем оригинальное ядро и миграции MySQL...")
+    print("Preparing the core and MySQL migrations…")
     for attempt in range(35):
         if ftp.get(ftp.root, "mc/config/php7-complete.on", optional=True) is not None:
-            print("Миграция подтверждена приватным маркером на сайте.")
+            print("Migration verified using a private marker.")
             return
         code, html = site.request("/mc/admin.php?page=system")
         if code != 200:
-            raise InstallError("Админка перестала отвечать во время миграции.")
+            raise InstallError("The admin panel stopped responding during migration.")
         csrf = csrf_from(html, "core-upgrade")
         code, result = site.request("/mc/admin.php?page=system", {
             "csrf": csrf, "action": "core-upgrade",
         })
         if code not in (200, 303):
-            raise InstallError("Ошибка оригинального мастера миграции.")
+            raise InstallError("The database migration failed.")
         # The native migration deliberately waits 35 seconds for live API traffic
         # to drain before starting backups/import. Do not bypass its lock.
         time.sleep(36 if attempt == 0 else 2)
-    raise InstallError("Миграция не завершилась автоматически. Данные сохранены. Продолжи в /mc/admin.php?page=system.")
+    raise InstallError("Setup could not finish migration. Your data was saved. Continue at /mc/admin.php?page=system.")
 
 
 def perform_install(cfg, *, prepare_clients: bool = True):
     if not CORE_DIR.is_dir() or not RULE_FILE.is_file():
-        raise InstallError("Распакуй весь релизный ZIP. Папка mc/ и правила 5V отсутствуют.")
+        raise InstallError("Extract the full release archive. Setup could not find mc/ or the 5v.pl routing rules.")
     private_config(cfg["site"], cfg["mysqlhost"], cfg["mysqlport"], cfg["dbname"], cfg["dbuser"], cfg["dbpassword"])
     site = HttpsSite(cfg["site"])
     report = {"site": cfg["site"], "date": datetime.now(timezone.utc).isoformat(),
@@ -262,24 +262,29 @@ def perform_install(cfg, *, prepare_clients: bool = True):
     try:
         with FtpSite(cfg["host"], cfg["user"], cfg["password"],
                      secure=cfg["secure"]) as ftp:
-            print("Проверка владения сайтом через FTP + HTTPS...")
-            root = ftp.find_root(cfg["site"], cfg["root"])
+            verified = cfg.get("_verified_folder")
+            if verified is not None and ftp.use_verified_folder(cfg["site"], cfg["root"], verified):
+                root = ftp.root
+                print("Reusing the website folder verified in this wizard.")
+            else:
+                print("Verifying site ownership over FTP and HTTPS…")
+                root = ftp.find_root(cfg["site"], cfg["root"])
             cfg["_resolved_root"] = root
-            print("Подтверждена папка сайта:", root)
+            print("Verified website folder:", root)
             identity = install_identity(cfg)
             existing = ftp.exists_dir(root, "mc")
             state = read_checkpoint(ftp, identity) if existing else {"stage": "upload"}
             if existing:
-                print("Найдена установка этой сборки. Проверяем состояние без удаления данных.")
+                print("Resuming this installation and checking its progress.")
             configured = ftp.get(root, "mc/config/php7-local.php", optional=True) if existing else None
             if state["stage"] == "upload" and configured is None:
-                print("[1/5] Проверяем MySQL до загрузки ядра...")
+                print("[1/5] Checking MySQL before upload…")
                 check_empty_database(ftp, site, cfg)
                 # Create the checkpoint before upload so an interrupted transfer is resumable.
                 write_checkpoint(ftp, identity, "upload")
-                print("[2/5] Загружаем файлы...")
+                print("[2/5] Uploading files…")
                 ftp.upload_tree(CORE_DIR)
-                print("Защита приватных файлов...")
+                print("Verifying protection of private files…")
                 verify_private_folder(ftp, site)
                 cfg_data = private_config(cfg["site"], cfg["mysqlhost"], cfg["mysqlport"],
                                           cfg["dbname"], cfg["dbuser"], cfg["dbpassword"])
@@ -287,67 +292,67 @@ def perform_install(cfg, *, prepare_clients: bool = True):
                 ftp.put(root, tmp, cfg_data)
                 ftp.rename(root, tmp, "mc/config/php7-local.php")
             elif configured is None:
-                raise InstallError("Приватные настройки незавершённой установки отсутствуют. Ничего не перезаписываем; проверь резервную копию.")
+                raise InstallError("The unfinished installation's private settings are missing. Check your backup before continuing.")
             else:
                 # Never regenerate auth_pepper or overwrite live DB credentials on retry.
                 verify_private_folder(ftp, site)
             if state["stage"] == "complete":
                 from PUBLISH_CLIENTS_5V import login_owner
                 login_owner(site, cfg["admin"], cfg["adminpassword"])
-                print("MuchoCore уже установлен. Вход владельца подтверждён.")
+                print("MuchoCore is already installed and the owner login works.")
             else:
                 write_checkpoint(ftp, identity, "configured")
-                print("[3/5] Настраиваем маршруты...")
+                print("[3/5] Configuring routes…")
                 ftp.apply_routes(RULE_FILE.read_bytes(), resume=existing)
             if state["stage"] != "complete":
-                print("[4/5] Создаём администратора...")
+                print("[4/5] Creating the administrator…")
                 bootstrap_owner(site, cfg)
                 write_checkpoint(ftp, identity, "owner")
-                print("[5/5] Завершаем настройку базы...")
+                print("[5/5] Finishing database setup…")
                 perform_migration(site, ftp)
             code, health = site.request("/mc/health")
             if code != 200 or health.strip() != b"1":
-                raise InstallError("Ядро не прошло проверку /mc/health. Настройки сохранены; повторный запуск продолжит установку.")
+                raise InstallError("The core failed the /mc/health check. Your settings were saved. Run Setup again to resume.")
             code, page = site.request("/mc/admin.php?page=overview")
             if code != 200 or b'name="action" value="login"' in page:
-                raise InstallError("Веб-админка не прошла заключительную проверку.")
+                raise InstallError("The admin panel failed its final check.")
             # Do not make a mailbox or SMTP password another installation step.
             # Only confirmation in the recipient's inbox activates recovery.
             mail_status = initiate_owner_email_recovery(site, cfg)
             report["owner_recovery_email"] = mail_status
             if mail_status == "verification_queued":
-                print("Проверка почты: письмо поставлено в очередь 5v.pl.")
-                print("Открой входящие/спам и ПОДТВЕРДИ адрес по ссылке.")
+                print("5v.pl queued the confirmation email.")
+                print("Open the confirmation link. Check your inbox and spam folder.")
             elif mail_status == "pending":
-                print("Подтверждение почты ещё ожидается. Проверь входящие.")
+                print("Email confirmation is pending. Check your inbox.")
             elif mail_status == "verified":
-                print("Почта владельца уже подтверждена.")
+                print("The owner's email address is already confirmed.")
             else:
-                print("Почтовая проверка не подтверждена. Пароль можно восстановить через FTP.")
-                print("Повторить отправку: Админка → Administrators → Password recovery email.")
+                print("Email confirmation is pending. You can still recover your password through FTP.")
+                print("To resend the email, open Administrators → Password recovery email in the admin panel.")
             write_checkpoint(ftp, identity, "complete")
             report["status"] = "admin_and_migration_ok"
-            print("\nУстановка ядра завершена. Админка:", cfg["site"] + "/mc/admin.php")
+            print("\nCore installed. Admin panel:", cfg["site"] + "/mc/admin.php")
             if prepare_clients:
-                print("\nТеперь можно автоматически подготовить EXE и APK:")
+                print("\nYou can now prepare your EXE and APK:")
                 try:
                     from PUBLISH_CLIENTS_5V import publish_interactive
                     report["client_links"] = publish_interactive(site, ftp)
                     report["clients_status"] = "published" if report["client_links"] else "skipped"
                 except (InstallError, OSError, ValueError) as client_error:
                     report["clients_status"] = "needs_attention"
-                    print("Клиентам нужна отдельная проверка:", client_error)
-                    print("Само ядро и админка УЖЕ установлены и не затрагиваются.")
-                    print("Можно повторить только публикацию: START_CLIENTS_WINDOWS.cmd")
+                    print("Client preparation requires a separate check:", client_error)
+                    print("The core and admin panel are already installed.")
+                    print("To retry client preparation, open START_CLIENTS_WINDOWS.cmd.")
             else:
                 report["clients_status"] = "deferred"
-                print("Подготовка клиентов будет выполнена отдельным шагом мастера.")
-            print("Сохрани FTP-учётные данные в надёжном месте!")
-            print("Если забудешь пароль/2FA: START_RECOVERY_WINDOWS.cmd")
-            print("Совместимость ВСЕХ операций Geometry Dash 2.209 проверяется отдельно.")
+                print("Setup will prepare game clients separately.")
+            print("Store your FTP credentials somewhere safe.")
+            print("To recover the password or two-factor access, run START_RECOVERY_WINDOWS.cmd.")
+            print("Full Geometry Dash 2.209 compatibility is checked separately.")
     except Exception:
         report["status"] = "incomplete"
-        print("Если произошла ошибка, аккаунты и существующая база не удаляются.")
+        print("Your existing accounts and database are preserved if setup fails.")
         raise
     finally:
         try:

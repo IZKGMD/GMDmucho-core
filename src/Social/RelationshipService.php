@@ -73,11 +73,11 @@ final readonly class RelationshipService
         int $id,
         string $gjp,
         int $target,
-        bool $sent
+        bool $sent,
+        int $requestId = 0
     ): bool {
         $this->auth($id, $gjp);
-        return $target > 0
-            && $this->repo->deleteRequest($id, $target, $sent);
+        return $this->repo->deleteRequest($id, $target, $sent, $requestId);
     }
 
     public function remove(

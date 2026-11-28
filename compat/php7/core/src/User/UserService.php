@@ -154,10 +154,10 @@ final class UserService
         $limit = 10;
         $offset = $page * $limit;
         $users = $this->userRepository->search($query, $offset, $limit);
-        $total = $this->userRepository->searchCount($query);
         if ($users === []) {
             return '-1';
         }
+        $total = count($users) < $limit ? $offset + count($users) : $this->userRepository->searchCount($query);
         return $this->userEncoder->search($users, $total, $offset, $limit);
     }
     public function resolveAccountIdByUserId(int $userId): int

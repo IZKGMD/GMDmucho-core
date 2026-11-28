@@ -144,7 +144,7 @@ func (h *Handler) leaderboard(r request, typ string, id int64, limit int) (strin
 		game = 0
 	}
 	if typ == "relative" {
-		filter = "1=1"
+		filter = "a.is_active=1 AND a.is_banned=0"
 	}
 	if game >= 20 {
 		filter += " AND COALESCE(p.game_version,0)>=20"
@@ -164,7 +164,7 @@ func (h *Handler) leaderboard(r request, typ string, id int64, limit int) (strin
 	base := `SELECT p.*,a.username,COALESCE(ar.code,'user') AS role_code,` + clanTagSQL + `,ROW_NUMBER() OVER(ORDER BY p.` + metric + ` DESC,p.account_id ASC) AS ` + "`rank`" + ` FROM profiles p JOIN accounts a ON a.account_id=p.account_id LEFT JOIN roles ar ON ar.id=a.role_id WHERE ` + filter
 	query := base + " ORDER BY `rank` LIMIT ?"
 	if typ == "relative" {
-		query = "WITH ranked AS (" + base + ") SELECT r.* FROM ranked r JOIN (SELECT `rank` AS target_rank FROM ranked WHERE account_id=?) t ON 1=1 WHERE r.`rank` BETWEEN t.target_rank-25 AND t.target_rank+25 LIMIT 50"
+		query = "WITH ranked AS (" + base + ") SELECT r.* FROM ranked r JOIN (SELECT `rank` AS target_rank FROM ranked WHERE account_id=?) t ON 1=1 WHERE r.`rank` BETWEEN GREATEST(CAST(t.target_rank AS SIGNED)-25,1) AND t.target_rank+25 ORDER BY r.`rank` LIMIT 50"
 		args = append(args, id)
 	} else {
 		args = append(args, limit)

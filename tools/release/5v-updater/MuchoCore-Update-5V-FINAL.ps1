@@ -132,6 +132,8 @@ ROOT_RULES = (
     'RewriteRule ^(?:api|a)/(?:api/)?(?:profile|clans|muchocore)/ mc/public/php7.php [QSA,L,NC]',
     'RewriteRule ^(?:a|database|accounts|api)/(?:accounts/)?[A-Za-z0-9_-]+\\.php$ mc/public/php7.php [QSA,L,NC]',
     'RewriteRule ^(?:getAccountURL|getCustomContentURL|checkIfServerOnline)\\.php$ mc/public/php7.php [QSA,L,NC]',
+    'RewriteCond %{REQUEST_FILENAME} !-f\n'
+    'RewriteRule ^(?:[A-Za-z][A-Za-z0-9_-]*GJ[A-Za-z0-9_-]*|accountManagement|getLevelRateInfo|getSaveData|lostpassword|lostusername|openedRegister|requestUserAccess|uploadFriendRequest20|admin(?:ClearReportedContent|CloseCase|CommentBan|CommentUnban|DeleteUserComments|FreezeAccount|GetAbuseInfo|GetAccountReview|GetReportQueue|GetReportedContent|GetUserHistory|MessageBan|MessageUnban|NameLock|NameUnlock|QueueMute|QueueUnmute|ThreadAction|TrendingBan|TrendingUnban|UnfreezeAccount|Upload(?:Ban|Unban)))\\.php$ mc/public/php7.php [QSA,L,NC]',
     'RewriteRule ^gd-content/news/news_version\\.txt$ mc/public/php7.php [QSA,L,NC]',
     'RewriteRule ^gd-content/news/news\\.dat$ mc/public/php7.php [QSA,L,NC]',
     'RewriteRule ^news/news_version\\.txt$ mc/public/php7.php [QSA,L,NC]',
@@ -166,7 +168,7 @@ def is_shipped_path(name):
     private_names = {'php7-local.php', 'cloudsave.key', 'php7-apk-signer.json'}
     if any(part in private_names for part in name.split('/')):
         return False
-    if name in REQUIRED or name in {'public/php7-setup.php','public/.htaccess',
+    if name in REQUIRED or name in {'VERSION','public/php7-setup.php','public/.htaccess',
                                      'public/muchocore-theme.css','public/muchocore-theme.js'}:
         return True
     if name.startswith('compat/php7/'):
@@ -555,7 +557,8 @@ def plan_root_rewrites(remote):
         raise RuntimeError('Site root .htaccess is not UTF-8; refusing automatic rewrite.') from ex
     if not re.search(r'^\s*RewriteEngine\s+On\s*$', text, re.I | re.M):
         raise RuntimeError('Site root .htaccess has no RewriteEngine On; refusing automatic rewrite.')
-    missing = [rule for rule in ROOT_RULES if rule not in text]
+    normalized = text.replace('\r\n', '\n')
+    missing = [rule for rule in ROOT_RULES if rule not in normalized]
     if not missing:
         return current, current
     newline = '\r\n' if b'\r\n' in current else '\n'

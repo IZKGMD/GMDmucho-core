@@ -82,9 +82,9 @@ The current MegaSa1nt/Cvolton-compatible schema exposes these data areas:
 | Levels | levels | Imported automatically |
 | Classic scores | levelscores | Imported automatically |
 | Platformer scores | platscores | Imported automatically |
-| Level/account comments | comments, acccomments | Detected and reported; dedicated mapping still required |
+| Level/account comments | comments, acccomments | Registered authors and linked levels imported. Unresolved rows are skipped and counted. |
 | Friends/requests/blocks/messages | friendships, friendreqs, blocks, messages, links | Detected and reported; dedicated mapping still required |
-| Lists/Map Packs/Gauntlets/Daily | lists, mappacks, gauntlets, dailyfeatures | Detected and reported; dedicated mapping still required |
+| Lists/Map Packs/Gauntlets/Daily | lists, mappacks, gauntlets, dailyfeatures | Imported through the level map, with invalid or unresolved references reported as skips. |
 | Legacy moderation/admin | roles, roleassign, modips, bannedips, reports, modactions, actions, suggest, modipperms | Detected and reported; not copied into MuchoCore RBAC |
 | Song metadata | songs | Detected; binary files need filesystem access |
 | Music/SFX files | old server music/ and sfx/ directories | Requires a separate file copy |
@@ -144,7 +144,7 @@ The source database connection is opened with:
 SET SESSION TRANSACTION READ ONLY
 ~~~
 
-Repeated imports use source-to-target account and level mappings so an already imported source record can be reconciled instead of blindly duplicated.
+Repeated imports use source-to-target account and level mappings. Imported comments, collections and rotations retain a content mapping so repeat runs do not duplicate them or overwrite local edits. Use the same source database when resuming a migration. Legacy RGB Map Pack colors use target defaults. Rotation timestamps are interpreted in UTC.
 
 ## Password handling
 

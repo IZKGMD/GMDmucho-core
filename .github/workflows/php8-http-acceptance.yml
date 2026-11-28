@@ -4,11 +4,13 @@ on:
   push:
     branches: [main]
     paths:
+      - ".release/v*.ready"
       - "src/**"
       - "public/**"
       - "database/**"
       - "config/**"
       - "bin/**"
+      - "tools/**"
       - "compat/**"
       - "docker/**"
       - "tests/**"
@@ -18,20 +20,7 @@ on:
       - "composer.lock"
       - "tests/integration/**"
       - ".github/workflows/php8-http-acceptance.yml"
-  pull_request:
-    paths:
-      - "src/**"
-      - "bin/**"
-      - "public/**"
-      - "database/**"
-      - "config/**"
-      - "docker/**"
-      - "docker-compose.test.yml"
-      - "docker-compose.test-acceptance.yml"
-      - "composer.json"
-      - "composer.lock"
-      - "tests/integration/**"
-      - ".github/workflows/php8-http-acceptance.yml"
+  pull_request: {}
   workflow_dispatch:
 
 permissions:
@@ -119,7 +108,7 @@ jobs:
           export DB_PASS="$(cat .secrets/testgdps_db_password)"
           python3 tests/integration/admin-email-recovery-e2e.py
 
-      - name: Verify player password changes and bans revoke browser sessions
+      - name: Verify password changes and bans revoke browser sessions and warm GD credentials
         env:
           DB_HOST: 127.0.0.1
           DB_PORT: "13307"
@@ -130,6 +119,8 @@ jobs:
         run: |
           set -Eeuo pipefail
           export DB_PASS="$(cat .secrets/testgdps_db_password)"
+          docker compose -f docker-compose.test.yml -f docker-compose.test-acceptance.yml \
+            exec -T testgdps-app php -d apc.enable_cli=1 -r 'exit(function_exists("apcu_enabled") && apcu_enabled() && getenv("MUCHO_AUTH_CACHE") === "1" ? 0 : 1);'
           python3 tests/integration/player-session-http.py
 
       - name: Run full PHP 8 HTTP acceptance regression
@@ -162,6 +153,9 @@ jobs:
           set -Eeuo pipefail
           python3 tests/integration/php8-all-routes-negative-http.py
 
+      - name: Verify native news aliases and cache policy over HTTP
+        run: php tests/application/native-news-contract.php --http
+
       - name: Emulate all 113 Windows GD 2.209 native endpoint forms over PHP 8 HTTP
         shell: bash
         env:
@@ -175,9 +169,21 @@ jobs:
 
       - name: Install MP3 test utilities
         shell: bash
+        timeout-minutes: 3
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends ffmpeg
+          set -Eeuo pipefail
+          if command -v ffmpeg >/dev/null; then
+            ffmpeg_path="$(command -v ffmpeg)"
+          else
+            ffmpeg_dir="$RUNNER_TEMP/mucho-test-ffmpeg"
+            # The Linux x86-64 wheel bundles FFmpeg and needs no system packages.
+            python3 -m pip install --only-binary=:all: --no-deps --require-hashes \
+              --disable-pip-version-check --timeout 15 --retries 2 --target "$ffmpeg_dir" \
+              -r <(printf '%s\n' 'imageio-ffmpeg==0.6.0 --hash=sha256:c7e46fcec401dd990405049d2e2f475e2b397779df2519b544b8aab515195282')
+            ffmpeg_path="$(PYTHONPATH="$ffmpeg_dir" python3 -c 'import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())')"
+          fi
+          "$ffmpeg_path" -version
+          printf 'MUCHO_TEST_FFMPEG=%s\n' "$ffmpeg_path" >> "$GITHUB_ENV"
 
       - name: Verify cross-version song metadata and real MP3 HTTP/range delivery
         shell: bash

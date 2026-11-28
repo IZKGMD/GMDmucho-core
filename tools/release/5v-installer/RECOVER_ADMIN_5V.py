@@ -31,19 +31,19 @@ def recover(site_url: str, ftp_host: str, ftp_username: str, ftp_password: str,
     origin = site_origin(site_url)
     ftp_host = valid_ftp_host(ftp_host)
     if owner and not re.fullmatch(r"[A-Za-z0-9_-]{1,20}", owner):
-        raise InstallError("Укажи существующее имя владельца, не нового администратора.")
+        raise InstallError("Enter the username of an existing owner.")
     if not 10 <= len(new_password.encode("utf-8")) <= 72:
-        raise InstallError("Новый пароль владельца: 10–72 байта.")
+        raise InstallError("Choose a new owner password of 10–72 bytes.")
     if not TEMPLATE.is_file():
-        raise InstallError("Распакуй архив полностью: отсутствует RECOVERY_HANDLER.php.tpl.")
+        raise InstallError("Extract the full archive to obtain RECOVERY_HANDLER.php.tpl.")
     body = TEMPLATE.read_text(encoding="utf-8")
     if not all(item in body for item in ("__HASH__", "__EXPIRES__", "__DOMAIN__")):
-        raise InstallError("Файл восстановления повреждён.")
+        raise InstallError("The recovery file is invalid.")
     https = HttpsSite(origin)
     with FtpSite(ftp_host, ftp_username, ftp_password, secure=ftps) as ftp:
         root = ftp.find_root(origin, root_hint)
         if not ftp.exists_dir(root, "mc"):
-            raise InstallError("Папка mc/ не найдена. Сначала установи ядро.")
+            raise InstallError("The mc/ folder is missing. Install MuchoCore first.")
         token = secrets.token_hex(32)
         name = "mc/public/mucho-rescue-" + secrets.token_hex(16) + ".php"
         domain = urllib.parse.urlsplit(origin).hostname
@@ -51,7 +51,7 @@ def recover(site_url: str, ftp_host: str, ftp_username: str, ftp_password: str,
                    .replace("__EXPIRES__", str(int(time.time()) + 600))
                    .replace("__DOMAIN__", domain))
         if "__" + "HASH__" in php or "__EXPIRES__" in php:
-            raise InstallError("Шаблон восстановления не заполнен.")
+            raise InstallError("The recovery template is incomplete.")
         ftp.put(root, name, php.encode("utf-8"))
         try:
             response = None
@@ -65,21 +65,21 @@ def recover(site_url: str, ftp_host: str, ftp_username: str, ftp_password: str,
                 response = (code, payload)
                 break
             if response is None:
-                raise InstallError("5v.pl не запустил временный обработчик восстановления.")
+                raise InstallError("5v.pl could not run the temporary recovery script.")
             code, payload = response
             try:
                 result = json.loads(payload.decode("utf-8", "replace"))
             except (UnicodeDecodeError, ValueError):
-                raise InstallError("5v.pl вернул неожиданный ответ при восстановлении.")
+                raise InstallError("5v.pl returned an unexpected recovery response.")
             if code != 200 or result.get("ok") is not True:
-                raise InstallError("Восстановление не подтверждено. Проверь имя владельца и БД.")
+                raise InstallError("Recovery could not be verified. Check the owner username and database.")
         finally:
             ftp.delete(root, name)
 
-    print("\nДОСТУП ВОССТАНОВЛЕН:", origin + "/mc/admin.php")
-    print("Пароль существующего владельца изменён. База, уровни, роль и аккаунты сохранены.")
-    print("Прежние 2FA, recovery-коды, passkeys и сессии отозваны.")
-    print("После входа включи 2FA заново и обязательно СОХРАНИ новые резервные коды.")
+    print("\nAccess restored:", origin + "/mc/admin.php")
+    print("The owner's password was reset. Your database, levels, roles, and accounts were preserved.")
+    print("Existing two-factor credentials, recovery codes, passkeys, and sessions were revoked.")
+    print("Sign in, set up two-factor authentication again, and save the new recovery codes.")
 
 
 def main():

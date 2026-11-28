@@ -42,11 +42,7 @@ final class GdLevelListEncoder
              * Preserve custom star values (15/30/50, etc.) in the multi-level
              * hash. Cvolton's genMulti hashes the stored star value verbatim.
              */
-            $wireDifficulty = $this->wireDifficulty(
-                (int)($level['difficulty'] ?? 0),
-                (int)($level['demon'] ?? 0),
-                (int)($level['auto_level'] ?? 0)
-            );
+            $wireDifficulty = $this->wireDifficulty((int)($level['difficulty'] ?? 0));
 
             $protocolStars = max(
                 0,
@@ -167,26 +163,26 @@ final class GdLevelListEncoder
         }
     }
 
-    private function wireDifficulty(int $difficulty, int $demon, int $auto): int
+    private function wireDifficulty(int $difficulty): int
     {
-        // Internal GDPS ratings: 1=Auto, 2=Easy, 3=Normal, 4=Hard,
-        // 5=Harder, 6=Insane or Demon (distinguished by field 17).
-        // In GD 2.209 field 9 uses 10..50, not 10..60. Sending 60
-        // with demon=0 causes the game to draw a Demon face for Insane.
-        if ($auto !== 0) {
-            return 0;
-        }
-        if ($demon !== 0) {
-            return 50;
-        }
-        if ($difficulty >= 2 && $difficulty <= 6) {
-            return ($difficulty - 1) * 10;
-        }
-        if ($difficulty === 1) {
-            return 0;
-        }
-        // Preserve existing legacy 10..50 protocol values and custom codes.
-        return max(0, $difficulty);
+        /*
+         * MuchoCore stores standard difficulties internally as 1..6,
+         * while Geometry Dash expects 10..60 on the wire. Accept both
+         * representations so legacy data remains compatible.
+         */
+        // Database compact codes are 1=Auto, 2=Easy, 3=Normal,
+        // 4=Hard, 5=Harder, 6=Insane/Demon. GD wire key 9 instead
+        // expects 10..50 for Easy..Insane; Auto and Demon are selected
+        // by their separate keys 25 and 17 while keeping key 9 at 50.
+        // Preserve existing uncompressed wire values 10..50.
+        return match ($difficulty) {
+            1, 6 => 50,
+            2 => 10,
+            3 => 20,
+            4 => 30,
+            5 => 40,
+            default => max(0, $difficulty),
+        };
     }
 
 }

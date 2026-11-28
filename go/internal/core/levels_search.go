@@ -105,13 +105,20 @@ func (h *Handler) levelList(r request) (string, error) {
 	default:
 		ids := idList(diff, 20)
 		for i, v := range ids {
-			if v >= 10 && v%10 == 0 {
-				ids[i] = v / 10
+			if v >= 10 && v <= 50 && v%10 == 0 {
+				v /= 10
 			}
+			if v >= 1 && v <= 5 {
+				v++
+			}
+			ids[i] = v
 		}
 		in("l.difficulty", ids, false)
+		if len(ids) > 0 {
+			add("l.demon=0")
+		}
 	}
-	for key, condition := range map[string]string{"original": "l.original_level_id=0", "coins": "l.coins_verified=1 AND l.coins<>0", "twoPlayer": "l.two_player=1", "star": "l.stars>0", "noStar": "l.stars=0", "featured": "l.featured>0", "epic": "l.epic=1", "mythic": "l.epic=2", "legendary": "l.epic=3"} {
+	for key, condition := range map[string]string{"original": "l.original_level_id=0", "coins": "l.coins_verified=1 AND l.coins<>0", "twoPlayer": "l.two_player=1", "star": "l.stars>0", "noStar": "l.stars=0", "featured": "l.featured>0", "epic": "l.epic=1", "mythic": "l.epic=3", "legendary": "l.epic=2"} {
 		if r.str(key) == "1" {
 			add(condition)
 		}

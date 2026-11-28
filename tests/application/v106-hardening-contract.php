@@ -37,13 +37,16 @@ $readme = (string)file_get_contents(
 
 
 assertV106(
-    str_contains($userRepository, '(:numeric_query = 1 AND COALESCE(p.user_id, 0) = :user_id)'),
+    str_contains($userRepository, 'OR p.user_id = :user_id') &&
+    substr_count($userRepository, '$this->searchFilter($query)') === 2,
     'numeric player searches are counted by user_id'
 );
 
 assertV106(
-    substr_count($userRepository, 'a.is_active=1') >= 2 &&
-    substr_count($userRepository, 'a.is_banned=0') >= 2,
+    str_contains($userRepository, "leaderboardByMetric('stars',") &&
+    str_contains($userRepository, "leaderboardByMetric('creator_points',") &&
+    str_contains($userRepository, 'eligible.is_active = 1') &&
+    str_contains($userRepository, 'eligible.is_banned = 0'),
     'top and creator leaderboards exclude inactive and banned accounts'
 );
 
@@ -54,7 +57,7 @@ assertV106(
     ) &&
     str_contains(
         $userRepository,
-        "COALESCE(p.game_version, 0) > 0 AND COALESCE(p.game_version, 0) < 20"
+        "ranked.game_version > 0 AND ranked.game_version < 20"
     ),
     'creator leaderboard keeps pre-2.x compatibility filtering'
 );

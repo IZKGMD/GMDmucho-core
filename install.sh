@@ -15,6 +15,7 @@ DB_USER="${MUCHO_DB_USER:-}"
 ADMIN_USER="${MUCHO_ADMIN_USER:-}"
 CADDY_EXTRA_HOSTS="${MUCHO_CADDY_EXTRA_HOSTS:-}"
 CUSTOM_CONTENT_URL="${MUCHO_CUSTOM_CONTENT_URL:-}"
+NATIVE_NEWS="${MUCHO_NATIVE_NEWS:-}"
 TURNSTILE_SITEKEY="${MUCHO_TURNSTILE_SITEKEY:-}"
 TURNSTILE_SECRET="${MUCHO_TURNSTILE_SECRET:-}"
 MUCHO_ADMIN_PASSWORD="${MUCHO_ADMIN_PASSWORD:-}"
@@ -89,6 +90,7 @@ Optional flags:
   --help                  Show this help.
 
 Transport is direct by default. Set MUCHO_TRANSPORT_MODE to direct, auto, or tunnel when needed.
+Set MUCHO_NATIVE_NEWS=1 to serve your News Board in compatible game clients.
 Environment equivalents are also supported.
 EOF
 }
@@ -378,6 +380,16 @@ dotenv_escape() {
   printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/\$/\\$/g'
 }
 SERVER_NAME_ENV="$(dotenv_escape "$SERVER_NAME")"
+
+resolve_native_news_setting() {
+  if [[ -z "$NATIVE_NEWS" && -f "$INSTALL_DIR/.env" ]]; then
+    # Accept the same literal values in bare and quoted dotenv assignments.
+    NATIVE_NEWS="$(sed -nE "s/^[[:space:]]*(export[[:space:]]+)?MUCHO_NATIVE_NEWS[[:space:]]*=[[:space:]]*(['\"]?)([01])\2([[:space:]]*#.*|[[:space:]]*)$/\3/p" "$INSTALL_DIR/.env" | tail -n1)"
+  fi
+  NATIVE_NEWS="${NATIVE_NEWS:-0}"
+  [[ "$NATIVE_NEWS" == 0 || "$NATIVE_NEWS" == 1 ]] || fail "MUCHO_NATIVE_NEWS must be 0 or 1."
+}
+resolve_native_news_setting
 
 if [[ -f "$INSTALL_DIR/.env" ]]; then
   if [[ -z "$CLOUDFLARE_API_TOKEN" && -s "$INSTALL_DIR/.secrets/cloudflare_api_token" ]]; then
@@ -740,6 +752,7 @@ ADMIN_USER=$ADMIN_USER
 MUCHO_ACCOUNT_URL=https://$DOMAIN
 MUCHO_SERVER_NAME="$SERVER_NAME_ENV"
 MUCHO_CUSTOM_CONTENT_URL=$CUSTOM_CONTENT_URL
+MUCHO_NATIVE_NEWS=$NATIVE_NEWS
 TURNSTILE_SITEKEY=$TURNSTILE_SITEKEY
 TURNSTILE_SECRET=$TURNSTILE_SECRET
 MUCHO_ADMIN_BOOTSTRAP=/etc/muchocore-admin.php
@@ -1198,6 +1211,7 @@ Create a game account in the patched client, then upload and download a test lev
 Existing installs keep their current administrator credentials.
 
 Update: sudo mucho update
+Forgot your owner password? Run: sudo mucho admin recover
 Need help? Run: sudo mucho doctor
 
 EOFOUT

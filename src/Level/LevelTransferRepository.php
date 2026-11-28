@@ -64,6 +64,19 @@ final readonly class LevelTransferRepository
         return $row ?: null;
     }
 
+    public function findLevelVersion(int $levelId): ?int
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT level_version FROM levels
+             WHERE level_id = :level_id AND is_deleted = 0
+             LIMIT 1'
+        );
+        $stmt->execute(['level_id' => $levelId]);
+        $version = $stmt->fetchColumn();
+
+        return $version === false ? null : max(1, (int)$version);
+    }
+
     public function incrementDownloads(int $levelId): void
     {
         $stmt = $this->pdo->prepare(
@@ -76,6 +89,20 @@ final readonly class LevelTransferRepository
         $stmt->execute([
             'level_id' => $levelId
         ]);
+    }
+
+    public function ownsLevel(int $levelId, int $accountId): bool
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT 1 FROM levels
+             WHERE level_id = :level_id
+               AND account_id = :account_id
+               AND is_deleted = 0
+             LIMIT 1'
+        );
+        $stmt->execute(['level_id' => $levelId, 'account_id' => $accountId]);
+
+        return $stmt->fetchColumn() !== false;
     }
 
     public function saveLevel(array $data): int
@@ -168,26 +195,8 @@ final readonly class LevelTransferRepository
          * Unchanged uploads can report zero affected rows. Recheck ownership
          * before treating that result as a successful idempotent update.
          */
-        if ($stmt->rowCount() === 0) {
-            $check = $this->pdo->prepare(
-                'SELECT 1
-                 FROM levels
-                 WHERE level_id = :level_id
-                   AND account_id = :account_id
-                   AND is_deleted = 0
-                 LIMIT 1'
-            );
-
-            $check->execute([
-                'level_id' => $levelId,
-                'account_id' => $accountId,
-            ]);
-
-            if ($check->fetchColumn() === false) {
-                throw new RuntimeException(
-                    'Level ownership mismatch.'
-                );
-            }
+        if ($stmt->rowCount() === 0 && !$this->ownsLevel($levelId, $accountId)) {
+            throw new RuntimeException('Level ownership mismatch.');
         }
     }
 

@@ -6,9 +6,7 @@ declare(strict_types=1);
 ob_start();
 function mucho7_admin_clean_response()
 {
-    while (ob_get_level()>0) {
-        if (!ob_end_clean()) { throw new RuntimeException('Unable to prepare a clean response.'); }
-    }
+    mucho7_clear_output_buffers();
 }
 header('Content-Type: text/html; charset=utf-8');
 header('Cache-Control: no-store, private');
@@ -43,7 +41,7 @@ $user=null;$pdo=null;$settings=array();$hasOwner=true;$schemaReady=false;$freshI
 $page=isset($_GET['page']) && is_string($_GET['page'])?$_GET['page']:'overview';
 if($page==='diagnostics')$page='system';
 $pageAliases=array('updates'=>'system','clients'=>'clientpatcher','backups'=>'dbbackups');if(isset($pageAliases[$page]))$page=$pageAliases[$page];
-if(!in_array($page,array('overview','dashboard','players','levels','rating','moderation','comments','messages','songs','news','settings','system','audit','dbbackups','admins','roles','clans','contentpacks','social','plugins','muchoprofiles','analytics','database','endpoints','intelligence','clientfeatures','clientpatcher','securitycenter','monitoring','advanced','migration'),true)){$page='dashboard';}
+if(!in_array($page,array('overview','dashboard','players','levels','rating','demonlist','moderation','comments','messages','songs','news','settings','system','audit','dbbackups','admins','roles','clans','contentpacks','social','plugins','muchoprofiles','analytics','database','endpoints','intelligence','clientfeatures','clientpatcher','securitycenter','monitoring','advanced','migration'),true)){$page='dashboard';}
 $method=isset($_SERVER['REQUEST_METHOD'])?strtoupper((string)$_SERVER['REQUEST_METHOD']):'GET';
 try {
     if(!is_file($root.'/config/php7-local.php')){throw new RuntimeException('Configure the connection in config/php7-local.php or run php7-setup.php first.');}

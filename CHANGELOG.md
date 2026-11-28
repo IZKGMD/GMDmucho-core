@@ -1,3 +1,19 @@
+## v1.1.1 — PHP 8 stable maintenance
+
+- Make VPS installation collect the first owner's credentials and preserve native News settings on reinstall.
+- Add one terminal entry point to finish first-owner setup or recover an existing owner, with an explicit option for lost two-factor credentials.
+- Fix Social moderation in the PHP 8 admin panel and keep edited player and level cards open after saving.
+- Serve the native GD news feed and its revision without HTTP caching.
+- Verify native GJP2 credentials before the plain-password fallback to reduce the cost of authenticated game requests.
+- Reduce startup work for game requests, fetch top leaderboard rows before joining full profiles, and avoid write transactions on repeated downloads after the count limit is reached.
+- Reuse successful credential checks briefly in the private Docker PHP-FPM pool when APCu is available. Account bans and credential changes still take effect immediately.
+
+### Scope
+
+This stable maintenance release targets **PHP 8.2+** on a VPS or compatible shared hosting. It includes the source archive, PHP 8 shared-hosting ZIP and SHA-256 checksums. PHP 7 and Go remain separate development tracks.
+
+PHP 8 HTTP acceptance covers account setup and recovery, game login, level transfer, comments, social features, native News responses and song delivery. GD 2.209 endpoint forms are replayed in the HTTP suite. Full real-client certification across the endpoint inventory is ongoing. Multiplayer lobby comment upload remains unsupported. First login without cached credentials remains above the 75 ms p95 target on the one-vCPU test server.
+
 ## Unreleased — News images and native YouTube cards
 
 - Add JPG/PNG uploads, image-only posts and YouTube cards to both admin interfaces, public web News and native GD 2.209 News. Decode/re-encode bounded uploads and serve content-hashed JPEG resources.
@@ -47,7 +63,7 @@
 
 ## v1.1.0 — Control Plane & Deployment Platform
 
-> **Release status:** 1.1.0 source is on `main`, but the stable release is **not published yet**. The endpoint-certification gate and release archive checks must pass first.
+See the [published v1.1.0 release](https://github.com/IZKGMD/GMDmucho-core/releases/tag/v1.1.0).
 
 ### What's new — in plain language
 
