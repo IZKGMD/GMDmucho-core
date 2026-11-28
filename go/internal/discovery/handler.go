@@ -3,7 +3,9 @@ package discovery
 
 import (
 	"context"
+	"crypto/sha1"
 	"database/sql"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -20,6 +22,7 @@ import (
 const MaxBodyBytes = 1 << 20
 
 var slashes = regexp.MustCompile(`/+`)
+var eventChallenge = regexp.MustCompile(`^[0-9]+$`)
 var strictInteger = regexp.MustCompile(`^-?[0-9]+\n?$`)
 
 // NormalizePath follows the PHP Router without redirecting GD POST requests.
@@ -195,8 +198,29 @@ func (h Handler) dispatch(ctx context.Context, path string, form url.Values) (st
 			id += 100001
 		} else if typ == 2 {
 			id += 200001
+			return eventReward(id, last(form, "chk")), nil
 		}
 		return fmt.Sprintf("%d|%d", id, max(0, remaining)), nil
 	}
 	return "-1", nil
+}
+
+func eventReward(id int64, chk string) string {
+	if len(chk) <= 5 || len(chk) > 32 {
+		return "-1"
+	}
+	const key = "59182"
+	value := strings.NewReplacer("-", "+", "_", "/").Replace(chk[5:])
+	value += strings.Repeat("=", (4-len(value)%4)%4)
+	raw, err := base64.StdEncoding.DecodeString(value)
+	if err != nil {
+		return "-1"
+	}
+	challenge := protocol.XOR(string(raw), key)
+	if !eventChallenge.MatchString(challenge) {
+		return "-1"
+	}
+	plain := fmt.Sprintf("1:%s:%d:9:7,100,8,10", challenge, id)
+	payload := base64.URLEncoding.EncodeToString([]byte(protocol.XOR(plain, key)))
+	return fmt.Sprintf("%d|10|SaKuJ%s|%x", id, payload, sha1.Sum([]byte(payload+"pC26fpYaQCtg")))
 }

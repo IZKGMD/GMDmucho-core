@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
-	"sort"
+	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -73,7 +73,7 @@ func (h *Handler) threads(r request) (string, error) {
 	case "/getgjthreads":
 		return h.threadList(r, me.ID)
 	case "/getgjthreadinvites":
-		rows, err := dbutil.Query(r.ctx, h.db, `SELECT i.id,i.thread_id,i.inviter_account_id,t.title,t.description,t.emote,t.is_dm,i.created_at,a.username AS inviter_username,p.cube AS inviter_cube,p.color1 AS inviter_color1,p.color2 AS inviter_color2,p.special AS inviter_special FROM mucho_thread_invites i JOIN mucho_threads t ON t.id=i.thread_id JOIN accounts a ON a.account_id=i.inviter_account_id JOIN profiles p ON p.account_id=i.inviter_account_id WHERE i.invitee_account_id=? AND i.status='pending' AND t.is_closed=0 ORDER BY i.id DESC LIMIT 50`, me.ID)
+		rows, err := dbutil.Query(r.ctx, h.db, `SELECT i.id,i.thread_id,i.inviter_account_id,t.title,t.description,t.emote,t.is_dm,i.created_at,UNIX_TIMESTAMP(i.created_at) AS created_epoch,a.username AS inviter_username,p.cube AS inviter_cube,p.color1 AS inviter_color1,p.color2 AS inviter_color2,p.special AS inviter_special FROM mucho_thread_invites i JOIN mucho_threads t ON t.id=i.thread_id JOIN accounts a ON a.account_id=i.inviter_account_id JOIN profiles p ON p.account_id=i.inviter_account_id WHERE i.invitee_account_id=? AND i.status='pending' AND t.is_closed=0 ORDER BY i.id DESC LIMIT 50`, me.ID)
 		return protocol.ThreadInbox(rows, h.now()), err
 	case "/sendgjthreadmessage":
 		return h.sendThreadMessage(r, me.ID)
@@ -125,7 +125,7 @@ func (h *Handler) threads(r request) (string, error) {
 		if err = h.db.QueryRowContext(r.ctx, `SELECT COUNT(*) FROM mucho_thread_messages m WHERE `+filter, args...).Scan(&total); err != nil {
 			return "", err
 		}
-		rows, err := dbutil.Query(r.ctx, h.db, `SELECT m.* FROM mucho_thread_messages m JOIN accounts a ON a.account_id=m.sender_account_id WHERE `+filter+` ORDER BY m.id DESC LIMIT 20`, args...)
+		rows, err := dbutil.Query(r.ctx, h.db, `SELECT m.*,UNIX_TIMESTAMP(m.created_at) AS created_epoch FROM mucho_thread_messages m JOIN accounts a ON a.account_id=m.sender_account_id WHERE `+filter+` ORDER BY m.id DESC LIMIT 20`, args...)
 		return fmt.Sprintf("%s#%d", protocol.ThreadMessages(rows), max(0, (total+19)/20-1)), err
 	}
 	before, after, around := r.int("beforeID"), r.int("afterID"), r.int("aroundID")
@@ -141,7 +141,7 @@ func (h *Handler) threads(r request) (string, error) {
 	if active > 1 {
 		return "-1", nil
 	}
-	const query = `SELECT m.* FROM mucho_thread_messages m JOIN accounts a ON a.account_id=m.sender_account_id WHERE m.thread_id=? AND m.id>?`
+	const query = `SELECT m.*,UNIX_TIMESTAMP(m.created_at) AS created_epoch FROM mucho_thread_messages m JOIN accounts a ON a.account_id=m.sender_account_id WHERE m.thread_id=? AND m.id>?`
 	args := []any{id, state.Int("last_cleared_message_id")}
 	var messages []dbutil.Row
 	if around > 0 {
@@ -153,24 +153,28 @@ func (h *Handler) threads(r request) (string, error) {
 		if e != nil {
 			return "", e
 		}
+		slices.Reverse(older)
 		messages = append(older, newer...)
-		sort.Slice(messages, func(i, j int) bool { return messages[i].Int("id") > messages[j].Int("id") })
 	} else {
-		filter := ""
+		filter, order := "", "DESC"
 		if before > 0 {
 			filter = ` AND m.id<?`
 			args = append(args, before)
 		} else if after > 0 {
 			filter = ` AND m.id>?`
 			args = append(args, after)
+			order = "ASC"
 		}
-		messages, err = dbutil.Query(r.ctx, h.db, query+filter+` ORDER BY m.id DESC LIMIT 50`, args...)
+		messages, err = dbutil.Query(r.ctx, h.db, query+filter+" ORDER BY m.id "+order+" LIMIT 50", args...)
 		if err != nil {
 			return "", err
 		}
+		if order == "DESC" {
+			slices.Reverse(messages)
+		}
 	}
 	if len(messages) > 0 {
-		lowest := messages[len(messages)-1].Int("id")
+		lowest := messages[0].Int("id")
 		var older int
 		if err = h.db.QueryRowContext(r.ctx, `SELECT COUNT(*) FROM mucho_thread_messages WHERE thread_id=? AND id>? AND id<?`, id, state.Int("last_cleared_message_id"), lowest).Scan(&older); err != nil {
 			return "", err

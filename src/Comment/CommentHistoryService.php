@@ -5,6 +5,7 @@ namespace MuchoCore\Comment;
 
 use MuchoCore\V71\Request;
 use MuchoCore\Protocol\GdLegacyText;
+use MuchoCore\Protocol\ProtocolText;
 use Throwable;
 
 final class CommentHistoryService
@@ -31,6 +32,7 @@ final class CommentHistoryService
         // gameVersion, but key 2 still requires URL-safe Base64.
         $gameVersion = max(20, Request::int('gameVersion', 22));
         $inlineUsers = $binaryVersion > 31 || $gameVersion >= 22;
+        $nativeTime = $gameVersion >= 22 && $binaryVersion >= 51;
         $mode = Request::int('mode', 0);
         $count = min(50, max(1, Request::int('count', 10)));
         $page = min(1000, max(0, Request::int('page', 0)));
@@ -51,10 +53,13 @@ final class CommentHistoryService
         $comments = [];
         $users = [];
         $seenUsers = [];
+        $now = time();
 
         foreach ($result['rows'] as $row) {
             $timestamp = is_numeric((string)$row['timestamp']) ? (int)$row['timestamp'] : 0;
-            $uploadDate = $timestamp > 0 ? date('d/m/Y G.i', $timestamp) : '01/01/1970 0.00';
+            $uploadDate = $nativeTime
+                ? ProtocolText::relativeTime($timestamp, $now)
+                : ($timestamp > 0 ? date('d/m/Y G.i', $timestamp) : '01/01/1970 0.00');
 
             $comment = GdLegacyText::encodeCommentForResponse(
                 (string)$row['comment'],
@@ -71,7 +76,7 @@ final class CommentHistoryService
                 . '~6~' . (int)$row['commentID']
                 . '~10~' . (int)$row['percent'];
 
-            if ($gameVersion >= 22 && $binaryVersion >= 51) {
+            if ($nativeTime) {
                 $base .= '~15~' . $timestamp;
             }
 

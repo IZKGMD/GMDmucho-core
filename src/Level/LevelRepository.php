@@ -465,46 +465,38 @@ final readonly class LevelRepository
             }
         }
 
-        if ((string)($input['gauntlet'] ?? '') !== '') {
+        $gauntlet = $input['gauntlet'] ?? '';
+        $isGauntlet = !in_array($gauntlet, ['', '0', 0], true);
+        if ($isGauntlet) {
+            if ((!is_string($gauntlet) && !is_int($gauntlet)) || !ctype_digit((string)$gauntlet)) {
+                return ['levels' => [], 'total' => 0];
+            }
             try {
-                $gauntletId = (int)$input['gauntlet'];
                 $q = $this->pdo->prepare(
                     'SELECT level1,level2,level3,level4,level5
                      FROM mucho_gauntlets
                      WHERE id=:id AND enabled=1
                      LIMIT 1'
                 );
-                $q->execute(['id'=>$gauntletId]);
+                $q->execute(['id' => (int)$gauntlet]);
                 $g = $q->fetch(PDO::FETCH_ASSOC);
-
-                if ($g) {
-                    $ids = array_map(
-                        'intval',
-                        [
-                            $g['level1'],
-                            $g['level2'],
-                            $g['level3'],
-                            $g['level4'],
-                            $g['level5'],
-                        ]
-                    );
-                    $ids = array_values(array_filter($ids, static fn(int $id): bool => $id > 0));
-                    $marks = [];
-
-                    foreach ($ids as $i => $id) {
-                        $key = 'gauntlet_' . $i;
-                        $marks[] = ':' . $key;
-                        $params[$key] = $id;
-                    }
-
-                    if ($marks) {
-                        $where[] = 'l.level_id IN (' . implode(',', $marks) . ')';
-                        $fixedOrder = $ids;
-                    }
-                }
             } catch (Throwable) {
-                $where[] = '1 = 0';
+                return ['levels' => [], 'total' => 0];
             }
+
+            $ids = $g ? array_filter(array_map('intval', $g), static fn(int $id): bool => $id > 0) : [];
+            if ($ids === []) {
+                return ['levels' => [], 'total' => 0];
+            }
+
+            $marks = [];
+            foreach (array_values($ids) as $i => $id) {
+                $key = 'gauntlet_' . $i;
+                $marks[] = ':' . $key;
+                $params[$key] = $id;
+            }
+            $where[] = 'l.level_id IN (' . implode(',', $marks) . ')';
+            $fixedOrder = $ids;
         }
 
         $whereSql = implode(' AND ', $where);
@@ -560,6 +552,7 @@ final readonly class LevelRepository
                 l.original_level_id, l.two_player, l.coins,
                 l.coins_verified, l.ldm, l.song_id,
                 l.created_at, l.updated_at,
+                ' . ($isGauntlet ? '1 AS is_gauntlet,' : '') . '
                 ' . $requestedStarsExpr . ' AS requested_stars,
                 COALESCE(a.username, "Player") AS username,
                 COALESCE(p.user_id, l.account_id) AS user_id,

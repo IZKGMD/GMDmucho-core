@@ -122,6 +122,25 @@ try {
     if ($byUser['total'] !== 12 || count($byUser['levels']) !== 10) {
         throw new RuntimeException('User-ID search count changed when removing joins.');
     }
+
+    (require dirname(__DIR__, 2) . '/database/migrations/20260929_001_content_packs.php')($db);
+    $db->exec("INSERT INTO mucho_gauntlets (id,name,level1,level2,level3,level4,level5)
+        VALUES (2,'Fixture',4,8,2,7,1)");
+    $gauntlet = $repo->search(0, '', 22, 0, 10, 0, ['gauntlet' => '2']);
+    if (array_map('intval', array_column($gauntlet['levels'], 'level_id')) !== [4, 8, 2, 7, 1]) {
+        throw new RuntimeException('Gauntlet levels must follow the configured order.');
+    }
+    $gauntletWire = (new GdLevelListEncoder())->encode($gauntlet['levels'], 5, 0, 10, 22, 51);
+    $gauntletRecords = explode('|', explode('#', $gauntletWire, 2)[0]);
+    foreach ($gauntletRecords as $record) {
+        if (preg_match('/(?:^|:)44:1(?:$|:)/', $record) !== 1) {
+            throw new RuntimeException('Every Gauntlet level needs its own progress marker.');
+        }
+    }
+    if (str_contains($wire, ':44:1') ||
+        $repo->search(0, '', 22, 0, 10, 0, ['gauntlet' => '999'])['total'] !== 0) {
+        throw new RuntimeException('Regular and unknown Gauntlet searches must stay separate.');
+    }
     echo "MUCHOCORE_LEVEL_LIST_PERF_OK\n";
 } finally {
     $root->exec('DROP DATABASE IF EXISTS ' . $name);

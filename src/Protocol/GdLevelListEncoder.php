@@ -83,6 +83,7 @@ final class GdLevelListEncoder
                 47, 2,
                 40, (int)$level['ldm'],
                 35, (int)$level['song_id'],
+                ...(!empty($level['is_gauntlet']) ? [44, 1] : []),
                 ...($gameVersion >= 22 && $binaryVersion >= 51
                     ? [
                         62, $this->dateEpoch($level['created_at'] ?? null),

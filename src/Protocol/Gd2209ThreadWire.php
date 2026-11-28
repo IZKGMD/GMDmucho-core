@@ -51,7 +51,7 @@ final class Gd2209ThreadWire
             (int)$row['id'],
             (int)$row['sender_account_id'],
             base64_encode((string)$row['body']),
-            self::timestamp((string)$row['created_at']),
+            (int)($row['created_epoch'] ?? self::timestamp((string)$row['created_at'])),
             (int)($row['is_deleted'] ?? 0) === 1 ? 1 : 0,
         ]);
     }
@@ -113,7 +113,7 @@ final class Gd2209ThreadWire
     /** Inbox invite is a separate, 19-position native object. */
     public static function inboxInvite(array $row): string
     {
-        $timestamp = self::timestamp((string)$row['created_at']);
+        $timestamp = (int)($row['created_epoch'] ?? self::timestamp((string)$row['created_at']));
         $age = self::relativeTime($timestamp);
         return implode(':', [
             (int)$row['thread_id'],

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import base64
 import hashlib
 import shutil
 import subprocess
@@ -49,6 +50,22 @@ def fixture():
 
 
 class GD2209PatcherTest(unittest.TestCase):
+    def test_redirects_and_restores_fixed_width_gauntlet_url(self):
+        offset = 0x740
+        old = base64.b64encode(b"http://www.boomlings.com/database/getGJLevels21.php")
+        source = bytearray(fixture())
+        source[offset:offset + len(old)] = old
+        source = bytes(source)
+        for host, path in (
+            ("muchogdps.space", "/database/getGJLevels21.php"),
+            ("muchocoretest.5v.pl", "/a/getGJLevels21.php"),
+        ):
+            patched, changes = module.patch_gd2209_exact(source, "https://" + host)
+            encoded = base64.b64encode(("https://" + host + path).encode("ascii"))
+            self.assertEqual(sum(item.count for item in changes), 3)
+            self.assertEqual(patched[offset:offset + len(old)], encoded.ljust(len(old), b"\x00"))
+            self.assertEqual(module.restore_gd2209_urls(patched), source)
+
     def test_complete_url_replacement_and_malformed_path_repair(self):
         source = fixture()
         patched, changes = module.patch_gd2209_exact(
@@ -189,7 +206,7 @@ class GD2209PatcherTest(unittest.TestCase):
         # A synthetic file cannot satisfy a real SHA-256. Mock only build
         # identification, then assert dispatch selects the exact PE engine.
         source = b"x" * 13178880
-        fake = [module.PatchStat("GD 2.209", 113, "https://gdps.example.com")]
+        fake = [module.PatchStat("GD 2.209", 114, "https://gdps.example.com")]
         with mock.patch.object(
             module, "sha256", return_value=module.GD2209_SHA256_OCT19
         ), mock.patch.object(
@@ -198,17 +215,17 @@ class GD2209PatcherTest(unittest.TestCase):
             patched, stats = module.patch_client(source, "https://gdps.example.com")
         exact.assert_called_once()
         self.assertEqual(patched, source)
-        self.assertEqual(sum(x.count for x in stats), 113)
+        self.assertEqual(sum(x.count for x in stats), 114)
 
     def test_oct19_wrong_endpoint_count_is_rejected(self):
         source = b"x" * 13178880
-        fake = [module.PatchStat("GD 2.209", 112, "https://gdps.example.com")]
+        fake = [module.PatchStat("GD 2.209", 113, "https://gdps.example.com")]
         with mock.patch.object(
             module, "sha256", return_value=module.GD2209_SHA256_OCT19
         ), mock.patch.object(
             module, "patch_gd2209_exact", return_value=(source, fake)
         ):
-            with self.assertRaisesRegex(ValueError, "expected 113"):
+            with self.assertRaisesRegex(ValueError, "expected 114"):
                 module.patch_client(source, "https://gdps.example.com")
 
     def test_unknown_2209_never_falls_back_to_legacy_patcher(self):
