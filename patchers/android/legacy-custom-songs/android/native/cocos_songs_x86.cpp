@@ -22,7 +22,17 @@ struct Selector { void (*method)(Node*, Node*); int adjustment; };
 constexpr int tabTag = 0x4d430001;
 constexpr int paneTag = 0x4d430002;
 constexpr int titleTag = 0x4d430003;
+// Button IDs are also used by CocosSongs.action.
+constexpr int moreTag = 8;
+constexpr int stockTag = 9;
 constexpr int closeTag = 10;
+constexpr int findTag = 11;
+constexpr int catalogTag = 12;
+constexpr int switchSourceTag = 13;
+constexpr int eraseTag = 14;
+constexpr int searchTag = 15;
+constexpr int trackActionTag = 16;
+constexpr int firstDigitTag = 20;
 constexpr int layerDepth = 5;
 // FLAlertLayer swallows touches at INT_MIN + 1. Its nested song menus
 // must receive the touch before it does.
@@ -90,7 +100,7 @@ bool initialized;
 bool ready;
 JavaVM* vm;
 jclass bridge;
-jmethodID javaOpen, javaAction, javaRows, javaRevision, javaSelection, javaTitle, javaPath;
+jmethodID javaOpen, javaCancel, javaAction, javaRows, javaRevision, javaSelection, javaTitle, javaPath;
 unsigned frames;
 Node* popupOwner;
 int popupRevision = -1;
@@ -393,13 +403,47 @@ Node* addLabel(Node* parent, int tag, const char* text, float x, float y, float 
 }
 
 void addButton(Node* menu, Node* owner, int tag, const char* text, float x, float y,
-               void (*callback)(Node*, Node*)) {
-    Node* label = api.label(text, "sans-serif", 13.0f);
+               void (*callback)(Node*, Node*), float fontSize = 13.0f) {
+    Node* label = api.label(text, "sans-serif", fontSize);
     if (!label) return;
     Node* item = api.item(label, owner, {callback, 0});
     if (!item) return;
     api.position(item, x, y);
     api.add(menu, item, 0, tag);
+}
+
+void lookupButton(Node* menu, Node* settings, int tag, const char* label, float x, float y) {
+    addButton(menu, settings, tag, label, x, y, rowPressed);
+}
+
+void drawLookup(JNIEnv* env, jobjectArray rows, Node* panel, Node* menu, Node* settings) {
+    lookupButton(menu, settings, catalogTag, "Catalog", 48, 201);
+    lookupButton(menu, settings, eraseTag, "Erase", 73, 53);
+    lookupButton(menu, settings, searchTag, "Search", 255, 53);
+    constexpr const char* digits[] = {"  0  ", "  1  ", "  2  ", "  3  ", "  4  ",
+                                      "  5  ", "  6  ", "  7  ", "  8  ", "  9  "};
+    for (int digit = 0; digit < 10; ++digit) {
+        const int order = (digit + 9) % 10;
+        addButton(menu, settings, firstDigitTag + digit, digits[digit], 58 + (order % 5) * 52,
+                  order < 5 ? 113 : 82, rowPressed, 18);
+    }
+    for (int row = 0; row < 6; ++row) {
+        jstring value = static_cast<jstring>(env->GetObjectArrayElement(rows, row));
+        if (!value) continue;
+        const char* label = env->GetStringUTFChars(value, nullptr);
+        if (label && *label) {
+            switch (row) {
+                case 0: addLabel(panel, 0, label, 75, 172, 13); break;
+                case 1: addLabel(panel, 0, label, 162, 143, 16); break;
+                case 2: addLabel(panel, 0, label, 162, 53, 10); break;
+                case 3: addLabel(panel, 0, label, 120, 20, 12); break;
+                case 4: lookupButton(menu, settings, trackActionTag, label, 266, 20); break;
+                case 5: lookupButton(menu, settings, switchSourceTag, label, 247, 172); break;
+            }
+        }
+        if (label) env->ReleaseStringUTFChars(value, label);
+        env->DeleteLocalRef(value);
+    }
 }
 
 void buildPane(JNIEnv* env, Node* settings, const Size& size) {
@@ -419,16 +463,23 @@ void buildPane(JNIEnv* env, Node* settings, const Size& size) {
     api.priority(menu, songMenuTouchPriority);
     addLabel(panel, 0, "Custom Songs", width / 2, 201, 17);
     addButton(menu, settings, closeTag, "Close", 282, 201, rowPressed);
-    addButton(menu, settings, 9, "Use built-in", 82, 15, rowPressed);
     jobjectArray rows = static_cast<jobjectArray>(env->CallStaticObjectMethod(bridge, javaRows));
     if (!rows) return;
-    for (int i = 0; i < env->GetArrayLength(rows); ++i) {
+    const int count = env->GetArrayLength(rows);
+    if (count == 6) {
+        drawLookup(env, rows, panel, menu, settings);
+        env->DeleteLocalRef(rows);
+        return;
+    }
+    addButton(menu, settings, findTag, "Find by ID", 48, 201, rowPressed);
+    addButton(menu, settings, stockTag, "Use built-in", 82, 15, rowPressed);
+    for (int i = 0; i < count; ++i) {
         jstring text = static_cast<jstring>(env->GetObjectArrayElement(rows, i));
         if (!text) continue;
         const char* utf = env->GetStringUTFChars(text, nullptr);
         if (utf && *utf) {
             if (i == 0) addLabel(panel, 0, utf, width / 2, 176, 11);
-            else if (i == 6) addButton(menu, settings, 8, utf, 250, 15, rowPressed);
+            else if (i == 6) addButton(menu, settings, moreTag, utf, 250, 15, rowPressed);
             else addButton(menu, settings, i - 1, utf, width / 2, 148 - (i - 1) * 24, rowPressed);
         }
         if (utf) env->ReleaseStringUTFChars(text, utf);
@@ -492,7 +543,10 @@ void editorPanel(JNIEnv* env, Node* settings, Node* level, const Size& size) {
             binding = {};
         }
     }
-    if (closeRequested == settings) closePane(settings);
+    if (closeRequested == settings) {
+        env->CallStaticVoidMethod(bridge, javaCancel);
+        closePane(settings);
+    }
     closeRequested = nullptr;
     if (!api.tagNode(settings, tabTag)) {
         if (Node* menu = api.menu()) {
@@ -519,13 +573,15 @@ bool javaMethods(JNIEnv* env, jclass type) {
     if (env->GetJavaVM(&vm) != JNI_OK) return false;
     bridge = static_cast<jclass>(env->NewGlobalRef(type));
     javaOpen = env->GetStaticMethodID(type, "open", "(I)V");
+    javaCancel = env->GetStaticMethodID(type, "cancel", "()V");
     javaAction = env->GetStaticMethodID(type, "action", "(II)V");
     javaRows = env->GetStaticMethodID(type, "rows", "()[Ljava/lang/String;");
     javaRevision = env->GetStaticMethodID(type, "revision", "()I");
     javaSelection = env->GetStaticMethodID(type, "selection", "(I)I");
     javaTitle = env->GetStaticMethodID(type, "title", "(II)Ljava/lang/String;");
     javaPath = env->GetStaticMethodID(type, "path", "(II)Ljava/lang/String;");
-    return bridge && javaOpen && javaAction && javaRows && javaRevision && javaSelection && javaTitle && javaPath;
+    return bridge && javaOpen && javaCancel && javaAction && javaRows && javaRevision &&
+           javaSelection && javaTitle && javaPath;
 }
 }
 
@@ -550,7 +606,10 @@ Java_space_muchogdps_legacysongs_CocosSongs_nativeFrame(JNIEnv* env, jclass) {
     if (size.width < 330 || size.height < 230) return;
 
     Node* settings = find(scene, api.settingsType);
-    if (settings != popupOwner) popupOwner = nullptr;
+    if (popupOwner && settings != popupOwner) {
+        env->CallStaticVoidMethod(bridge, javaCancel);
+        popupOwner = nullptr;
+    }
     if (settings) {
         if (Node* level = editorLevel(settings)) editorPanel(env, settings, level, size);
         return;

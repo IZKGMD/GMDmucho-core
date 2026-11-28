@@ -32,6 +32,7 @@ final class CatalogClient {
         final String artist;
         final int bytes;
         final String path;
+        final int newgroundsId;
 
         Track(JSONObject data, String mount, boolean shared) throws JSONException, IOException {
             id = data.getInt("id");
@@ -39,6 +40,9 @@ final class CatalogClient {
             artist = data.getString("artist");
             bytes = data.getInt("bytes");
             path = data.getString("url");
+            JSONObject source = data.optJSONObject("source");
+            newgroundsId = source != null && "newgrounds".equals(source.getString("provider"))
+                    ? source.getInt("id") : 0;
             int separator = path.lastIndexOf('/');
             String folder = path.substring(0, separator + 1);
             String filename = path.substring(separator + 1);
@@ -131,6 +135,23 @@ final class CatalogClient {
 
     File download(int id) throws IOException, JSONException {
         return downloadWithMetadata(id).file;
+    }
+
+    Track findTrack(int id, boolean newgrounds) throws IOException, JSONException {
+        String endpoint = newgrounds ? "newgrounds" : "muchocore";
+        JSONObject response = shared && !newgrounds
+                ? request("track", "id=" + id)
+                : json(API + "?op=" + endpoint + "&id=" + id);
+        Track track = new Track(response.getJSONObject("track"), mount, shared);
+        boolean matches = newgrounds ? track.newgroundsId == id : track.id == id && track.newgroundsId == 0;
+        if (!matches) {
+            throw new IOException("Server returned a different song source or ID");
+        }
+        return track;
+    }
+
+    boolean supportsNewgroundsLookup() {
+        return !shared;
     }
 
     LevelSong downloadWithMetadata(int id) throws IOException, JSONException {

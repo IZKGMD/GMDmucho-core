@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.util.Log;
 import android.widget.Toast;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.util.Collections;
@@ -18,6 +19,13 @@ public final class CocosSongs {
     private static final int ROWS = 5;
     private static final int MORE = 8;
     private static final int STOCK = 9;
+    private static final int FIND_BY_ID = 11;
+    private static final int SHOW_CATALOG = 12;
+    private static final int SWITCH_SOURCE = 13;
+    private static final int ERASE_DIGIT = 14;
+    private static final int SEARCH = 15;
+    private static final int TRACK_ACTION = 16;
+    private static final int FIRST_DIGIT = 20;
     private static final ExecutorService NETWORK = Executors.newFixedThreadPool(2);
     private static final String TAG = "MuchoCoreCocos";
     private static final TrackState PENDING = new TrackState(0, "Loading song...", null);
@@ -37,6 +45,12 @@ public final class CocosSongs {
     private static volatile int selected = -1;
     private static volatile int request;
     private static volatile int bindingKey = -1;
+    private static boolean searchMode;
+    private static boolean newgrounds;
+    private static String songIdInput = "";
+    private static String searchStatus = "";
+    private static CatalogClient.Track searchResult;
+    private static boolean searchDownloaded;
 
     private CocosSongs() {}
 
@@ -102,10 +116,17 @@ public final class CocosSongs {
         return replacement == null ? original : replacement;
     }
 
-    static void open(int objectId) {
+    static synchronized void open(int objectId) {
         bindingKey = objectId;
         selected = -1;
+        searchMode = false;
         loadPage(0);
+    }
+
+    static synchronized void cancel() {
+        request++;
+        bindingKey = -1;
+        selected = -1;
     }
 
     private static void loadPage(final int after) {
@@ -133,12 +154,22 @@ public final class CocosSongs {
 
     static synchronized void action(final int row, int drawnRevision) {
         if (drawnRevision != catalogRevision) return;
-        Page current = page;
         if (row == STOCK) {
             request++;
             selected = 0;
             return;
         }
+        if (row == FIND_BY_ID) {
+            searchMode = true;
+            resetSearch("");
+            return;
+        }
+        if (searchMode) {
+            searchAction(row);
+            return;
+        }
+
+        Page current = page;
         if (row == MORE) {
             if (current.start + ROWS < current.tracks.size()) {
                 update(new Page("Choose a song", current.tracks, current.start + ROWS, current.next), request);
@@ -155,9 +186,9 @@ public final class CocosSongs {
         NETWORK.submit(new Runnable() {
             @Override public void run() {
                 try {
-                    File mp3 = client.download(track.id);
-                    songs.put(track.id, new TrackState(track.id, label(track), mp3.getAbsolutePath()));
-                    if (job == request) selected = track.id;
+                    CatalogClient.LevelSong result = client.downloadWithMetadata(track.id);
+                    songs.put(track.id, new TrackState(track.id, label(result.track), result.file.getAbsolutePath()));
+                    completeSelection(job, track.id);
                 } catch (Exception error) {
                     update(new Page("Download failed", Collections.<CatalogClient.Track>emptyList(), 0, 0), job);
                     Log.w(TAG, "Song download failed", error);
@@ -170,20 +201,123 @@ public final class CocosSongs {
         return catalogRevision;
     }
 
-    static String[] rows() {
+    static synchronized String[] rows() {
+        if (searchMode) {
+            return new String[] {
+                newgrounds ? "Newgrounds" : "MuchoCore",
+                songIdInput.isEmpty() ? "Enter song ID" : songIdInput,
+                searchStatus,
+                searchResult == null ? "" : menuLabel(searchResult),
+                searchResult == null ? "" : searchDownloaded ? "Use song" : "Download",
+                client.supportsNewgroundsLookup() ? "Switch source" : ""
+            };
+        }
+
         Page current = page;
         String[] rows = new String[ROWS + 2];
         rows[0] = current.status;
         for (int i = 0; i < ROWS; i++) {
             int index = current.start + i;
-            if (index < current.tracks.size()) rows[i + 1] = label(current.tracks.get(index));
+            if (index < current.tracks.size()) rows[i + 1] = menuLabel(current.tracks.get(index));
         }
         rows[ROWS + 1] = current.start + ROWS < current.tracks.size() || current.next > 0
                 ? "Next" : "Refresh";
         return rows;
     }
 
-    static int selection(int objectId) {
+    private static synchronized void completeSelection(int job, int songId) {
+        if (job == request) selected = songId;
+    }
+
+    private static void resetSearch(String input) {
+        request++;
+        songIdInput = input;
+        searchResult = null;
+        searchDownloaded = false;
+        searchStatus = "";
+        catalogRevision++;
+    }
+
+    private static void searchAction(int row) {
+        if (row >= FIRST_DIGIT && row < FIRST_DIGIT + 10) {
+            if (songIdInput.length() < 10) resetSearch(songIdInput + (row - FIRST_DIGIT));
+        } else if (row == ERASE_DIGIT) {
+            if (!songIdInput.isEmpty()) resetSearch(songIdInput.substring(0, songIdInput.length() - 1));
+        } else if (row == SWITCH_SOURCE && client.supportsNewgroundsLookup()) {
+            newgrounds = !newgrounds;
+            resetSearch(songIdInput);
+        } else if (row == SHOW_CATALOG) {
+            searchMode = false;
+            loadPage(0);
+        } else if (row == SEARCH) {
+            findSong();
+        } else if (row == TRACK_ACTION && searchResult != null) {
+            if (searchDownloaded) {
+                selected = searchResult.id;
+            } else {
+                downloadFoundSong(searchResult);
+            }
+        }
+    }
+
+    private static void findSong() {
+        long id = songIdInput.isEmpty() ? 0 : Long.parseLong(songIdInput);
+        resetSearch(songIdInput);
+        if (id < 1 || id > Integer.MAX_VALUE) {
+            searchStatus = "Enter a valid song ID";
+            return;
+        }
+        final int songId = (int) id;
+        final boolean findNewgrounds = newgrounds;
+        final int job = request;
+        searchStatus = "Looking up song...";
+        NETWORK.submit(new Runnable() {
+            @Override public void run() {
+                try {
+                    CatalogClient.Track result = client.findTrack(songId, findNewgrounds);
+                    showSearchResult(job, result, false, "");
+                } catch (FileNotFoundException error) {
+                    showSearchResult(job, null, false, "Song not found");
+                } catch (Exception error) {
+                    showSearchResult(job, null, false, "Search unavailable");
+                    Log.w(TAG, "Song search failed", error);
+                }
+            }
+        });
+    }
+
+    private static void downloadFoundSong(final CatalogClient.Track track) {
+        final boolean findNewgrounds = newgrounds;
+        final int job = ++request;
+        showSearchResult(job, null, false, "Downloading...");
+        NETWORK.submit(new Runnable() {
+            @Override public void run() {
+                try {
+                    CatalogClient.LevelSong result = client.downloadWithMetadata(track.id);
+                    if (result.track.newgroundsId != track.newgroundsId ||
+                            (findNewgrounds && result.track.newgroundsId <= 0)) {
+                        throw new IllegalStateException("Song source changed");
+                    }
+                    songs.put(track.id, new TrackState(track.id, label(result.track), result.file.getAbsolutePath()));
+                    showSearchResult(job, result.track, true, "Downloaded");
+                } catch (Exception error) {
+                    showSearchResult(job, track, false, "Download failed");
+                    Log.w(TAG, "Song download failed", error);
+                }
+            }
+        });
+    }
+
+    private static synchronized void showSearchResult(int job, CatalogClient.Track track,
+                                                       boolean downloaded, String status) {
+        if (job != request) return;
+        searchResult = track;
+        searchDownloaded = downloaded;
+        searchStatus = status;
+        catalogRevision++;
+    }
+
+    static synchronized int selection(int objectId) {
         if (objectId != bindingKey) return -1;
         int value = selected;
         selected = -1;
@@ -241,12 +375,20 @@ public final class CocosSongs {
         return PENDING;
     }
 
+    private static String menuLabel(CatalogClient.Track track) {
+        String identity = track.newgroundsId > 0 ? "NG #" + track.newgroundsId : "MC #" + track.id;
+        return shortened(identity + "  " + label(track), 37);
+    }
+
     private static String label(CatalogClient.Track track) {
         String title = track.title.replaceAll("[\\p{Cc}\\p{Cf}]", " ").trim();
         String artist = track.artist.replaceAll("[\\p{Cc}\\p{Cf}]", " ").trim();
-        String text = artist.isEmpty() ? title : title + " / " + artist;
-        int length = text.codePointCount(0, text.length());
-        return length > 44 ? text.substring(0, text.offsetByCodePoints(0, 43)) + "..." : text;
+        return shortened(artist.isEmpty() ? title : title + " / " + artist, 44);
+    }
+
+    private static String shortened(String text, int limit) {
+        return text.codePointCount(0, text.length()) > limit
+                ? text.substring(0, text.offsetByCodePoints(0, limit - 1)) + "..." : text;
     }
 
     private static final class Page {

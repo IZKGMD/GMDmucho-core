@@ -83,24 +83,31 @@ try {
         (2, 'Missing MP3', 'Author', '/music/missing.mp3', 1, 12345),
         (3, 'Track', 'Author', '/music/fixture.mp3', 1, 12345),
         (4, 'Local', 'Artist', '/music/fixture.mp3', 1, NULL),
-        (5, 'Pending only', 'Artist', '/music/fixture.mp3', 0, 12346)");
+        (5, 'Pending only', 'Artist', '/music/fixture.mp3', 0, 12346),
+        (12345, 'Same number, different song', 'Artist', '/music/fixture.mp3', 1, NULL)");
     $db->exec('CREATE TABLE levels (level_id INTEGER, song_id INTEGER, is_deleted INT, is_unlisted INT, unlisted2 INT)');
-    $db->exec('INSERT INTO levels VALUES (40, 3, 0, 0, 0), (41, 0, 0, 0, 0), (42, 3, 0, 1, 0)');
+    $db->exec('INSERT INTO levels VALUES (40, 3, 0, 0, 0), (41, 0, 0, 0, 0), (42, 3, 0, 1, 0), (43, 12345, 0, 0, 0)');
 
     $catalog = new NetworkCatalog($db, ['/music/' => $musicDir]);
     $library = new MusicLibrary($db, $catalog);
     [$status, $body] = $library->handle('catalog', []);
-    musicCheck($status === 200 && array_column($body['tracks'], 'id') === [3, 4], 'Only approved playable MP3s');
+    musicCheck($status === 200 && array_column($body['tracks'], 'id') === [3, 4, 12345], 'Only approved playable MP3s');
     $source = ['provider' => 'newgrounds', 'id' => 12345, 'url' => 'https://www.newgrounds.com/audio/listen/12345'];
     musicCheck($body['tracks'][0]['source'] === $source && $body['tracks'][1]['source'] === null, 'Catalog attribution');
     [$status, $body] = $library->handle('newgrounds', ['id' => '12345']);
     musicCheck($status === 200 && $body['track']['id'] === 3 && $body['track']['source'] === $source, 'Audio ID resolves to MuchoCore ID');
     musicCheck($body['track']['sha256'] === hash_file('sha256', $mp3), 'MP3 checksum');
-    musicCheck($library->handle('track', ['id' => '3']) === [$status, $body], 'Track lookup returns the same track');
+    musicCheck($library->handle('track', ['id' => '3']) === [$status, $body], 'Stored track ID resolves to the same track');
+    [$localStatus, $local] = $library->handle('muchocore', ['id' => '12345']);
+    musicCheck($localStatus === 200 && $local['track']['id'] === 12345
+        && $local['track']['source'] === null && $local['track']['title'] !== $body['track']['title'], 'Local and Newgrounds IDs are independent');
+    musicCheck($library->handle('muchocore', ['id' => '3'])[0] === 404, 'Newgrounds recording is not a local ID alias');
+    musicCheck($library->handle('muchocore', ['id' => ['1']])[0] === 400, 'Invalid local ID');
     [$levelStatus, $level] = $library->handle('level', ['id' => '40']);
     musicCheck($levelStatus === 200 && $level['track'] === $body['track'], 'Level resolves to the same track');
     musicCheck($library->handle('level', ['id' => '41']) === [200, ['version' => 1, 'level_id' => 41, 'track' => null]], 'Built-in song');
     musicCheck($library->handle('level', ['id' => '42'])[0] === 404, 'Unlisted level');
+    musicCheck($library->handle('level', ['id' => '43'])[1]['track'] === $local['track'], 'Local track survives the level association');
     musicCheck($library->handle('newgrounds', ['id' => '12346'])[0] === 404, 'Pending source');
     musicCheck($library->handle('newgrounds', ['id' => ['12345']])[0] === 400, 'Malformed source query');
     musicCheck(!array_key_exists('source', $catalog->handle('track', ['id' => '3'])[1]['track']), 'Legacy contract');

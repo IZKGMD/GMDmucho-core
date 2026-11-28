@@ -113,3 +113,11 @@ serves the uploaded copy.
 The earlier plugin route and the PHP 7 Shared endpoint still serve their
 original contract. See [OpenAPI](../../../docs/openapi.yaml) for the PHP 8
 catalog and upload operations.
+
+The Cocos2d selector also has **Find by ID**. Enter the numeric song ID,
+choose **MuchoCore** or **Newgrounds**, then **Search**, **Download**, and
+**Use song**. Both sources can have the same numeric ID. The level saves
+the approved recording's internal record ID, so either result can be
+published and resolved by level ID independently. Newgrounds ID search
+requires the PHP 8 library and finds approved copies already in the server's
+library. The same lookup screen on Shared searches the local catalog.

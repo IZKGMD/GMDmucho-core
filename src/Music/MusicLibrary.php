@@ -20,7 +20,8 @@ final readonly class MusicLibrary
             return $this->fromNewgrounds($query['id'] ?? null);
         }
 
-        [$status, $body] = $this->catalog->handle($operation, $query);
+        $localOnly = $operation === 'muchocore';
+        [$status, $body] = $this->catalog->handle($localOnly ? 'track' : $operation, $query);
         if (isset($body['tracks']) && $body['tracks'] !== []) {
             $ids = array_column($body['tracks'], 'id');
             $parameters = implode(',', array_fill(0, count($ids), '?'));
@@ -36,7 +37,12 @@ final readonly class MusicLibrary
         } elseif (isset($body['track'])) {
             $statement = $this->db->prepare('SELECT newgrounds_id FROM songs WHERE id = ? AND is_verified = 1');
             $statement->execute([$body['track']['id']]);
-            $body['track']['source'] = $this->source($statement->fetchColumn());
+            $sourceId = $statement->fetchColumn();
+            $source = $this->source($sourceId);
+            if ($localOnly && ($sourceId === false || $source !== null)) {
+                return [404, ['error' => 'track_unavailable']];
+            }
+            $body['track']['source'] = $source;
         }
         return [$status, $body];
     }

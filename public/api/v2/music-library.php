@@ -12,7 +12,7 @@ require_once MUCHO_V2_ROOT . '/patchers/android/legacy-custom-songs/server/legac
 muchoV2RequireMethod('GET');
 
 $operation = $_GET['op'] ?? '';
-if (!is_string($operation) || !in_array($operation, ['catalog', 'track', 'level', 'newgrounds'], true)) {
+if (!is_string($operation) || !in_array($operation, ['catalog', 'track', 'level', 'muchocore', 'newgrounds'], true)) {
     muchoV2Send(['error' => 'unknown_operation'], 404);
 }
 

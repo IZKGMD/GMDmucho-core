@@ -57,10 +57,14 @@ paths:
           required: true
           schema:
             type: string
-            enum: [catalog, track, level, newgrounds]
+            enum: [catalog, track, level, muchocore, newgrounds]
         - name: id
           in: query
-          description: MuchoCore track ID, level ID, or Newgrounds Audio ID, depending on op.
+          description: |
+            For muchocore, a track ID from the local MuchoCore catalog.
+            For newgrounds, the original Audio ID. The same number can resolve
+            to different songs in the two catalogs. For track, use the stored
+            MuchoCore record ID. For level, use the published level ID.
           schema:
             type: integer
             minimum: 1
@@ -73,8 +77,8 @@ paths:
       responses:
         "200":
           description: |
-            Version 1 JSON. Catalog returns tracks and next_after. Track and
-            Newgrounds lookup return a track with an MP3 SHA-256. Level lookup
+            Version 1 JSON. Catalog returns tracks and next_after. Track,
+            MuchoCore ID and Newgrounds ID lookup return a track with an MP3 SHA-256. Level lookup
             returns level_id and a track with SHA-256, or a null track for built-in music.
             Track objects include id, title, artist, bytes, a local MP3 url and an
             optional source object with provider, id, and the original track url.
