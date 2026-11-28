@@ -1,0 +1,31 @@
+name: PHP8 concurrency harness
+
+on:
+  pull_request:
+    paths:
+      - "tools/performance/concurrent_php8_http.py"
+      - "tests/performance/test_concurrent_php8_http.py"
+      - "tools/performance/level_sql_audit.php"
+      - "tools/performance/optional_text_search_index_staging.sql"
+      - ".github/workflows/php8-concurrency-harness.yml"
+  push:
+    paths:
+      - "tools/performance/concurrent_php8_http.py"
+      - "tests/performance/test_concurrent_php8_http.py"
+      - "tools/performance/level_sql_audit.php"
+      - "tools/performance/optional_text_search_index_staging.sql"
+      - ".github/workflows/php8-concurrency-harness.yml"
+
+jobs:
+  offline-harness:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Python syntax
+        run: python3 -m py_compile tools/performance/concurrent_php8_http.py tests/performance/test_concurrent_php8_http.py
+      - name: Exercise concurrent read and synthetic write HTTP stubs
+        run: python3 -m unittest discover -s tests/performance -p 'test_concurrent_php8_http.py' -v
+      - name: Check PHP audit syntax
+        run: php -l tools/performance/level_sql_audit.php
