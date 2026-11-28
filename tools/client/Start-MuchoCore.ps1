@@ -17,12 +17,29 @@ try {
     $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
     Write-LaunchLog ('Server: ' + $manifest.server_url)
     Write-LaunchLog ('Working folder: ' + $root)
+    $verified = @{}
     foreach ($entry in $manifest.files) {
-        if ($entry.name -ne [IO.Path]::GetFileName($entry.name)) { throw 'Invalid client verification filename.' }
-        $file = Join-Path $root $entry.name
-        if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw ('Missing game file: ' + $entry.name) }
+        $name = $entry.name
+        if ($name -isnot [string] -or $name -notmatch '^[A-Za-z0-9_. -]+(?:/[A-Za-z0-9_. -]+)*$' -or
+            $name -match '(?:^|/)[^/]*[ .](?:/|$)' -or
+            $entry.sha256 -notmatch '^[a-f0-9]{64}$' -or $verified.ContainsKey($name)) {
+            throw 'Invalid or duplicate client verification entry.'
+        }
+        $file = Join-Path $root ($name.Replace('/', [IO.Path]::DirectorySeparatorChar))
+        if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw ('Missing game file: ' + $name) }
+        if ($manifest.version -eq 1 -and (Get-Item -LiteralPath $file).Length -ne $entry.size) {
+            throw ('Wrong file size: ' + $name)
+        }
         $actual = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
-        if ($actual -ne $entry.sha256) { throw ('Game file differs from this package: ' + $entry.name) }
+        if ($actual -ne $entry.sha256) { throw ('Game file differs from this package: ' + $name) }
+        $verified[$name] = $true
+    }
+    if (-not $verified.ContainsKey('GeometryDash.exe')) { throw 'The game EXE is not listed in the verification manifest.' }
+    if ($manifest.version -eq 1) {
+        if (-not ($verified.Keys -match '^Resources/') -or
+            -not ($verified.Keys -match '^(?:plugins|geode/mods)/.+\.(?:dll|geode)$')) {
+            throw 'The verification manifest must include game resources and plugins.'
+        }
     }
     if (-not (Test-Path -LiteralPath (Join-Path $root 'Resources') -PathType Container)) {
         throw 'Resources is missing. Do not run the EXE alone or from inside the ZIP.'

@@ -31,9 +31,9 @@ try {
     $manifest = [
         'server_url' => 'https://muchogdps.space',
         'source_sha256' => $hashes,
-        'windows' => ['path' => $paths['windows']],
-        'android' => ['path' => $paths['android']],
-        'archive' => ['path' => $paths['archive']],
+        'windows' => ['path' => $paths['windows'], 'size' => strlen('windows'), 'sha256' => hash('sha256', 'windows')],
+        'android' => ['path' => $paths['android'], 'size' => strlen('android'), 'sha256' => hash('sha256', 'android')],
+        'archive' => ['path' => $paths['archive'], 'size' => strlen('archive'), 'sha256' => hash('sha256', 'archive')],
     ];
 
     checkCache(DeploymentClientPack::canReuseClientPack($manifest, 'https://muchogdps.space', $hashes), 'unchanged sources should hit the cache');
@@ -49,6 +49,9 @@ try {
     $legacy = $manifest;
     unset($legacy['source_sha256']);
     checkCache(!DeploymentClientPack::canReuseClientPack($legacy, 'https://muchogdps.space', $hashes), 'legacy cache without source hashes must be rebuilt');
+    file_put_contents($paths['archive'], 'damaged');
+    checkCache(!DeploymentClientPack::canReuseClientPack($manifest, 'https://muchogdps.space', $hashes), 'same-length corruption must invalidate cache');
+    file_put_contents($paths['archive'], 'archive');
     unlink($paths['windows']);
     checkCache(!DeploymentClientPack::canReuseClientPack($manifest, 'https://muchogdps.space', $hashes), 'missing output artifact must invalidate cache');
 } finally {

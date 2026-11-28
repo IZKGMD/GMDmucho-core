@@ -48,9 +48,77 @@ paths:
         "200":
           description: Songs
 
-  /api/v2/music-upload:
+  /api/v2/music-library.php:
+    get:
+      summary: Browse approved MuchoCore tracks for use in levels
+      parameters:
+        - name: op
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [catalog, track, level, muchocore, newgrounds]
+        - name: id
+          in: query
+          description: |
+            For muchocore, a track ID from the local MuchoCore catalog.
+            For newgrounds, the original Audio ID. The same number can resolve
+            to different songs in the two catalogs. For track, use the stored
+            MuchoCore record ID. For level, use the published level ID.
+          schema:
+            type: integer
+            minimum: 1
+        - name: after
+          in: query
+          description: Use next_after from the previous catalog response until it is null.
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        "200":
+          description: |
+            Version 1 JSON. Catalog returns tracks and next_after. Track,
+            MuchoCore ID and Newgrounds ID lookup return a track with an MP3 SHA-256. Level lookup
+            returns level_id and a track with SHA-256, or a null track for built-in music.
+            Track objects include id, title, artist, bytes, a local MP3 url and an
+            optional source object with provider, id, and the original track url.
+        "400":
+          description: Invalid cursor or ID
+        "404":
+          description: Unknown operation or unavailable track or level
+        "503":
+          description: Catalog unavailable
+
+  /api/v2/music-upload.php:
     post:
-      summary: Upload MP3
+      summary: Upload MP3 for moderation
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [account_id, title, artist, file]
+              properties:
+                account_id:
+                  type: integer
+                gjp2:
+                  type: string
+                  description: Account credential, or supply gjp for a compatible legacy account.
+                gjp:
+                  type: string
+                title:
+                  type: string
+                  maxLength: 128
+                artist:
+                  type: string
+                  maxLength: 128
+                file:
+                  type: string
+                  format: binary
+                newgrounds_source:
+                  type: string
+                  description: Optional Newgrounds Audio ID or original track URL for an authorized MP3.
       responses:
         "201":
           description: Song created

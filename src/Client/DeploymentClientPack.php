@@ -83,10 +83,37 @@ final class DeploymentClientPack
         if (!is_string($windowsSourceSha) || !is_string($androidSourceSha)) {
             throw new RuntimeException('Cannot calculate the input client SHA-256 hashes.');
         }
+        $packFiles = [
+            __FILE__,
+            __DIR__ . '/DeploymentClientFiles.php',
+            __DIR__ . '/AndroidClientPatcher.php',
+            __DIR__ . '/LegacyAndroidBuild.php',
+            __DIR__ . '/WindowsClientPatcher.php',
+            $rootDir . '/tools/client/Start-MuchoCore.ps1',
+            $rootDir . '/tools/client/START-MuchoCore.cmd',
+            $rootDir . '/patchers/android/legacy-windows/Start-GD.ps1',
+        ];
+        $cocos = $rootDir . '/patchers/android/legacy-custom-songs';
+        $packFiles[] = $cocos . '/patch_apk.py';
+        foreach (glob($cocos . '/android/src/space/muchogdps/legacysongs/*.java') ?: [] as $source) {
+            $packFiles[] = $source;
+        }
+        $packHash = hash_init('sha256');
+        foreach ($packFiles as $file) {
+            if (is_readable($file)) {
+                hash_update_file($packHash, $file);
+            }
+        }
         $sourceSha256 = [
             'windows' => $windowsSourceSha,
             'android' => $androidSourceSha,
+            'pack_code' => hash_final($packHash),
         ];
+
+        $requirements = DeploymentClientFiles::load($rootDir);
+        if ($requirements !== null) {
+            $sourceSha256['required_files'] = $requirements['fingerprint'];
+        }
 
         $lockPath = $jobDir . '/client-pack.lock';
         $lock = fopen($lockPath, 'c');
@@ -122,12 +149,19 @@ final class DeploymentClientPack
                 $server
             );
 
-            $android = AndroidClientPatcher::patchFile(
-                $sourceApk,
-                $androidPath,
-                $server,
-                $heartbeat
+            $android = DeploymentClientFiles::patchAndroid(
+                $rootDir, $sourceApk, $androidPath, $server, $requirements, $heartbeat
             );
+
+            if ($requirements !== null) {
+                try {
+                    DeploymentClientFiles::verifyApk($androidPath, $requirements);
+                } catch (\Throwable $error) {
+                    @unlink($windowsPath);
+                    @unlink($androidPath);
+                    throw $error;
+                }
+            }
 
             $createdAt = gmdate('c');
             $publicManifest = [
@@ -136,11 +170,6 @@ final class DeploymentClientPack
                 'server_name' => $serverName,
                 'created_at' => $createdAt,
                 'files' => [
-                    [
-                        'name' => 'windows/GeometryDash-MuchoGDPS.exe',
-                        'size' => (int)$windows['output_size'],
-                        'sha256' => (string)$windows['output_sha256'],
-                    ],
                     [
                         'name' => 'android/GeometryDash-MuchoGDPS.apk',
                         'size' => (int)$android['output_size'],
@@ -155,11 +184,30 @@ final class DeploymentClientPack
             }
 
             try {
-                if (!$zip->addFile($windowsPath, 'windows/GeometryDash-MuchoGDPS.exe')) {
-                    throw new RuntimeException('Cannot add the Windows client to the client pack ZIP.');
+                if ($requirements !== null) {
+                    foreach (DeploymentClientFiles::addWindows($zip, $rootDir, $windowsPath, $requirements, $server) as $file) {
+                        $file['name'] = 'windows/' . $file['name'];
+                        $publicManifest['files'][] = $file;
+                    }
+                } else {
+                    $windowsEntry = 'windows/GeometryDash-MuchoGDPS.exe';
+                    if (!$zip->addFile($windowsPath, $windowsEntry)) {
+                        throw new RuntimeException('Cannot add the Windows client to the client pack ZIP.');
+                    }
+                    array_unshift($publicManifest['files'], [
+                        'name' => $windowsEntry,
+                        'size' => (int)$windows['output_size'],
+                        'sha256' => (string)$windows['output_sha256'],
+                    ]);
                 }
                 if (!$zip->addFile($androidPath, 'android/GeometryDash-MuchoGDPS.apk')) {
                     throw new RuntimeException('Cannot add the Android client to the client pack ZIP.');
+                }
+                if (is_array($android['legacy_build'] ?? null)) {
+                    LegacyAndroidBuild::addWindowsLauncher(
+                        $zip, 'windows-emulator/', $androidPath, $android['legacy_build'],
+                        $rootDir . '/patchers/android/legacy-windows'
+                    );
                 }
                 if (!$zip->addFromString(
                     'client-pack.json',
@@ -167,8 +215,17 @@ final class DeploymentClientPack
                 )) {
                     throw new RuntimeException('Cannot add the client pack manifest to the ZIP archive.');
                 }
-            } finally {
+            } catch (\Throwable $error) {
+                $zip->unchangeAll();
                 $zip->close();
+                @unlink($archivePath);
+                @unlink($windowsPath);
+                @unlink($androidPath);
+                throw $error;
+            }
+            if (!$zip->close()) {
+                @unlink($archivePath);
+                throw new RuntimeException('Cannot finalize client pack ZIP.');
             }
 
             $archiveSize = filesize($archivePath);
@@ -190,6 +247,7 @@ final class DeploymentClientPack
                 // Key the cached pack to the actual input binaries, not only
                 // the server URL. Existing manifests without hashes expire.
                 'source_sha256' => $sourceSha256,
+                'verified_launch' => $requirements !== null,
                 'windows' => [
                     'path' => $windowsPath,
                     'name' => 'GeometryDash-MuchoGDPS.exe',
@@ -203,6 +261,7 @@ final class DeploymentClientPack
                     'size' => (int)$android['output_size'],
                     'sha256' => (string)$android['output_sha256'],
                     'replacement_count' => (int)$android['replacement_count'],
+                    'server_plugin' => isset($requirements['cocos_library']) ? 'legacy-songs' : null,
                 ],
                 'archive' => [
                     'path' => $archivePath,
@@ -242,14 +301,24 @@ final class DeploymentClientPack
             !is_array($existing) ||
             ($existing['server_url'] ?? null) !== $server ||
             ($existing['source_sha256']['windows'] ?? null) !== $sourceSha256['windows'] ||
-            ($existing['source_sha256']['android'] ?? null) !== $sourceSha256['android']
+            ($existing['source_sha256']['android'] ?? null) !== $sourceSha256['android'] ||
+            ($existing['source_sha256']['required_files'] ?? null) !== ($sourceSha256['required_files'] ?? null) ||
+            ($existing['source_sha256']['pack_code'] ?? null) !== ($sourceSha256['pack_code'] ?? null)
         ) {
             return false;
         }
 
         foreach (['windows', 'android', 'archive'] as $type) {
-            $path = $existing[$type]['path'] ?? null;
-            if (!is_string($path) || $path === '' || !is_file($path)) {
+            $entry = $existing[$type] ?? [];
+            $path = $entry['path'] ?? null;
+            $digest = $entry['sha256'] ?? null;
+            if (!is_string($path) || !is_readable($path) || !is_file($path) ||
+                !is_string($digest) || !preg_match('/^[a-f0-9]{64}$/D', $digest) ||
+                @filesize($path) !== ($entry['size'] ?? null)) {
+                return false;
+            }
+            $actual = hash_file('sha256', $path);
+            if (!is_string($actual) || !hash_equals($digest, $actual)) {
                 return false;
             }
         }

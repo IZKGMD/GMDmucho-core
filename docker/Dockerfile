@@ -13,7 +13,7 @@ ARG MUCHO_WITH_REDIS=0
 
 ## Configure FTPS after building the other extensions: their build cleanup resets FTP's Makefile.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends git unzip zip openssl openssh-client sshpass mariadb-client libzip-dev libpng-dev libjpeg62-turbo-dev libssl-dev android-sdk-build-tools \
+    && apt-get install -y --no-install-recommends git unzip zip openssl openssh-client sshpass mariadb-client libzip-dev libpng-dev libjpeg62-turbo-dev libssl-dev android-sdk-build-tools python3 \
     && docker-php-ext-configure gd --with-jpeg \
     && docker-php-ext-install gd \
     && docker-php-ext-install pdo_mysql zip \

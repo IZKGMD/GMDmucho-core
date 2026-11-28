@@ -32,10 +32,16 @@ $php8OnlyDiagnosticHashes=array(
     'src/Moderation/Gd2209CaseService.php'=>'c57e1836b7edaf31d60e66d8daea92cf78948ba24d6bb5061560ad026a991aad',
     'src/Moderation/ReportQueueRepository.php'=>'af4189c92ad58fbe80529cff48424ea374a184136993ab7f4a4659b302a96901',
     'src/Moderation/ReportQueueService.php'=>'699f44e17d3c4b5c64a17e0e10525ade9460e3cb2d04347fe7b330416bac747c',
+    // Verified client bundles and legacy Cocos2d builds use the PHP 8 installer.
+    'public/clients.php'=>'9f697de34c0fe32f0d3d3dac43288f0066e7ac5d4841543697d1ef824d40bc8e',
+    'src/Client/DeploymentClientPack.php'=>'e414d19b6c5dec25fa1feccca0517fbd137d7a5e04b9370376c6999e25047227',
+    'src/Plugin/PluginManager.php'=>'89fd73c95f5476e4e3f56ee0c22c91941e7937e05cfbc5a2a6ae91e8d4eca0cf',
     'src/Client/AndroidGd2209Binary.php'=>'8c0dcb95a744fba6dbb7a59222c3ae12cc25f6ff7ad35ee83ed85c9b9ea601f7',
-    'src/Client/AndroidClientPatcher.php'=>'5721dc460765470757a66518d7110c5886f8c6eefe943a1dcfda5c78b5c6821d',
+    'src/Client/AndroidClientPatcher.php'=>'d7a7d4b922a4274a992c31d126dc21b399d0182c6a3f16da3461763b37a0be34',
     'src/Social/MessageController.php'=>'20146708112462034cbe140a60a553a5e344a6bdbf3d20b1430c5059c82a660b',
     'src/Social/MessageService.php'=>'3d42dfed2b6cd97f3c8db974aabb8f1aee0ec59da6f95bdc4f388bd9fced4e86',
+    // Newgrounds source attribution is available in the PHP 8 dashboard.
+    'public/dashboard/index.php'=>'138aa12c4272a33227a54068dc77c4e2ed4bceaec05d389f8d638fd1016e73b2',
     // PHP 8 request bootstrap and authentication optimizations.
     'src/Account/AccountAuthenticator.php'=>'df4c34f8cc1624fe475e1e7dff79f8bf14a113a8cf646155490e24788d23b9a0',
     'src/Core/Application.php'=>'44e8139178cc22edb7936c77b707d6256c69c9d6baac967656188527c3600998',

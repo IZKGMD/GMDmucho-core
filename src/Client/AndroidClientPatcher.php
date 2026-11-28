@@ -7,6 +7,7 @@ namespace MuchoCore\Client;
 require_once __DIR__ . '/AndroidGd2209Binary.php';
 require_once __DIR__ . '/AndroidGd22144Binary.php';
 require_once __DIR__ . '/AndroidPackageRelocator.php';
+require_once __DIR__ . '/LegacyAndroidBuild.php';
 
 use RuntimeException;
 use ZipArchive;
@@ -66,7 +67,8 @@ final class AndroidClientPatcher
         string $outputPath,
         string $serverUrl,
         ?callable $heartbeat = null,
-        bool $installAlongside = false
+        bool $installAlongside = false,
+        string $expectedVersion = 'auto'
     ): array {
         $server = WindowsClientPatcher::validateServerUrl($serverUrl);
 
@@ -95,6 +97,19 @@ final class AndroidClientPatcher
         $openResult = $source->open($inputPath);
         if ($openResult !== true) {
             throw new RuntimeException('The uploaded file is not a readable APK/ZIP archive.');
+        }
+
+        try {
+            $legacyBuild = LegacyAndroidBuild::detect($source);
+            if ($expectedVersion !== 'auto' && ($legacyBuild['version'] ?? null) !== $expectedVersion) {
+                throw new RuntimeException(
+                    'Selected GD ' . $expectedVersion . ' does not match ' .
+                    ($legacyBuild['source_build'] ?? 'any recognized legacy build in this APK') . '.'
+                );
+            }
+        } catch (\Throwable $error) {
+            $source->close();
+            throw $error;
         }
 
         // Prefer the audited GD 2.209 native endpoint layout, including
@@ -177,7 +192,7 @@ final class AndroidClientPatcher
                 $inputPath, $outputPath, $server, $nativeLibraries, $heartbeat, $installAlongside
             );
         }
-        if ($installAlongside) {
+        if ($installAlongside && $legacyBuild === null) {
             $source->close();
             throw new RuntimeException(
                 'Side-by-side package relocation requires a verified or structurally compatible GD 2.209 ARM build.'
@@ -185,7 +200,7 @@ final class AndroidClientPatcher
         }
 
         $hasManifest = false;
-        $replacements = self::buildReplacements($server);
+        $replacements = $legacyBuild === null ? self::buildReplacements($server) : [];
         $replacementCount = 0;
         $patchedEntries = [];
         $lastHeartbeat = microtime(true);
@@ -245,7 +260,19 @@ final class AndroidClientPatcher
                 throw new RuntimeException('Failed to read APK entry: ' . $name);
             }
 
-            if (self::shouldPatchEntry($name)) {
+            if ($legacyBuild !== null &&
+                preg_match('~^lib/(?:armeabi|armeabi-v7a|x86)/lib(?:game|cocos2dcpp)\.so$~D', $name)) {
+                try {
+                    [$data, $count] = LegacyAndroidBuild::patchNative($data, $server, $legacyBuild['endpoints_per_abi']);
+                } catch (\Throwable $error) {
+                    $out->close();
+                    $source->close();
+                    @unlink($rebuiltPath);
+                    throw $error;
+                }
+                $replacementCount += $count;
+                $patchedEntries[] = ['name' => $name, 'replacements' => $count];
+            } elseif ($legacyBuild === null && self::shouldPatchEntry($name)) {
                 $count = 0;
                 $data = self::replaceBuffer($data, $replacements, $count);
                 $hostCount = 0;
@@ -329,6 +356,8 @@ final class AndroidClientPatcher
             'input_sha256' => hash_file('sha256', $inputPath) ?: '',
             'output_sha256' => hash_file('sha256', $outputPath) ?: '',
             'signed' => true,
+            'source_build' => $legacyBuild['source_build'] ?? 'Android GD',
+            'legacy_build' => $legacyBuild,
         ];
     }
 

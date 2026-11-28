@@ -219,6 +219,7 @@ jobs:
           php tests/client/windows-client-patcher.php
           php tests/client/windows-real-client.php
           php tests/client/android-client-patcher.php
+          php tests/client/required-client-files.php
           bash tests/client/client-auto-patch-contract.sh
 
       - name: Enforce continuous endpoint quality and test coverage

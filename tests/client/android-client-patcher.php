@@ -6,6 +6,7 @@ require dirname(__DIR__, 2) . '/src/Client/WindowsClientPatcher.php';
 require dirname(__DIR__, 2) . '/src/Client/AndroidClientPatcher.php';
 
 use MuchoCore\Client\AndroidClientPatcher;
+use MuchoCore\Client\DeploymentClientPack;
 
 $dir = sys_get_temp_dir() . '/muchocore-android-patcher-' . bin2hex(random_bytes(6));
 if (!mkdir($dir, 0700, true) && !is_dir($dir)) {
@@ -211,6 +212,56 @@ try {
 
     $check->close();
 
+    // Exercise a complete verified pack with the same signed Android fixture.
+    $root = dirname(__DIR__, 2);
+    require $root . '/vendor/autoload.php';
+    $packRoot = $dir . '/pack';
+    $clientSources = $packRoot . '/storage/client-sources';
+    $windowsRuntime = $clientSources . '/windows-runtime';
+    mkdir($windowsRuntime . '/Resources', 0700, true);
+    mkdir($windowsRuntime . '/plugins', 0700);
+    symlink($root . '/GeometryDash.exe', $packRoot . '/GeometryDash.exe');
+    symlink($root . '/tools', $packRoot . '/tools');
+    file_put_contents($windowsRuntime . '/Resources/fixture.png', 'fixture resource');
+    file_put_contents($windowsRuntime . '/plugins/fixture.dll', 'fixture Windows plugin');
+
+    $pluginEntry = 'lib/arm64-v8a/libfixture.so';
+    $zip->open($input);
+    $zip->addFromString($pluginEntry, 'fixture Android plugin');
+    $zip->close();
+    file_put_contents($clientSources . '/required-client-files.json', json_encode([
+        'version' => 1,
+        'windows' => ['Resources/fixture.png', 'plugins/fixture.dll'],
+        'android_plugins' => [$pluginEntry => hash('sha256', 'fixture Android plugin')],
+    ], JSON_THROW_ON_ERROR));
+
+    $previousSource = getenv('MUCHO_ANDROID_BASE_APK');
+    putenv('MUCHO_ANDROID_BASE_APK=' . $input);
+    try {
+        $pack = DeploymentClientPack::prepare($packRoot, $packRoot, 'https://gdps-example.com');
+    } finally {
+        putenv(is_string($previousSource) ? 'MUCHO_ANDROID_BASE_APK=' . $previousSource : 'MUCHO_ANDROID_BASE_APK');
+    }
+
+    $zip->open($pack['archive']['path']);
+    $inventory = json_decode($zip->getFromName('client-pack.json'), true, 16, JSON_THROW_ON_ERROR);
+    if (!$pack['verified_launch'] || array_column($inventory['files'], 'name') !== [
+        'android/GeometryDash-MuchoGDPS.apk',
+        'windows/GeometryDash.exe',
+        'windows/Resources/fixture.png',
+        'windows/plugins/fixture.dll',
+    ]) {
+        throw new RuntimeException('Verified client pack describes the wrong file paths.');
+    }
+    foreach ($inventory['files'] as $file) {
+        $content = $zip->getFromName($file['name']);
+        if (!is_string($content) || strlen($content) !== $file['size'] ||
+            !hash_equals($file['sha256'], hash('sha256', $content))) {
+            throw new RuntimeException('Verified pack inventory does not match the archive.');
+        }
+    }
+    $zip->close();
+
     $legacyKey = $dir . '/android-signer/muchocore-android.key.pem';
     $legacyOutput = [];
     $legacyCode = 0;
@@ -289,15 +340,16 @@ try {
     echo "Android client patcher test passed\n";
 } finally {
     putenv('MUCHO_ANDROID_SIGNER_DIR');
-    foreach (glob($dir . '/*') ?: [] as $file) {
-        if (is_dir($file)) {
-            foreach (glob($file . '/*') ?: [] as $nested) {
-                @unlink($nested);
-            }
-            @rmdir($file);
-            continue;
+    $files = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::CHILD_FIRST
+    );
+    foreach ($files as $file) {
+        if ($file->isDir() && !$file->isLink()) {
+            rmdir($file->getPathname());
+        } else {
+            unlink($file->getPathname());
         }
-        @unlink($file);
     }
-    @rmdir($dir);
+    rmdir($dir);
 }

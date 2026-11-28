@@ -112,6 +112,7 @@ function upload_client_pack_to_shared(
         'source_windows_sha256' => (string)($manifest['source_windows_sha256'] ?? ''),
         'source_android_sha256' => (string)($manifest['source_android_sha256'] ?? ''),
         'created_at' => gmdate('c'),
+        'verified_launch' => (bool)($manifest['verified_launch'] ?? false),
         'windows' => [
             'name' => (string)($manifest['windows']['name'] ?? 'GeometryDash-MuchoGDPS.exe'),
             'size' => (int)($manifest['windows']['size'] ?? 0),
@@ -119,6 +120,7 @@ function upload_client_pack_to_shared(
             'replacement_count' => (int)($manifest['windows']['replacement_count'] ?? 0),
         ],
         'android' => [
+            'server_plugin' => $manifest['android']['server_plugin'] ?? null,
             'name' => (string)($manifest['android']['name'] ?? 'GeometryDash-MuchoGDPS.apk'),
             'size' => (int)($manifest['android']['size'] ?? 0),
             'sha256' => (string)($manifest['android']['sha256'] ?? ''),

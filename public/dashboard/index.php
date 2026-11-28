@@ -5,6 +5,7 @@ use MuchoCore\Account\AccountAuthenticator;
 use MuchoCore\Core\Environment;
 use MuchoCore\Branding\BrandingService;
 use MuchoCore\Database\Database;
+use MuchoCore\Music\NewgroundsSource;
 use MuchoCore\Security\RateLimiter;
 use MuchoCore\Security\SoftAntiBot;
 use MuchoCore\Security\Turnstile;
@@ -465,6 +466,13 @@ if ($action === 'upload') {
         pdRedirect();
     }
 
+    try {
+        $newgroundsId = NewgroundsSource::parse($_POST['newgrounds_source'] ?? null);
+    } catch (InvalidArgumentException $error) {
+        pdFlash($error->getMessage(), 'error');
+        pdRedirect();
+    }
+
     if (
         !isset($_FILES['music_file']) ||
         ($_FILES['music_file']['error'] ?? -1) !== UPLOAD_ERR_OK
@@ -540,9 +548,9 @@ if ($action === 'upload') {
 
         $stmt = $db->prepare(
             'INSERT INTO songs
-                (name, author_id, author_name, size, download_url, is_verified)
+                (name, author_id, author_name, size, download_url, is_verified, newgrounds_id)
              VALUES
-                (:name, :author_id, :author_name, :size, :download_url, 0)'
+                (:name, :author_id, :author_name, :size, :download_url, 0, :newgrounds_id)'
         );
 
         $stmt->execute([
@@ -551,6 +559,7 @@ if ($action === 'upload') {
             'author_name' => $artist,
             'size' => round($size / 1024 / 1024, 2),
             'download_url' => $downloadUrl,
+            'newgrounds_id' => $newgroundsId,
         ]);
 
         $songId = (int)$db->lastInsertId();
@@ -1742,6 +1751,12 @@ body.dashboard-page .topbar{
                         <div class="field">
                             <label>Artist</label>
                             <input type="text" name="artist" maxlength="128" value="<?=pdH($account['username'])?>" required>
+                        </div>
+
+                        <div class="field">
+                            <label for="newgrounds-source">Newgrounds Audio ID or track URL (optional)</label>
+                            <input type="text" id="newgrounds-source" name="newgrounds_source" maxlength="160" aria-describedby="music-permission">
+                            <small id="music-permission">Upload an MP3 you made or have permission to redistribute.</small>
                         </div>
                     </div>
 
